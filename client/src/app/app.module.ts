@@ -32,6 +32,10 @@ import { AuthGuard } from './guards/auth.guard';
 // Interceptors
 import { AuthInterceptor } from './interceptors/auth.interceptor';
 
+// Layout Components
+import { MainLayoutComponent } from './layouts/main-layout/main-layout.component';
+import { AuthLayoutComponent } from './layouts/auth-layout/auth-layout.component';
+
 @NgModule({
   declarations: [
     AppComponent,
@@ -40,7 +44,9 @@ import { AuthInterceptor } from './interceptors/auth.interceptor';
     DashboardComponent,
     NavbarComponent,
     SidebarComponent,
-    ProfileComponent
+    ProfileComponent,
+    MainLayoutComponent,
+    AuthLayoutComponent
   ],
   imports: [
     BrowserModule,

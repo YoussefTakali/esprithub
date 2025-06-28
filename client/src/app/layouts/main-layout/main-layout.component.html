@@ -1,0 +1,18 @@
+<!-- Navbar -->
+<app-navbar (sidebarToggled)="sidebarService.toggleSidebar($event)"></app-navbar>
+
+<!-- Sidebar -->
+<app-sidebar [isSidebarVisible]="(sidebarService.sidebarVisible$ | async) ?? false"></app-sidebar>
+
+<!-- Mobile backdrop for sidebar -->
+<button class="sidebar-backdrop" 
+        [class.visible]="(sidebarService.sidebarVisible$ | async) ?? false" 
+        (click)="sidebarService.closeSidebar()"
+        (keydown.escape)="sidebarService.closeSidebar()"
+        aria-label="Close sidebar">
+</button>
+
+<!-- Main content -->
+<div class="main-content" [class.sidebar-open]="(sidebarService.sidebarVisible$ | async) ?? false">
+  <router-outlet></router-outlet>
+</div>
