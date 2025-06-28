@@ -1,0 +1,235 @@
+<div class="user-management">
+  <div class="header">
+    <h1>User Management</h1>
+    <button 
+      class="create-btn" 
+      (click)="onCreateUser()" 
+      [disabled]="saving"
+      title="Create new user">
+      <i class="fas fa-user-plus"></i>
+      Create User
+    </button>
+  </div>
+
+  <!-- Loading State -->
+  <div *ngIf="loading" class="loading-container">
+    <div class="spinner"></div>
+    <p>Loading users...</p>
+  </div>
+
+  <!-- Error State -->
+  <div *ngIf="error && !loading" class="error-container">
+    <div class="error-message">
+      <i class="fas fa-exclamation-triangle"></i>
+      <p>{{ error }}</p>
+      <button class="retry-btn" (click)="loadData()">Try Again</button>
+    </div>
+  </div>
+
+  <!-- Create/Edit Form -->
+  <div *ngIf="showCreateForm" class="form-overlay">
+    <div class="form-container">
+      <div class="form-header">
+        <h2>{{ editingUser ? 'Edit User' : 'Create User' }}</h2>
+        <button class="close-btn" (click)="onCancelForm()" [disabled]="saving">
+          <i class="fas fa-times"></i>
+        </button>
+      </div>
+
+      <form (ngSubmit)="onSubmitForm()" class="user-form">
+        <div class="form-row">
+          <div class="form-group">
+            <label for="firstName">First Name *</label>
+            <input
+              id="firstName"
+              type="text"
+              [(ngModel)]="createForm.firstName"
+              name="firstName"
+              placeholder="Enter first name"
+              required
+              [disabled]="saving"
+              class="form-input">
+          </div>
+
+          <div class="form-group">
+            <label for="lastName">Last Name *</label>
+            <input
+              id="lastName"
+              type="text"
+              [(ngModel)]="createForm.lastName"
+              name="lastName"
+              placeholder="Enter last name"
+              required
+              [disabled]="saving"
+              class="form-input">
+          </div>
+        </div>
+
+        <div class="form-group">
+          <label for="email">Email *</label>
+          <input
+            id="email"
+            type="email"
+            [(ngModel)]="createForm.email"
+            name="email"
+            placeholder="Enter email address"
+            required
+            [disabled]="saving"
+            class="form-input">
+        </div>
+
+        <div class="form-group" *ngIf="!editingUser">
+          <label for="password">Password *</label>
+          <input
+            id="password"
+            type="password"
+            [(ngModel)]="createForm.password"
+            name="password"
+            placeholder="Enter password"
+            required
+            [disabled]="saving"
+            class="form-input">
+        </div>
+
+        <div class="form-row">
+          <div class="form-group">
+            <label for="role">Role *</label>
+            <select
+              id="role"
+              [(ngModel)]="createForm.role"
+              name="role"
+              required
+              [disabled]="saving"
+              class="form-select">
+              <option *ngFor="let role of userRoles" [value]="role">
+                {{ getRoleDisplayName(role) }}
+              </option>
+            </select>
+          </div>
+
+          <div class="form-group" *ngIf="createForm.role === 'CHIEF' || createForm.role === 'TEACHER' || createForm.role === 'STUDENT'">
+            <label for="department">Department</label>
+            <select
+              id="department"
+              [(ngModel)]="createForm.departementId"
+              name="departementId"
+              [disabled]="saving"
+              class="form-select">
+              <option [value]="undefined">No department</option>
+              <option *ngFor="let dept of departments" [value]="dept.id">
+                {{ dept.nom }}
+              </option>
+            </select>
+          </div>
+        </div>
+
+        <div class="form-actions">
+          <button 
+            type="button" 
+            class="cancel-btn" 
+            (click)="onCancelForm()" 
+            [disabled]="saving">
+            Cancel
+          </button>
+          <button 
+            type="submit" 
+            class="submit-btn" 
+            [disabled]="saving || !createForm.firstName.trim() || !createForm.lastName.trim() || !createForm.email.trim()">
+            <i *ngIf="saving" class="fas fa-spinner fa-spin"></i>
+            {{ editingUser ? 'Update' : 'Create' }} User
+          </button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <!-- Users Table -->
+  <div *ngIf="!loading && !error" class="users-container">
+    <div *ngIf="users.length === 0" class="no-data">
+      <i class="fas fa-users"></i>
+      <h3>No users found</h3>
+      <p>Get started by creating your first user.</p>
+      <button class="create-btn" (click)="onCreateUser()">
+        <i class="fas fa-user-plus"></i>
+        Create User
+      </button>
+    </div>
+
+    <div *ngIf="users.length > 0" class="table-container">
+      <div class="table-wrapper">
+        <table class="users-table">
+          <thead>
+            <tr>
+              <th>Name</th>
+              <th>Email</th>
+              <th>Role</th>
+              <th>Department</th>
+              <th>Status</th>
+              <th>Last Login</th>
+              <th>Actions</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr *ngFor="let user of users" [class.inactive-row]="!user.isActive">
+              <td>
+                <div class="user-info">
+                  <div class="user-name">{{ user.fullName }}</div>
+                  <div class="user-github" *ngIf="user.githubUsername">
+                    <i class="fab fa-github"></i>
+                    {{ user.githubUsername }}
+                  </div>
+                </div>
+              </td>
+              <td>
+                <div class="email-info">
+                  <span class="email">{{ user.email }}</span>
+                  <span class="email-status" [class.verified]="user.isEmailVerified" [class.unverified]="!user.isEmailVerified">
+                    <i class="fas" [class.fa-check-circle]="user.isEmailVerified" [class.fa-exclamation-circle]="!user.isEmailVerified"></i>
+                    {{ user.isEmailVerified ? 'Verified' : 'Unverified' }}
+                  </span>
+                </div>
+              </td>
+              <td>
+                <span class="role-badge" [attr.data-role]="user.role">
+                  {{ getRoleDisplayName(user.role) }}
+                </span>
+              </td>
+              <td>{{ getDepartmentName(user.departementId) }}</td>
+              <td>
+                <span class="status-badge" [class.active]="user.isActive" [class.inactive]="!user.isActive">
+                  {{ user.isActive ? 'Active' : 'Inactive' }}
+                </span>
+              </td>
+              <td>
+                <span *ngIf="user.lastLogin; else noLogin">
+                  {{ user.lastLogin | date:'short' }}
+                </span>
+                <ng-template #noLogin>
+                  <span class="no-login">Never</span>
+                </ng-template>
+              </td>
+              <td>
+                <div class="action-buttons">
+                  <button 
+                    class="action-btn edit" 
+                    (click)="onEditUser(user)"
+                    [disabled]="saving"
+                    title="Edit user">
+                    <i class="fas fa-edit"></i>
+                  </button>
+                  <button 
+                    class="action-btn delete" 
+                    (click)="onDeleteUser(user)"
+                    [disabled]="saving"
+                    title="Delete user">
+                    <i class="fas fa-trash"></i>
+                  </button>
+                </div>
+              </td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+  </div>
+</div>

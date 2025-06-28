@@ -1,0 +1,409 @@
+/* ==================== SOFT & PROFESSIONAL ESPRIT LOGIN ==================== */
+
+/* Container & Layout */
+.login-container {
+  min-height: 100vh;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  align-items: center;
+  position: relative;
+  background: linear-gradient(135deg, #fafafa 0%, #f5f5f5 50%, #eeeeee 100%);
+  padding: 2rem;
+  overflow: hidden;
+}
+
+/* Soft Animated Background */
+.animated-bg {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  overflow: hidden;
+  z-index: 1;
+}
+
+.shape {
+  position: absolute;
+  background: rgba(201, 25, 13, 0.03);
+  border-radius: 50%;
+  animation: gentleFloat 12s ease-in-out infinite;
+}
+
+.shape-1 {
+  width: 150px;
+  height: 150px;
+  top: 10%;
+  left: 5%;
+  animation-delay: 0s;
+}
+
+.shape-2 {
+  width: 100px;
+  height: 100px;
+  top: 70%;
+  right: 10%;
+  animation-delay: 4s;
+}
+
+.shape-3 {
+  width: 120px;
+  height: 120px;
+  bottom: 20%;
+  left: 70%;
+  animation-delay: 8s;
+}
+
+@keyframes gentleFloat {
+  0%, 100% { 
+    transform: translateY(0px) scale(1);
+    opacity: 0.4;
+  }
+  50% { 
+    transform: translateY(-20px) scale(1.05);
+    opacity: 0.6;
+  }
+}
+
+/* Soft Login Card */
+.login-card {
+  background: rgba(255, 255, 255, 0.95);
+  backdrop-filter: blur(20px);
+  border-radius: 20px;
+  padding: 3rem;
+  box-shadow: 
+    0 20px 60px rgba(0, 0, 0, 0.08),
+    0 8px 25px rgba(201, 25, 13, 0.04);
+  width: 100%;
+  max-width: 450px;
+  position: relative;
+  z-index: 2;
+  border: 1px solid rgba(255, 255, 255, 0.8);
+}
+
+/* Subtle Header */
+.login-header {
+  text-align: center;
+  margin-bottom: 2.5rem;
+}
+
+.logo {
+  width: 65px;
+  height: 65px;
+  margin-bottom: 1.2rem;
+  filter: drop-shadow(0 2px 8px rgba(201, 25, 13, 0.1));
+}
+
+.title {
+  background: linear-gradient(135deg, #8b1538 0%, #c9190d 50%, #a71617 100%);
+  background-clip: text;
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  font-family: "Climate Crisis", sans-serif;
+  font-size: 2.4rem;
+  font-weight: 600;
+  margin: 0 0 0.6rem 0;
+  letter-spacing: 2px;
+}
+
+.subtitle {
+  color: #666666;
+  font-size: 1rem;
+  margin: 0;
+  font-weight: 400;
+  opacity: 0.8;
+}
+
+/* Soft Form Styles */
+.login-form {
+  display: flex;
+  flex-direction: column;
+  gap: 1.5rem;
+}
+
+.form-group {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+}
+
+.form-label {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  font-weight: 500;
+  color: #444444;
+  font-size: 0.9rem;
+  letter-spacing: 0.3px;
+}
+
+.form-label i {
+  font-size: 0.85rem;
+  color: rgba(201, 25, 13, 0.6);
+}
+
+.input-wrapper {
+  position: relative;
+  display: flex;
+  align-items: center;
+}
+
+.form-input {
+  width: 100%;
+  padding: 1rem 3rem 1rem 1rem;
+  border: 2px solid #e8e9ea;
+  border-radius: 12px;
+  font-size: 1rem;
+  font-family: "Poppins", sans-serif;
+  transition: all 0.3s ease;
+  background: rgba(255, 255, 255, 0.9);
+  color: #333333;
+}
+
+.form-input:focus {
+  outline: none;
+  border-color: rgba(201, 25, 13, 0.4);
+  box-shadow: 0 0 0 3px rgba(201, 25, 13, 0.08);
+  transform: translateY(-1px);
+}
+
+.form-input.error {
+  border-color: #ff6b6b;
+  background: rgba(255, 107, 107, 0.05);
+}
+
+.form-input::placeholder {
+  color: #999999;
+  font-style: italic;
+}
+
+.input-icon {
+  position: absolute;
+  right: 1rem;
+  color: #999999;
+  pointer-events: none;
+}
+
+.password-toggle {
+  position: absolute;
+  right: 1rem;
+  background: none;
+  border: none;
+  color: #666666;
+  cursor: pointer;
+  padding: 0.5rem;
+  border-radius: 6px;
+  transition: all 0.2s ease;
+}
+
+.password-toggle:hover {
+  color: rgba(201, 25, 13, 0.7);
+  background: rgba(201, 25, 13, 0.05);
+}
+
+/* Soft Error Messages */
+.error-message {
+  background: linear-gradient(135deg, #ffebee, #fce4ec);
+  color: #c62828;
+  padding: 1rem;
+  border-radius: 10px;
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  font-size: 0.9rem;
+  font-weight: 500;
+  border-left: 4px solid #ef5350;
+  animation: slideIn 0.3s ease;
+}
+
+.form-error {
+  color: #e57373;
+  font-size: 0.85rem;
+  font-weight: 500;
+  margin-top: 0.25rem;
+  display: flex;
+  align-items: center;
+  gap: 0.25rem;
+}
+
+/* Soft Login Button */
+.login-btn {
+  background: linear-gradient(135deg, #c9190d 0%, #a71617 100%);
+  color: white;
+  border: none;
+  padding: 1.2rem 2rem;
+  border-radius: 12px;
+  font-size: 1.1rem;
+  font-weight: 600;
+  font-family: "Poppins", sans-serif;
+  cursor: pointer;
+  transition: all 0.3s ease;
+  box-shadow: 0 6px 20px rgba(201, 25, 13, 0.2);
+  margin-top: 1rem;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.5rem;
+}
+
+.login-btn:hover:not(:disabled) {
+  transform: translateY(-2px);
+  box-shadow: 0 10px 30px rgba(201, 25, 13, 0.3);
+  background: linear-gradient(135deg, #d91e18 0%, #b71c1c 100%);
+}
+
+.login-btn:active:not(:disabled) {
+  transform: translateY(0);
+}
+
+.login-btn:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+  transform: none;
+}
+
+.login-btn.loading {
+  background: linear-gradient(135deg, #999999 0%, #777777 100%);
+}
+
+.loading-content {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+/* Soft Footer */
+.login-footer {
+  margin-top: 2rem;
+  text-align: center;
+}
+
+.help-text {
+  color: #777777;
+  font-size: 0.9rem;
+  margin: 0 0 1rem 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.5rem;
+}
+
+.github-notice {
+  background: linear-gradient(135deg, #f8f9fa, #e9ecef);
+  padding: 0.8rem 1rem;
+  border-radius: 8px;
+  color: #495057;
+  font-size: 0.85rem;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.5rem;
+  border: 1px solid #dee2e6;
+}
+
+.github-notice i {
+  color: #24292e;
+}
+
+/* Soft Test Credentials */
+.test-credentials {
+  background: rgba(255, 255, 255, 0.9);
+  backdrop-filter: blur(10px);
+  border-radius: 15px;
+  padding: 1.5rem;
+  margin-top: 2rem;
+  border: 1px solid rgba(255, 255, 255, 0.6);
+  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.05);
+  width: 100%;
+  max-width: 450px;
+  position: relative;
+  z-index: 2;
+}
+
+.test-credentials h4 {
+  color: #444444;
+  margin: 0 0 1rem 0;
+  text-align: center;
+  font-size: 1.1rem;
+  font-weight: 500;
+}
+
+.credential-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 0.75rem;
+}
+
+.credential-item {
+  background: linear-gradient(135deg, #ffffff, #f8f9fa);
+  padding: 0.75rem;
+  border-radius: 8px;
+  font-size: 0.8rem;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  border: 1px solid #e9ecef;
+  text-align: center;
+}
+
+.credential-item:hover {
+  background: linear-gradient(135deg, rgba(201, 25, 13, 0.05), rgba(201, 25, 13, 0.1));
+  color: #444444;
+  transform: translateY(-2px);
+  box-shadow: 0 4px 12px rgba(201, 25, 13, 0.1);
+  border-color: rgba(201, 25, 13, 0.2);
+}
+
+.credential-item strong {
+  display: block;
+  margin-bottom: 0.25rem;
+  font-size: 0.85rem;
+  color: rgba(201, 25, 13, 0.8);
+}
+
+/* Soft Animations */
+@keyframes slideIn {
+  from {
+    opacity: 0;
+    transform: translateY(-10px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+/* Responsive Design */
+@media (max-width: 768px) {
+  .login-container {
+    padding: 1rem;
+  }
+  
+  .login-card {
+    padding: 2rem;
+    margin: 1rem;
+  }
+  
+  .title {
+    font-size: 2rem;
+  }
+  
+  .credential-grid {
+    grid-template-columns: 1fr;
+  }
+}
+
+@media (max-width: 480px) {
+  .login-card {
+    padding: 1.5rem;
+  }
+  
+  .title {
+    font-size: 1.8rem;
+    letter-spacing: 1px;
+  }
+  
+  .form-input {
+    padding: 0.9rem 2.5rem 0.9rem 0.9rem;
+  }
+}

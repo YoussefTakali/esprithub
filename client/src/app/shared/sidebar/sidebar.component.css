@@ -1,0 +1,145 @@
+/* Enhanced Sidebar Container */
+.s-container {
+  height: calc(100vh - 7.2vh); /* Full height minus navbar */
+  width: 311px;
+  background-color: white;
+  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.15);
+  position: fixed;
+  pointer-events: auto;
+  left: -320px; /* Hidden by default */
+  top: 7.2vh; /* Below the navbar */
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+  display: flex;
+  flex-direction: column;
+  border-right: 1px solid rgba(0, 0, 0, 0.08);
+  overflow: hidden;
+  z-index: 1000; /* Below navbar but above content */
+}
+
+/* Visible state with enhanced animation */
+.s-container.visible {
+  left: 0;
+  box-shadow: 5px 0 25px rgba(0, 0, 0, 0.2);
+}
+
+/* Sidebar link container with improved spacing */
+.s-container ul {
+  width: 100%;
+  padding: 10px 0;
+  margin: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  overflow-y: auto;
+  height: 100%;
+  list-style-type: none;
+}
+
+/* Enhanced sidebar link styles */
+.s-link {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  height: 50px;
+  cursor: pointer;
+  text-decoration: none;
+  transition: all 0.2s ease-in-out;
+  padding: 0 24px;
+  border-radius: 6px;
+  margin: 0 8px;
+  position: relative;
+}
+
+/* Improved hover effect */
+.s-link:hover {
+  background-color: rgba(0, 0, 0, 0.04);
+  transform: translateX(4px);
+}
+
+/* Active link styling with left border indicator */
+.s-link.active {
+  background-color: rgba(4, 27, 42, 0.05);
+  font-weight: 600;
+  transform: translateX(4px);
+  color: #041b2a;
+}
+
+/* Add a colored indicator for active link */
+.s-link.active::before {
+  content: "";
+  position: absolute;
+  left: -8px;
+  top: 25%;
+  height: 50%;
+  width: 4px;
+  background-color: #041b2a;
+  border-radius: 0 4px 4px 0;
+}
+
+/* Text inside sidebar links with improved typography */
+.s-link-text {
+  color: #041b2a;
+  font-family: "Urbanist", sans-serif;
+  font-size: 0.95rem;
+  letter-spacing: 0.3px;
+  font-weight: 500;
+  width: 100%;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+/* Icon container for better alignment */
+.s-icon-container {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 24px;
+  height: 24px;
+  flex-shrink: 0;
+}
+
+/* Icon styles inside sidebar links */
+.s-icon {
+  color: #041b2a;
+  font-size: 120%;
+  opacity: 0.8;
+}
+
+/* Active icon styling */
+.active .s-icon {
+  opacity: 1;
+}
+
+/* Enhanced scrollbar styles */
+.s-container ul::-webkit-scrollbar {
+  width: 5px;
+}
+
+.s-container ul::-webkit-scrollbar-thumb {
+  background-color: rgba(0, 0, 0, 0.2);
+  border-radius: 10px;
+}
+
+.s-container ul::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+/* Hover effect for scrollbar */
+.s-container ul:hover::-webkit-scrollbar-thumb {
+  background-color: rgba(0, 0, 0, 0.3);
+}
+
+/* Responsive adjustments */
+@media (max-width: 737px) {
+  .s-container {
+    width: 280px;
+    box-shadow: 0 0 25px rgba(0, 0, 0, 0.25);
+  }
+}
+
+@media (max-width: 415px) {
+  .s-container {
+    width: 85%;
+  }
+}

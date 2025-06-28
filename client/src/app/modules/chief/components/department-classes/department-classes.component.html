@@ -1,0 +1,27 @@
+<div class="department-classes">
+  <h2>Department Classes</h2>
+  
+  <!-- Loading State -->
+  <div *ngIf="loading" class="loading-container">
+    <div class="spinner"></div>
+    <p>Loading classes...</p>
+  </div>
+
+  <!-- Error State -->
+  <div *ngIf="error && !loading" class="error-container">
+    <div class="error-message">
+      <i class="fas fa-exclamation-triangle"></i>
+      <p>{{ error }}</p>
+      <button class="retry-btn" (click)="loadClasses()">Try Again</button>
+    </div>
+  </div>
+
+  <!-- Classes List -->
+  <div *ngIf="!loading && !error" class="classes-list">
+    <div *ngFor="let classe of classes" class="class-card">
+      <h3>{{ classe.nom }}</h3>
+      <p>Code: {{ classe.code }}</p>
+      <p>Capacity: {{ classe.capacite }}</p>
+    </div>
+  </div>
+</div>

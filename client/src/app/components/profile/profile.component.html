@@ -1,0 +1,73 @@
+<div class="profile-container">
+  <div class="profile-header">
+    <button class="back-btn" (click)="goBack()">
+      <i class="fas fa-arrow-left"></i> Back
+    </button>
+    <h2>User Profile</h2>
+  </div>
+
+  <div class="profile-content" *ngIf="currentUser">
+    <div class="profile-card">
+      <div class="profile-info">
+        <div class="profile-avatar">
+          <i class="fas fa-user-circle"></i>
+        </div>
+        
+        <div class="profile-details">
+          <div class="profile-field">
+            <label>First Name</label>
+            <div class="field-value">{{ currentUser.firstName }}</div>
+          </div>
+          
+          <div class="profile-field">
+            <label>Last Name</label>
+            <div class="field-value">{{ currentUser.lastName }}</div>
+          </div>
+          
+          <div class="profile-field">
+            <label>Email</label>
+            <div class="field-value">{{ currentUser.email }}</div>
+          </div>
+          
+          <div class="profile-field">
+            <label>Role</label>
+            <div class="field-value role-badge" [class]="currentUser.role.toLowerCase()">
+              {{ currentUser.role }}
+            </div>
+          </div>
+          
+          <div class="profile-field" *ngIf="currentUser.githubUsername">
+            <label>GitHub Username</label>
+            <div class="field-value">
+              <i class="fab fa-github"></i> {{ currentUser.githubUsername }}
+            </div>
+          </div>
+          
+          <div class="profile-field">
+            <label>GitHub Connected</label>
+            <div class="field-value">
+              <span class="status-badge" [class.connected]="currentUser.hasGithubToken">
+                {{ currentUser.hasGithubToken ? 'Connected' : 'Not Connected' }}
+              </span>
+            </div>
+          </div>
+          
+          <div class="profile-field">
+            <label>Last Login</label>
+            <div class="field-value">{{ currentUser.lastLogin | date:'medium' }}</div>
+          </div>
+        </div>
+      </div>
+      
+      <div class="profile-actions">
+        <button class="edit-btn" (click)="toggleEdit()" disabled>
+          <i class="fas fa-edit"></i> Edit Profile (Coming Soon)
+        </button>
+      </div>
+    </div>
+  </div>
+  
+  <div class="profile-loading" *ngIf="!currentUser">
+    <i class="fas fa-spinner fa-spin"></i> Loading profile...
+  </div>
+</div>

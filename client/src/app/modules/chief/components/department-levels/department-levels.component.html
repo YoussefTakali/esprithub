@@ -1,0 +1,162 @@
+<div class="department-levels">
+  <div class="page-header">
+    <div class="header-content">
+      <h1>Department Levels</h1>
+      <p>Manage academic levels in your department</p>
+    </div>
+    <div class="header-actions">
+      <button class="btn-primary" (click)="openCreateForm()">
+        <i class="fas fa-plus"></i>
+        Add Level
+      </button>
+      <button class="refresh-btn" (click)="refresh()" [disabled]="loading">
+        <i class="fas fa-sync-alt" [class.spinning]="loading"></i>
+      </button>
+    </div>
+  </div>
+
+  <div *ngIf="error" class="error-message">
+    <i class="fas fa-exclamation-triangle"></i>
+    <p>{{ error }}</p>
+  </div>
+
+  <div *ngIf="success" class="success-message">
+    <i class="fas fa-check-circle"></i>
+    <p>{{ success }}</p>
+  </div>
+
+  <!-- Search Bar -->
+  <div class="search-section">
+    <div class="search-box">
+      <i class="fas fa-search"></i>
+      <input
+        type="text"
+        placeholder="Search levels by name, code, or year..."
+        [(ngModel)]="searchTerm"
+        (input)="filterLevels()"
+      />
+    </div>
+  </div>
+
+  <!-- Levels List -->
+  <div *ngIf="!loading" class="levels-section">
+    <div *ngIf="filteredLevels.length === 0" class="no-results">
+      <i class="fas fa-layer-group"></i>
+      <p>No levels found</p>
+    </div>
+
+    <div *ngIf="filteredLevels.length > 0" class="levels-grid">
+      <div *ngFor="let level of filteredLevels" class="level-card">
+        <div class="level-header">
+          <h3>{{ level.nom }}</h3>
+          <div class="level-actions">
+            <button class="btn-edit" (click)="openEditForm(level)">
+              <i class="fas fa-edit"></i>
+            </button>
+            <button class="btn-delete" (click)="deleteLevel(level)">
+              <i class="fas fa-trash"></i>
+            </button>
+          </div>
+        </div>
+        <div class="level-info">
+          <div class="info-item">
+            <i class="fas fa-code"></i>
+            <span>{{ level.code }}</span>
+          </div>
+          <div class="info-item">
+            <i class="fas fa-calendar"></i>
+            <span>Year {{ level.annee }}</span>
+          </div>
+          <div class="info-item">
+            <i class="fas fa-school"></i>
+            <span>{{ level.totalClasses }} classes</span>
+          </div>
+          <div class="info-item">
+            <i class="fas fa-building"></i>
+            <span>{{ level.departementNom }}</span>
+          </div>
+        </div>
+        <div *ngIf="level.description" class="level-description">
+          <p>{{ level.description }}</p>
+        </div>
+        <div class="level-status" [class.active]="level.isActive" [class.inactive]="!level.isActive">
+          <span>{{ level.isActive ? 'Active' : 'Inactive' }}</span>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Loading Spinner -->
+  <div *ngIf="loading" class="loading-spinner">
+    <i class="fas fa-spinner fa-spin"></i>
+    <p>Loading levels...</p>
+  </div>
+</div>
+
+<!-- Level Form Modal -->
+<div *ngIf="showForm" class="modal-overlay" (click)="closeForm()" (keydown.escape)="closeForm()">
+  <div class="modal-content" (click)="$event.stopPropagation()" (keydown)="$event.stopPropagation()">>
+    <div class="modal-header">
+      <h2>{{ editingLevel ? 'Edit Level' : 'Create New Level' }}</h2>
+      <button class="close-btn" (click)="closeForm()">
+        <i class="fas fa-times"></i>
+      </button>
+    </div>
+
+    <form [formGroup]="levelForm" (ngSubmit)="onSubmit()" class="level-form">
+      <div class="form-group">
+        <label for="nom">Level Name *</label>
+        <input
+          type="text"
+          id="nom"
+          formControlName="nom"
+          placeholder="Enter level name"
+          [class.error]="isFieldInvalid('nom')"
+        />
+        <div *ngIf="isFieldInvalid('nom')" class="field-error">
+          {{ getFieldError('nom') }}
+        </div>
+      </div>
+
+      <div class="form-group">
+        <label for="annee">Academic Year *</label>
+        <select
+          id="annee"
+          formControlName="annee"
+          [class.error]="isFieldInvalid('annee')"
+        >
+          <option value="">Select Year</option>
+          <option value="1">1st Year</option>
+          <option value="2">2nd Year</option>
+          <option value="3">3rd Year</option>
+          <option value="4">4th Year</option>
+          <option value="5">5th Year</option>
+        </select>
+        <div *ngIf="isFieldInvalid('annee')" class="field-error">
+          {{ getFieldError('annee') }}
+        </div>
+      </div>
+
+      <div class="form-group">
+        <label for="description">Description</label>
+        <textarea
+          id="description"
+          formControlName="description"
+          placeholder="Enter level description (optional)"
+          rows="4"
+        ></textarea>
+      </div>
+
+      <div class="form-actions">
+        <button type="button" class="btn-secondary" (click)="closeForm()" [disabled]="saving">
+          Cancel
+        </button>
+        <button type="submit" class="btn-primary" [disabled]="levelForm.invalid || saving">
+          <i *ngIf="saving" class="fas fa-spinner fa-spin"></i>
+          <i *ngIf="!saving" class="fas fa-save"></i>
+          {{ saving ? 'Saving...' : (editingLevel ? 'Update' : 'Create') }}
+        </button>
+      </div>
+    </form>
+  </div>
+</div>

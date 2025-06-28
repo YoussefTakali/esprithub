@@ -1,0 +1,277 @@
+<div class="class-management">
+  <div class="header">
+    <h1>Class Management</h1>
+    <div class="header-actions">
+      <select 
+        class="department-filter" 
+        [(ngModel)]="selectedDepartmentId" 
+        (change)="onDepartmentFilter(selectedDepartmentId)">
+        <option [value]="null">All Departments</option>
+        <option *ngFor="let dept of departments" [value]="dept.id">
+          {{ dept.nom }}
+        </option>
+      </select>
+      
+      <select 
+        class="level-filter" 
+        [(ngModel)]="selectedLevelId" 
+        (change)="onLevelFilter(selectedLevelId)"
+        [disabled]="!selectedDepartmentId">
+        <option [value]="null">All Levels</option>
+        <option *ngFor="let level of levels" [value]="level.id">
+          {{ level.nom }}
+        </option>
+      </select>
+
+      <button 
+        class="create-btn" 
+        (click)="onCreateClass()" 
+        [disabled]="saving"
+        title="Create new class">
+        <i class="fas fa-plus"></i>
+        Create Class
+      </button>
+    </div>
+  </div>
+
+  <!-- Loading State -->
+  <div *ngIf="loading" class="loading-container">
+    <div class="spinner"></div>
+    <p>Loading classes...</p>
+  </div>
+
+  <!-- Error State -->
+  <div *ngIf="error && !loading" class="error-container">
+    <div class="error-message">
+      <i class="fas fa-exclamation-triangle"></i>
+      <p>{{ error }}</p>
+      <button class="retry-btn" (click)="loadData()">Try Again</button>
+    </div>
+  </div>
+
+  <!-- Create/Edit Form -->
+  <div *ngIf="showCreateForm" class="form-overlay">
+    <div class="form-container">
+      <div class="form-header">
+        <h2>{{ editingClass ? 'Edit Class' : 'Create Class' }}</h2>
+        <button class="close-btn" (click)="onCancelForm()" [disabled]="saving">
+          <i class="fas fa-times"></i>
+        </button>
+      </div>
+
+      <form (ngSubmit)="onSubmitForm()" class="class-form">
+        <div class="form-group">
+          <label for="name">Class Name *</label>
+          <input
+            id="name"
+            type="text"
+            [(ngModel)]="createForm.nom"
+            name="nom"
+            placeholder="Enter class name (e.g., L1-INFO-A, M2-GC-1)"
+            required
+            [disabled]="saving"
+            class="form-input">
+        </div>
+
+        <div class="form-row">
+          <div class="form-group">
+            <label for="department">Department *</label>
+            <select
+              id="department"
+              [(ngModel)]="createFormDepartmentId"
+              name="departmentId"
+              (change)="onDepartmentSelectedForCreate(createFormDepartmentId)"
+              required
+              [disabled]="saving"
+              class="form-select">
+              <option value="">Select a department</option>
+              <option *ngFor="let dept of departments" [value]="dept.id">
+                {{ dept.nom }} ({{ dept.specialite }})
+              </option>
+            </select>
+          </div>
+
+          <div class="form-group">
+            <label for="level">Academic Level *</label>
+            <select
+              id="level"
+              [(ngModel)]="createFormLevelId"
+              name="levelId"
+              (change)="onLevelSelectedForCreate(createFormLevelId)"
+              required
+              [disabled]="saving || !createFormDepartmentId"
+              class="form-select">
+              <option value="">{{ !createFormDepartmentId ? 'Select department first' : 'Select a level' }}</option>
+              <option *ngFor="let level of createFormLevels" [value]="level.id">
+                {{ level.nom }} - Year {{ level.annee }}
+              </option>
+            </select>
+          </div>
+        </div>
+
+        <div class="form-group">
+          <label for="capacity">Student Capacity *</label>
+          <input
+            id="capacity"
+            type="number"
+            [(ngModel)]="createForm.capacite"
+            name="capacite"
+            placeholder="Maximum number of students"
+            min="1"
+            max="100"
+            required
+            [disabled]="saving"
+            class="form-input">
+        </div>
+
+        <div class="form-group">
+          <label for="description">Description</label>
+          <textarea
+            id="description"
+            [(ngModel)]="createForm.description"
+            name="description"
+            placeholder="Enter class description"
+            rows="3"
+            [disabled]="saving"
+            class="form-textarea"></textarea>
+        </div>
+
+        <div class="form-actions">
+          <button 
+            type="button" 
+            class="cancel-btn" 
+            (click)="onCancelForm()" 
+            [disabled]="saving">
+            Cancel
+          </button>
+          <button 
+            type="submit" 
+            class="submit-btn" 
+            [disabled]="saving || !createForm.nom.trim() || !createForm.niveauId">
+            <i *ngIf="saving" class="fas fa-spinner fa-spin"></i>
+            {{ editingClass ? 'Update' : 'Create' }} Class
+          </button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <!-- Classes List -->
+  <div *ngIf="!loading && !error" class="classes-container">
+    <div *ngIf="classes.length === 0" class="no-data">
+      <i class="fas fa-graduation-cap"></i>
+      <h3>No classes found</h3>
+      <p *ngIf="selectedLevelId; else noClassesMessage">
+        No classes found for the selected level.
+      </p>
+      <ng-template #noClassesMessage>
+        <p *ngIf="selectedDepartmentId; else noFilterMessage">
+          No classes found for the selected department.
+        </p>
+        <ng-template #noFilterMessage>
+          <p>Get started by creating your first class.</p>
+        </ng-template>
+      </ng-template>
+      <button class="create-btn" (click)="onCreateClass()">
+        <i class="fas fa-plus"></i>
+        Create Class
+      </button>
+    </div>
+
+    <div *ngIf="classes.length > 0" class="classes-grid">
+      <div *ngFor="let classe of classes" class="class-card">
+        <div class="card-header">
+          <div class="class-info">
+            <h3>{{ classe.nom }}</h3>
+            <div class="class-meta">
+              <span class="class-code">{{ classe.code }}</span>
+              <span class="class-capacity">{{ classe.totalEtudiants }}/{{ classe.capacite }}</span>
+            </div>
+          </div>
+          <div class="card-actions">
+            <button 
+              class="action-btn edit" 
+              (click)="onEditClass(classe)"
+              [disabled]="saving"
+              title="Edit class">
+              <i class="fas fa-edit"></i>
+            </button>
+            <button 
+              class="action-btn delete" 
+              (click)="onDeleteClass(classe)"
+              [disabled]="saving"
+              title="Delete class">
+              <i class="fas fa-trash"></i>
+            </button>
+          </div>
+        </div>
+
+        <div class="card-content">
+          <div class="class-details">
+            <div class="detail-item">
+              <span class="label">Level:</span>
+              <span class="value">{{ classe.niveauNom }}</span>
+            </div>
+            <div class="detail-item">
+              <span class="label">Department:</span>
+              <span class="value">{{ classe.departementNom }}</span>
+            </div>
+            <div class="detail-item">
+              <span class="label">Year:</span>
+              <span class="value">{{ classe.niveauAnnee }}</span>
+            </div>
+            <div class="detail-item">
+              <span class="label">Capacity:</span>
+              <span class="value capacity-info">
+                <span class="current">{{ classe.totalEtudiants }}</span>
+                <span class="separator">/</span>
+                <span class="max">{{ classe.capacite }}</span>
+                <span class="percentage" [class.full]="classe.totalEtudiants >= classe.capacite" [class.near-full]="classe.totalEtudiants / classe.capacite > 0.8">
+                  ({{ ((classe.totalEtudiants / classe.capacite) * 100).toFixed(0) }}%)
+                </span>
+              </span>
+            </div>
+            <div class="detail-item">
+              <span class="label">Teachers:</span>
+              <span class="value">{{ classe.totalEnseignants }}</span>
+            </div>
+            <div class="detail-item">
+              <span class="label">Status:</span>
+              <span class="status-badge" [class.active]="classe.isActive" [class.inactive]="!classe.isActive">
+                {{ classe.isActive ? 'Active' : 'Inactive' }}
+              </span>
+            </div>
+          </div>
+
+          <div class="description" *ngIf="classe.description">
+            <p>{{ classe.description }}</p>
+          </div>
+        </div>
+
+        <div class="card-footer">
+          <div class="students-section" *ngIf="classe.students && classe.students.length > 0">
+            <h4>Students ({{ classe.students.length }})</h4>
+            <div class="students-list">
+              <span *ngFor="let student of classe.students" class="student-tag" [title]="student.email">
+                {{ student.fullName }}
+              </span>
+            </div>
+          </div>
+
+          <div class="teachers-section" *ngIf="classe.teachers && classe.teachers.length > 0">
+            <h4>Teachers ({{ classe.teachers.length }})</h4>
+            <div class="teachers-list">
+              <span *ngFor="let teacher of classe.teachers" class="teacher-tag" [title]="teacher.email">
+                {{ teacher.fullName }}
+              </span>
+            </div>
+          </div>
+
+          <div class="empty-assignments" *ngIf="(!classe.students || classe.students.length === 0) && (!classe.teachers || classe.teachers.length === 0)">
+            <p class="empty-message">No students or teachers assigned yet.</p>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
