@@ -1,6 +1,7 @@
 import { Component, Input, OnChanges, SimpleChanges, OnInit, OnDestroy } from '@angular/core';
 import { Router } from '@angular/router';
 import { SidebarService } from '../../services/sidebar.service';
+import { AuthService } from '../../services/auth.service';
 import { Subscription } from 'rxjs';
 
 @Component({
@@ -19,16 +20,18 @@ export class SidebarComponent implements OnChanges, OnInit, OnDestroy {
 
   constructor(
     public router: Router,
-    private sidebarService: SidebarService
+    private sidebarService: SidebarService,
+    private authService: AuthService
   ) {}
 
   ngOnInit(): void {
-    // Fetch userRole and userId from localStorage on component initialization
-    this.userRole = localStorage.getItem('role');
-    this.userId = localStorage.getItem('id');
-
-    console.log('User Role:', this.userRole);
-    console.log('User ID:', this.userId);
+    // Subscribe to user changes
+    this.subscriptions.add(
+      this.authService.currentUser$.subscribe(user => {
+        this.userRole = user?.role?.toLowerCase() || null;
+        this.userId = user?.id || null;
+      })
+    );
 
     // Subscribe to router events to update sidebar visibility
     this.subscriptions.add(

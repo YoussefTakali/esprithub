@@ -1,6 +1,6 @@
 import { Injectable } from '@angular/core';
 import { HttpClient, HttpParams } from '@angular/common/http';
-import { Observable } from 'rxjs';
+import { Observable, BehaviorSubject } from 'rxjs';
 import { User, CreateUser, UpdateUser, UserRole, ApiResponse } from '../models/academic.models';
 import { environment } from '../../../environments/environment';
 
@@ -9,6 +9,18 @@ import { environment } from '../../../environments/environment';
 })
 export class UserService {
   private readonly baseUrl = `${environment.apiUrl}/api/v1/users`;
+
+  // User state management
+  private currentUserSubject = new BehaviorSubject<User | null>(null);
+  currentUser$ = this.currentUserSubject.asObservable();
+
+  setCurrentUser(user: User | null) {
+    this.currentUserSubject.next(user);
+  }
+
+  getCurrentUser(): User | null {
+    return this.currentUserSubject.value;
+  }
 
   constructor(private readonly http: HttpClient) {}
 
