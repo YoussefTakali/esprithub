@@ -1,0 +1,9 @@
+mat-selection-list {
+  width: 100%;
+  max-height: 300px;
+  overflow: auto;
+}
+
+mat-list-option {
+  font-size: 15px;
+}

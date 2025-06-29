@@ -19,6 +19,7 @@ import { LevelManagementComponent } from './components/level-management/level-ma
 import { ClassManagementComponent } from './components/class-management/class-management.component';
 import { CourseManagementComponent } from './components/course-management/course-management.component';
 import { CourseCreateDialogComponent } from './components/course-management/course-create-dialog.component';
+import { AssignStudentsDialogComponent } from './components/class-management/assign-students-dialog.component';
 
 @NgModule({
   declarations: [
@@ -28,7 +29,8 @@ import { CourseCreateDialogComponent } from './components/course-management/cour
     LevelManagementComponent,
     ClassManagementComponent,
     CourseManagementComponent,
-    CourseCreateDialogComponent
+    CourseCreateDialogComponent,
+    AssignStudentsDialogComponent
   ],
   imports: [
     CommonModule,

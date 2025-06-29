@@ -1,5 +1,6 @@
 import { Component, OnInit } from '@angular/core';
 import { TeacherDataService } from '../../services/teacher-data.service';
+import { MatSnackBar } from '@angular/material/snack-bar';
 
 @Component({
   selector: 'app-teacher-projects',
@@ -20,15 +21,22 @@ export class TeacherProjectsComponent implements OnInit {
   showEditModal = false;
   detailsProject: any = null;
   editProject: any = null;
+  editCollaboratorEmail: string = '';
+  filteredEditCollaborators: any[] = [];
+  hoveredCollaborator: any = null;
+  showDeleteDialog: boolean = false;
+  projectToDelete: any = null;
 
-  constructor(private readonly teacherData: TeacherDataService) {}
+  constructor(private readonly teacherData: TeacherDataService, private snackBar: MatSnackBar) {}
 
   ngOnInit() {
     this.loadProjects();
     this.teacherData.getMyClassesWithCourses().subscribe(classes => {
       this.availableClasses = classes;
     });
-    this.teacherData.getAllUsers().subscribe(users => {
+    // Enable fetching all users for collaborator suggestions
+    // Use summary endpoint for user suggestions (id, name, email)
+    this.teacherData.getAllUserSummaries().subscribe(users => {
       this.availableUsers = users;
     });
   }
@@ -64,20 +72,44 @@ export class TeacherProjectsComponent implements OnInit {
     this.teacherData.createProject(payload).subscribe(() => {
       this.loadProjects();
       this.closeCreateModal();
+      this.snackBar.open('Project created successfully!', 'Close', { duration: 3000 });
     });
   }
 
   updateProject() {
     if (!this.selectedProject) return;
-    this.teacherData.updateProject(this.selectedProject).subscribe(() => {
+    const payload = {
+      id: this.selectedProject.id,
+      name: this.selectedProject.name,
+      description: this.selectedProject.description,
+      deadline: this.selectedProject.deadline,
+      classIds: this.selectedProject.classIds ?? (this.selectedProject.classes ? this.selectedProject.classes.map((c: any) => c.id ?? c.classId) : []),
+      collaboratorIds: this.selectedProject.collaboratorIds ?? (this.selectedProject.collaborators ? this.selectedProject.collaborators.map((u: any) => u.id) : [])
+    };
+    this.teacherData.updateProject(payload).subscribe(() => {
       this.loadProjects();
+      this.snackBar.open('Project updated successfully!', 'Close', { duration: 3000 });
     });
   }
 
-  deleteProject(project: any) {
-    this.teacherData.deleteProject(project.id).subscribe(() => {
+  confirmDeleteProject(project: any) {
+    this.projectToDelete = project;
+    this.showDeleteDialog = true;
+  }
+
+  cancelDeleteProject() {
+    this.showDeleteDialog = false;
+    this.projectToDelete = null;
+  }
+
+  deleteProjectConfirmed() {
+    if (!this.projectToDelete) return;
+    this.teacherData.deleteProject(this.projectToDelete.id).subscribe(() => {
       this.loadProjects();
-      if (this.selectedProject?.id === project.id) this.selectedProject = null;
+      if (this.selectedProject?.id === this.projectToDelete.id) this.selectedProject = null;
+      this.snackBar.open('Project deleted successfully!', 'Close', { duration: 3000 });
+      this.showDeleteDialog = false;
+      this.projectToDelete = null;
     });
   }
 
@@ -99,7 +131,7 @@ export class TeacherProjectsComponent implements OnInit {
   onCollaboratorInput() {
     const input = this.collaboratorEmail.toLowerCase();
     this.filteredCollaborators = this.availableUsers.filter(user =>
-      user.email?.toLowerCase().includes(input) &&
+      (user.email?.toLowerCase().includes(input) || user.firstName?.toLowerCase().includes(input) || user.lastName?.toLowerCase().includes(input)) &&
       !this.newProject.collaboratorIds.includes(user.id)
     ).slice(0, 5); // limit suggestions
   }
@@ -135,6 +167,11 @@ export class TeacherProjectsComponent implements OnInit {
   openEditModal(project: any, event?: Event) {
     if (event) event.stopPropagation();
     this.editProject = { ...project };
+    // Ensure classIds and collaboratorIds are arrays of IDs
+    this.editProject.classIds = project.classIds ?? (project.classes ? project.classes.map((c: any) => c.id ?? c.classId) : []);
+    this.editProject.collaboratorIds = project.collaboratorIds ?? (project.collaborators ? project.collaborators.map((u: any) => u.id) : []);
+    this.editCollaboratorEmail = '';
+    this.filteredEditCollaborators = [];
     this.showEditModal = true;
   }
 
@@ -145,9 +182,47 @@ export class TeacherProjectsComponent implements OnInit {
 
   saveEditProject() {
     if (!this.editProject) return;
-    this.teacherData.updateProject(this.editProject).subscribe(() => {
+    const payload = {
+      id: this.editProject.id,
+      name: this.editProject.name,
+      description: this.editProject.description,
+      deadline: this.editProject.deadline,
+      classIds: this.editProject.classIds ?? (this.editProject.classes ? this.editProject.classes.map((c: any) => c.id ?? c.classId) : []),
+      collaboratorIds: this.editProject.collaboratorIds ?? (this.editProject.collaborators ? this.editProject.collaborators.map((u: any) => u.id) : [])
+    };
+    this.teacherData.updateProject(payload).subscribe(() => {
       this.loadProjects();
       this.closeEditModal();
+      this.snackBar.open('Project updated successfully!', 'Close', { duration: 3000 });
     });
+  }
+
+  onEditCollaboratorInput() {
+    const input = this.editCollaboratorEmail.toLowerCase();
+    this.filteredEditCollaborators = this.availableUsers.filter(user =>
+      (user.email?.toLowerCase().includes(input) || user.firstName?.toLowerCase().includes(input) || user.lastName?.toLowerCase().includes(input)) &&
+      !this.editProject.collaboratorIds.includes(user.id)
+    ).slice(0, 5);
+  }
+
+  selectEditCollaborator(user: any) {
+    if (!this.editProject.collaboratorIds.includes(user.id)) {
+      this.editProject.collaboratorIds.push(user.id);
+    }
+    this.editCollaboratorEmail = '';
+    this.filteredEditCollaborators = [];
+  }
+
+  removeEditCollaborator(id: string) {
+    this.editProject.collaboratorIds = this.editProject.collaboratorIds.filter((uid: string) => uid !== id);
+  }
+
+  getClassNameById(classId: string): string {
+    const found = this.availableClasses.find(c => c.classId === classId);
+    if (found) {
+      // Show both class name and course name if available
+      return found.className + (found.courseName ? ` (${found.courseName})` : '');
+    }
+    return classId;
   }
 }

@@ -257,6 +257,9 @@
               </span>
             </div>
           </div>
+          <button class="assign-btn" (click)="onAssignStudents(classe)">
+            <i class="fas fa-user-plus"></i> Assign Students
+          </button>
 
           <div class="teachers-section" *ngIf="classe.teachers && classe.teachers.length > 0">
             <h4>Teachers ({{ classe.teachers.length }})</h4>

@@ -36,7 +36,15 @@ export class TeacherDataService {
   }
 
   updateProject(project: any) {
-    return this.http.put<any>(`http://localhost:8090/api/projects/${project.id}`, project);
+    // Only send updatable fields as per ProjectUpdateDto
+    const payload = {
+      name: project.name,
+      description: project.description,
+      deadline: project.deadline,
+      classIds: project.classIds ?? (project.classes ? project.classes.map((c: any) => c.id ?? c.classId) : []),
+      collaboratorIds: project.collaboratorIds ?? (project.collaborators ? project.collaborators.map((u: any) => u.id) : [])
+    };
+    return this.http.put<any>(`http://localhost:8090/api/projects/${project.id}`, payload);
   }
 
   deleteProject(projectId: string) {
@@ -55,6 +63,10 @@ export class TeacherDataService {
     return this.http.get<any[]>('http://localhost:8090/api/v1/users');
   }
 
+  getAllUserSummaries(): Observable<any[]> {
+    return this.http.get<any[]>('http://localhost:8090/api/v1/users/summary');
+  }
+
   getMyClasses(): Observable<any[]> {
     // Use the new endpoint but map to only class info for legacy consumers
     return this.getMyClassesWithCourses().pipe(
@@ -63,5 +75,10 @@ export class TeacherDataService {
         nom: c.className
       })))
     );
+  }
+
+  getStudentsByClassId(classId: string): Observable<any[]> {
+    // Updated to use the correct backend endpoint for group creation
+    return this.http.get<any[]>(`http://localhost:8090/api/v1/users/classes/${classId}/students`);
   }
 }

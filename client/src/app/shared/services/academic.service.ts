@@ -147,7 +147,8 @@ export class AcademicService {
   // ========== ASSIGNMENT OPERATIONS ==========
 
   assignStudentsToClasse(classeId: string, studentIds: string[]): Observable<Classe> {
-    return this.http.post<Classe>(`${this.baseUrl}/admin/academic/classes/${classeId}/students`, studentIds);
+    // Send as object with studentIds property for backend DTO
+    return this.http.post<Classe>(`${this.baseUrl}/users/admin/academic/classes/${classeId}/students`, { studentIds });
   }
 
   removeStudentsFromClasse(classeId: string, studentIds: string[]): Observable<Classe> {

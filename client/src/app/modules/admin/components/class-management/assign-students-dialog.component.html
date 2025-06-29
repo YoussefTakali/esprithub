@@ -1,0 +1,12 @@
+<h2 mat-dialog-title>Assign Students</h2>
+<div mat-dialog-content>
+  <mat-selection-list [(ngModel)]="selectedStudentIds">
+    <mat-list-option *ngFor="let student of data.students" [value]="student.id">
+      {{ student.fullName }} ({{ student.email }})
+    </mat-list-option>
+  </mat-selection-list>
+</div>
+<div mat-dialog-actions align="end">
+  <button mat-button (click)="onCancel()">Cancel</button>
+  <button mat-raised-button color="primary" (click)="onAssign()" [disabled]="selectedStudentIds.length === 0">Assign</button>
+</div>

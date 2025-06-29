@@ -1,5 +1,4 @@
 <div class="projects-main-container">
-  <button class="add-project-fab" (click)="openCreateModal()">+ Add Project</button>
   <div class="projects-cards-center">
     <div *ngFor="let project of projects" class="project-card-centered">
       <div class="project-card-icon" [style.background]="'#e74c3c'">
@@ -9,7 +8,17 @@
       <div class="project-meta">{{ project.description }}</div>
       <div class="project-avatars">
         <ng-container *ngFor="let collab of project.collaborators?.slice(0,4)">
-          <div class="avatar-circle">{{ collab.firstName?.charAt(0) }}{{ collab.lastName?.charAt(0) }}</div>
+          <div class="avatar-circle"
+               (mouseenter)="hoveredCollaborator = collab"
+               (mouseleave)="hoveredCollaborator = null">
+            {{ collab.firstName?.charAt(0) }}{{ collab.lastName?.charAt(0) }}
+            <div class="collab-hover-card" *ngIf="hoveredCollaborator === collab">
+              <div><b>{{ collab.firstName }} {{ collab.lastName }}</b></div>
+              <div style="font-size:12px;color:#888">{{ collab.email }}</div>
+              <div *ngIf="collab.role"><span style="font-size:12px">Role: {{ collab.role }}</span></div>
+              <div *ngIf="collab.githubUsername"><span style="font-size:12px">GitHub: {{ collab.githubUsername }}</span></div>
+            </div>
+          </div>
         </ng-container>
         <span *ngIf="project.collaborators?.length > 4" class="avatar-more">+{{ project.collaborators.length - 4 }}</span>
       </div>
@@ -18,13 +27,16 @@
         <div class="progress-inner" [style.width]="'75%'" style="background:#e74c3c"></div>
       </div>
       <div class="project-card-actions">
-        <button class="icon-btn" title="View" (click)="openDetailsModal(project, $event)"><span class="material-icons">visibility</span></button>
-        <button class="icon-btn" title="Edit" (click)="openEditModal(project, $event)"><span class="material-icons">edit</span></button>
-        <button class="icon-btn delete" title="Delete" (click)="deleteProject(project); $event.stopPropagation()"><span class="material-icons">delete</span></button>
+        <button class="icon-btn" title="View" (click)="openDetailsModal(project, $event)"><i class="fa fa-eye"></i></button>
+        <button class="icon-btn" title="Edit" (click)="openEditModal(project, $event)"><i class="fa fa-edit"></i></button>
+        <button class="icon-btn delete" title="Delete" (click)="confirmDeleteProject(project); $event.stopPropagation()"><i class="fa fa-trash"></i></button>
       </div>
       <div class="project-deadline">{{ project.deadline | date:'short' }}</div>
     </div>
   </div>
+  <!-- Add Project FAB in top right -->
+  <button class="add-project-fab-top" (click)="openCreateModal()">+ Add Project</button>
+
   <!-- Modal for creating a new project -->
   <div class="modal-backdrop" *ngIf="showCreateModal" (click)="closeCreateModal()"></div>
   <div class="modal" *ngIf="showCreateModal">
@@ -44,9 +56,12 @@
           </option>
         </select>
         <label for="projectCollaborators">Collaborators</label>
-        <input id="projectCollaborators" [(ngModel)]="collaboratorEmail" name="collaboratorEmail" placeholder="Type email to add..." (input)="onCollaboratorInput()" autocomplete="off" />
+        <input id="projectCollaborators" [(ngModel)]="collaboratorEmail" name="collaboratorEmail" placeholder="Type name or email to add..." (input)="onCollaboratorInput()" autocomplete="off" />
         <ul *ngIf="filteredCollaborators.length > 0" class="autocomplete-list">
-          <li *ngFor="let user of filteredCollaborators" (click)="selectCollaborator(user)">{{ user.email }}</li>
+          <li *ngFor="let user of filteredCollaborators" (click)="selectCollaborator(user)">
+            <div><b>{{ user.firstName }} {{ user.lastName }}</b></div>
+            <div style="font-size:12px;color:#888">{{ user.email }}</div>
+          </li>
         </ul>
         <div class="selected-collaborators">
           <span *ngFor="let id of newProject.collaboratorIds">
@@ -70,8 +85,14 @@
         <div><b>Name:</b> {{ detailsProject.name }}</div>
         <div><b>Description:</b> {{ detailsProject.description }}</div>
         <div><b>Deadline:</b> {{ detailsProject.deadline | date:'short' }}</div>
+        <div><b>Created By:</b> {{ detailsProject.createdBy?.firstName }} {{ detailsProject.createdBy?.lastName }} ({{ detailsProject.createdBy?.email }})</div>
+        <div><b>Created At:</b> {{ detailsProject.createdAt | date:'short' }}</div>
+        <div><b>Updated At:</b> {{ detailsProject.updatedAt | date:'short' }}</div>
+        <div><b>Classes:</b>
+          <span *ngFor="let classId of detailsProject.classIds">{{ getClassNameById(classId) }} </span>
+        </div>
         <div><b>Collaborators:</b>
-          <span *ngFor="let collab of detailsProject.collaborators">{{ collab.email }}</span>
+          <span *ngFor="let collab of detailsProject.collaborators">{{ collab.firstName }} {{ collab.lastName }} ({{ collab.email }}) </span>
         </div>
       </div>
       <div class="modal-actions">
@@ -89,6 +110,28 @@
         <input id="editProjectName" [(ngModel)]="editProject.name" name="editProjectName" required />
         <label for="editProjectDesc">Description</label>
         <textarea id="editProjectDesc" [(ngModel)]="editProject.description" name="editProjectDesc"></textarea>
+        <label for="editProjectDeadline">Deadline</label>
+        <input id="editProjectDeadline" [(ngModel)]="editProject.deadline" name="editProjectDeadline" type="datetime-local" />
+        <label for="editProjectClasses">Classes</label>
+        <select id="editProjectClasses" [(ngModel)]="editProject.classIds" name="editProjectClassIds" multiple required>
+          <option *ngFor="let c of availableClasses" [value]="c.classId">
+            {{ c.className }} ({{ c.courseName }})
+          </option>
+        </select>
+        <label for="editProjectCollaborators">Collaborators</label>
+        <input id="editProjectCollaborators" [(ngModel)]="editCollaboratorEmail" name="editCollaboratorEmail" placeholder="Type name or email to add..." (input)="onEditCollaboratorInput()" autocomplete="off" />
+        <ul *ngIf="filteredEditCollaborators.length > 0" class="autocomplete-list">
+          <li *ngFor="let user of filteredEditCollaborators" (click)="selectEditCollaborator(user)">
+            <div><b>{{ user.firstName }} {{ user.lastName }}</b></div>
+            <div style="font-size:12px;color:#888">{{ user.email }}</div>
+          </li>
+        </ul>
+        <div class="selected-collaborators">
+          <span *ngFor="let id of editProject.collaboratorIds">
+            {{ getUserEmailById(id) }}
+            <button type="button" (click)="removeEditCollaborator(id)">&times;</button>
+          </span>
+        </div>
         <div class="modal-actions">
           <button class="create-btn-red" type="submit" [disabled]="!editProjectForm.form.valid">Save</button>
           <button class="cancel-btn" type="button" (click)="closeEditModal()">Cancel</button>
@@ -96,4 +139,55 @@
       </form>
     </div>
   </div>
+  <!-- Delete Confirmation Modal -->
+  <div class="modal-backdrop" *ngIf="showDeleteDialog" (click)="cancelDeleteProject()"></div>
+  <div class="modal" *ngIf="showDeleteDialog">
+    <div class="modal-content" (click)="$event.stopPropagation()">
+      <h3 style="color:#e74c3c">Confirm Delete</h3>
+      <div style="margin-bottom: 16px;">Are you sure you want to delete the project <b>{{ projectToDelete?.name }}</b>?</div>
+      <div class="modal-actions">
+        <button class="create-btn-red" (click)="deleteProjectConfirmed()">Delete</button>
+        <button class="cancel-btn" (click)="cancelDeleteProject()">Cancel</button>
+      </div>
+    </div>
+  </div>
 </div>
+<style>
+.add-project-fab-top {
+  position: absolute;
+  top: 32px;
+  right: 32px;
+  z-index: 1000;
+  background: #e74c3c;
+  color: #fff;
+  border: none;
+  border-radius: 50px;
+  padding: 16px 28px;
+  font-size: 18px;
+  box-shadow: 0 2px 8px rgba(0,0,0,0.15);
+  cursor: pointer;
+  transition: background 0.2s;
+}
+.add-project-fab-top:hover {
+  background: #c0392b;
+}
+.collab-hover-card {
+  position: absolute;
+  left: 50%;
+  top: 110%;
+  transform: translateX(-50%);
+  background: #fff;
+  color: #222;
+  border: 1px solid #ddd;
+  border-radius: 8px;
+  box-shadow: 0 2px 8px rgba(0,0,0,0.15);
+  padding: 10px 16px;
+  min-width: 180px;
+  z-index: 1001;
+  font-size: 14px;
+  white-space: nowrap;
+}
+.avatar-circle {
+  position: relative;
+}
+</style>

@@ -127,14 +127,6 @@
         <div class="s-link-text">Classes</div>
       </li>
 
-      <!-- My Classes (dynamic for teacher) -->
-      <li class="s-link" *ngFor="let classe of myClasses" [routerLink]="['/teacher/tasks']" [queryParams]="{ classId: classe.id }" routerLinkActive="active">
-        <div class="s-icon-container">
-          <i class="fas fa-graduation-cap s-icon"></i>
-        </div>
-        <div class="s-link-text">{{ classe.name }}</div>
-      </li>
-
       <!-- Projects (teacher) -->
       <li class="s-link" [routerLink]="'/teacher/projects'" routerLinkActive="active">
         <div class="s-icon-container">

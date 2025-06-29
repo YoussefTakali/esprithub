@@ -5,6 +5,8 @@ import { UserService } from '../../../../shared/services/user.service';
 import { SnackbarService } from '../../../../shared/services/snackbar.service';
 import { AuthService } from '../../../../services/auth.service';
 import { Classe, CreateClasse, CreateClasseSimple, Niveau, Departement, User, UserRole } from '../../../../shared/models/academic.models';
+import { MatDialog } from '@angular/material/dialog';
+import { AssignStudentsDialogComponent } from './assign-students-dialog.component';
 
 @Component({
   selector: 'app-class-management',
@@ -42,7 +44,8 @@ export class ClassManagementComponent implements OnInit {
     private readonly academicService: AcademicService,
     private readonly userService: UserService,
     private readonly snackbarService: SnackbarService,
-    private readonly authService: AuthService
+    private readonly authService: AuthService,
+    private readonly dialog: MatDialog
   ) {}
 
   ngOnInit(): void {
@@ -303,6 +306,35 @@ export class ClassManagementComponent implements OnInit {
       this.error = 'Failed to delete class. Please try again.';
     } finally {
       this.saving = false;
+    }
+  }
+
+  async onAssignStudents(classe: Classe): Promise<void> {
+    try {
+      // Fetch all students (optionally filter by department/level)
+      const allStudents = await firstValueFrom(this.userService.getUsersByRole(UserRole.STUDENT));
+      // Exclude students already assigned to any class
+      const availableStudents = allStudents.filter((s: any) => !s.classeId);
+      const dialogRef = this.dialog.open(AssignStudentsDialogComponent, {
+        width: '400px',
+        data: { students: availableStudents }
+      });
+      dialogRef.afterClosed().subscribe(async (selectedIds: string[]) => {
+        if (selectedIds && selectedIds.length > 0) {
+          try {
+            this.saving = true;
+            await firstValueFrom(this.academicService.assignStudentsToClasse(classe.id, selectedIds));
+            this.snackbarService.showSuccess('Students assigned successfully!');
+            await this.refreshCurrentView();
+          } catch (err) {
+            this.snackbarService.showError('Failed to assign students.');
+          } finally {
+            this.saving = false;
+          }
+        }
+      });
+    } catch (err) {
+      this.snackbarService.showError('Failed to load students.');
     }
   }
 

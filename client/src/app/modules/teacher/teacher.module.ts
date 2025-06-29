@@ -1,10 +1,16 @@
 import { NgModule } from '@angular/core';
 import { CommonModule } from '@angular/common';
-import { FormsModule } from '@angular/forms';
+import { FormsModule, ReactiveFormsModule } from '@angular/forms';
 import { RouterModule, Routes } from '@angular/router';
+import { MatDialogModule } from '@angular/material/dialog';
+import { MatFormFieldModule } from '@angular/material/form-field';
+import { MatInputModule } from '@angular/material/input';
+import { MatSelectModule } from '@angular/material/select';
+import { MatButtonModule } from '@angular/material/button';
 import { TeacherDashboardComponent } from './components/dashboard/dashboard.component';
 import { TeacherTasksComponent } from './components/tasks/tasks.component';
 import { TeacherProjectsComponent } from './components/projects/projects.component';
+import { CreateGroupDialogComponent } from './components/groups/create-group-dialog.component';
 
 const routes: Routes = [
   { path: 'dashboard', component: TeacherDashboardComponent },
@@ -18,12 +24,19 @@ const routes: Routes = [
   declarations: [
     TeacherDashboardComponent,
     TeacherTasksComponent,
-    TeacherProjectsComponent
+    TeacherProjectsComponent,
+    CreateGroupDialogComponent
   ],
   imports: [
     CommonModule,
     FormsModule,
-    RouterModule.forChild(routes)
+    ReactiveFormsModule,
+    RouterModule.forChild(routes),
+    MatDialogModule,
+    MatFormFieldModule,
+    MatInputModule,
+    MatSelectModule,
+    MatButtonModule
   ]
 })
 export class TeacherModule { }

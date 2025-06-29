@@ -14,7 +14,10 @@
             <span class="tree-icon">
               <i class="fas fa-graduation-cap"></i>
             </span>
-            <button class="tree-label" (click)="filterByClass(classe)">{{ classe.name }}</button>
+            <span class="tree-label">
+              {{ classe.name || classe.className }}
+              <span *ngIf="classe.courseName" class="course-name">({{ classe.courseName }})</span>
+            </span>
           </div>
           <div *ngIf="classe.expanded" class="tree-children">
             <div *ngFor="let project of classe.projects" class="tree-item">
@@ -26,7 +29,7 @@
                   <i class="fas fa-folder"></i>
                 </span>
                 <button class="tree-label" (click)="selectProject(project)">{{ project.name }}</button>
-                <button class="add-icon" (click)="addToProject(project, classe.id)">
+                <button class="add-icon" (click)="addToProject(project, classe.classId)">
                   <i class="fas fa-plus"></i>
                 </button>
               </div>

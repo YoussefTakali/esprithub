@@ -1,6 +1,9 @@
 import { Component, OnInit } from '@angular/core';
 import { TeacherDataService } from '../../services/teacher-data.service';
 import { ActivatedRoute } from '@angular/router';
+import { MatDialog } from '@angular/material/dialog';
+import { CreateGroupDialogComponent } from '../groups/create-group-dialog.component';
+import { FormBuilder } from '@angular/forms';
 
 @Component({
   selector: 'app-teacher-tasks',
@@ -14,18 +17,39 @@ export class TeacherTasksComponent implements OnInit {
   filteredTasks: any[] = [];
   selectedClass: any = null;
 
+  // Map of studentId to student object for fast lookup
+  studentMap: { [id: string]: any } = {};
+
   constructor(
     private readonly teacherData: TeacherDataService,
-    private readonly route: ActivatedRoute
+    private readonly route: ActivatedRoute,
+    private dialog: MatDialog,
+    private fb: FormBuilder
   ) {}
 
   ngOnInit() {
-    this.teacherData.getMyClasses().subscribe(classes => {
-      this.teacherClasses = classes;
+    this.teacherData.getMyClassesWithCourses().subscribe(classes => {
+      // Build student map for all classes
+      const allStudentIds = new Set<string>();
+      const studentFetches = classes.map(c =>
+        this.teacherData.getStudentsByClassId(c.classId)
+      );
+      Promise.all(studentFetches.map(obs => obs.toPromise())).then(results => {
+        results.forEach(students => {
+          (students ?? []).forEach((s: any) => {
+            this.studentMap[s.id] = s;
+          });
+        });
+      });
+      // Ensure each class has a projects array for UI compatibility
+      this.teacherClasses = classes.map(c => ({
+        ...c,
+        projects: c.projects || []
+      }));
       this.route.queryParamMap.subscribe(params => {
         const classId = params.get('classId');
         if (classId) {
-          const foundClass = this.teacherClasses.find(c => c.id == classId);
+          const foundClass = this.teacherClasses.find(c => c.classId == classId);
           if (foundClass) {
             this.selectedClass = foundClass;
             foundClass.expanded = true;
@@ -33,7 +57,6 @@ export class TeacherTasksComponent implements OnInit {
               this.selectProject(foundClass.projects[0]);
             } else {
               this.selectedProject = null;
-              // Fetch tasks for the class from backend
               this.teacherData.getTasksByClassId(classId).subscribe(tasks => {
                 this.filteredTasks = tasks;
               });
@@ -96,10 +119,29 @@ export class TeacherTasksComponent implements OnInit {
     project.expanded = !project.expanded;
   }
 
-  // Add to project (placeholder)
+  // Open dialog to create a group under a project
   addToProject(project: any, classId: any) {
-    // Implement add to project logic here
-    alert('Add to project: ' + project.name);
+    // Fetch students for this class (simulate or implement API call)
+    this.teacherData.getStudentsByClassId(classId).subscribe((students: any[]) => {
+      // Exclude students already in a group for this project/class
+      const usedIds = (project.groups || []).flatMap((g: any) => g.memberIds || []);
+      const availableStudents = students.filter(s => !usedIds.includes(s.id));
+      const dialogRef = this.dialog.open(CreateGroupDialogComponent, {
+        width: '400px',
+        data: { students: availableStudents }
+      });
+      dialogRef.afterClosed().subscribe(result => {
+        if (result) {
+          // Add the new group to the project tree (simulate backend call)
+          if (!project.groups) project.groups = [];
+          project.groups.push({
+            name: result.groupName,
+            memberIds: result.members,
+            expanded: false
+          });
+        }
+      });
+    });
   }
 
   // Toggle expand/collapse for a group
@@ -109,20 +151,56 @@ export class TeacherTasksComponent implements OnInit {
 
   // Open add member modal (placeholder)
   openAddMemberModal(group: any) {
-    // Implement modal logic here
-    alert('Open add member modal for group: ' + group.name);
+    // Find class for this group
+    let classId = null;
+    outer: for (const classe of this.teacherClasses) {
+      for (const project of classe.projects) {
+        if (project.groups && project.groups.includes(group)) {
+          classId = classe.classId;
+          break outer;
+        }
+      }
+    }
+    if (!classId) return;
+    this.teacherData.getStudentsByClassId(classId).subscribe((students: any[]) => {
+      const usedIds = group.memberIds || [];
+      const availableStudents = students.filter(s => !usedIds.includes(s.id));
+      if (availableStudents.length === 0) {
+        alert('No available students to add.');
+        return;
+      }
+      const nameList = availableStudents.map(s => `${s.fullName || s.name || s.email}`).join('\n');
+      const selected = prompt(`Enter the name of the student to add:\n${nameList}`);
+      const found = availableStudents.find(s => (s.fullName || s.name || s.email) === selected);
+      if (found) {
+        group.memberIds.push(found.id);
+      }
+    });
   }
 
   // Confirm remove group (placeholder)
   confirmRemoveGroup(group: any) {
-    // Implement remove group logic here
-    alert('Remove group: ' + group.name);
+    const confirmed = confirm(`Are you sure you want to remove the group "${group.name}"?`);
+    if (confirmed) {
+      // Remove group from its parent project
+      for (const classe of this.teacherClasses) {
+        for (const project of classe.projects) {
+          if (project.groups) {
+            const idx = project.groups.indexOf(group);
+            if (idx > -1) {
+              project.groups.splice(idx, 1);
+              return;
+            }
+          }
+        }
+      }
+    }
   }
 
   // Get student name by ID (placeholder)
   getStudentName(id: any): string {
-    // Implement lookup logic here
-    return 'Student ' + id;
+    const student = this.studentMap[id];
+    return student ? (student.fullName || student.name || student.email || id) : 'Student ' + id;
   }
 
   // Convert string to number (utility)
@@ -132,8 +210,11 @@ export class TeacherTasksComponent implements OnInit {
 
   // Confirm remove member (placeholder)
   confirmRemoveMember(group: any, studentId: any) {
-    // Implement remove member logic here
-    alert('Remove member ' + studentId + ' from group ' + group.name);
+    const confirmed = confirm('Remove member ' + this.getStudentName(studentId) + ' from group ' + group.name + '?');
+    if (confirmed) {
+      const idx = group.memberIds.indexOf(studentId);
+      if (idx > -1) group.memberIds.splice(idx, 1);
+    }
   }
 
   // Add task (placeholder)
