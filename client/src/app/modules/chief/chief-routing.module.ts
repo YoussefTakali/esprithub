@@ -7,31 +7,12 @@ import { DepartmentClassesComponent } from './components/department-classes/depa
 import { DepartmentMembersComponent } from './components/department-members/department-members.component';
 
 const routes: Routes = [
-  {
-    path: '',
-    redirectTo: 'dashboard',
-    pathMatch: 'full'
-  },
-  {
-    path: 'dashboard',
-    component: ChiefDashboardComponent
-  },
-  {
-    path: 'department',
-    component: MyDepartmentComponent
-  },
-  {
-    path: 'levels',
-    component: DepartmentLevelsComponent
-  },
-  {
-    path: 'classes',
-    component: DepartmentClassesComponent
-  },
-  {
-    path: 'members',
-    component: DepartmentMembersComponent
-  }
+  { path: '', redirectTo: 'dashboard', pathMatch: 'full' },
+  { path: 'dashboard', component: ChiefDashboardComponent },
+  { path: 'department', component: MyDepartmentComponent },
+  { path: 'levels', component: DepartmentLevelsComponent },
+  { path: 'classes', component: DepartmentClassesComponent },
+  { path: 'members', component: DepartmentMembersComponent }
 ];
 
 @NgModule({

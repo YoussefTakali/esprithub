@@ -48,4 +48,6 @@ public interface ClasseRepository extends JpaRepository<Classe, UUID> {
     // Add count method for niveau summary
     @Query("SELECT COUNT(c) FROM Classe c WHERE c.niveau.id = :niveauId AND c.isActive = true")
     Long countByNiveauIdAndIsActiveTrue(@Param("niveauId") UUID niveauId);
+    
+    List<Classe> findByTeachers_Id(UUID teacherId);
 }

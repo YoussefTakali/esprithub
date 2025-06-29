@@ -40,13 +40,13 @@ export interface User {
 })
 export class AuthService {
   private readonly API_URL = 'http://localhost:8090/api/v1';
-  private currentUserSubject = new BehaviorSubject<User | null>(null);
+  private readonly currentUserSubject = new BehaviorSubject<User | null>(null);
   public currentUser$ = this.currentUserSubject.asObservable();
   
-  private isLoggedInSubject = new BehaviorSubject<boolean>(false);
+  private readonly isLoggedInSubject = new BehaviorSubject<boolean>(false);
   public isLoggedIn$ = this.isLoggedInSubject.asObservable();
 
-  constructor(private http: HttpClient, private router: Router) {
+  constructor(private readonly http: HttpClient, private readonly router: Router) {
     // Check if user is already logged in on service initialization
     this.initializeAuthState();
   }
@@ -82,17 +82,32 @@ export class AuthService {
           localStorage.setItem('accessToken', response.accessToken);
           localStorage.setItem('refreshToken', response.refreshToken);
           localStorage.setItem('user', JSON.stringify(response.user));
-          
-          // Store individual items for compatibility
           localStorage.setItem('firstname', response.user.firstName);
           localStorage.setItem('lastname', response.user.lastName);
           localStorage.setItem('role', response.user.role.toLowerCase());
           localStorage.setItem('id', response.user.id);
           localStorage.setItem('email', response.user.email);
-          
-          // Update observables
           this.currentUserSubject.next(response.user);
           this.isLoggedInSubject.next(true);
+
+          // Role-based redirect after login
+          const role = response.user.role?.toLowerCase();
+          switch (role) {
+            case 'admin':
+              this.router.navigate(['/admin/dashboard']);
+              break;
+            case 'chief':
+              this.router.navigate(['/chief/dashboard']);
+              break;
+            case 'teacher':
+              this.router.navigate(['/teacher/dashboard']);
+              break;
+            case 'student':
+              this.router.navigate(['/dashboard']); // or your student dashboard route
+              break;
+            default:
+              this.router.navigate(['/dashboard']);
+          }
         })
       );
   }

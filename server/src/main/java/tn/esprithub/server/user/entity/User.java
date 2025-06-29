@@ -1,5 +1,6 @@
 package tn.esprithub.server.user.entity;
 
+import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
 import jakarta.persistence.*;
 import jakarta.validation.constraints.Email;
 import jakarta.validation.constraints.NotBlank;
@@ -27,6 +28,7 @@ import java.util.List;
 @SuperBuilder
 @NoArgsConstructor
 @AllArgsConstructor
+@JsonIgnoreProperties({"hibernateLazyInitializer", "handler"})
 public class User extends BaseEntity implements UserDetails {
 
     @Column(unique = true, nullable = false)
@@ -86,6 +88,7 @@ public class User extends BaseEntity implements UserDetails {
     
     // For teachers - many-to-many relationship with classes they teach
     @ManyToMany(mappedBy = "teachers", fetch = FetchType.LAZY)
+    @com.fasterxml.jackson.annotation.JsonIgnore
     private List<tn.esprithub.server.academic.entity.Classe> teachingClasses;
 
     // UserDetails implementation

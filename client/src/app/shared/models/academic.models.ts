@@ -178,3 +178,31 @@ export interface PaginatedResponse<T> {
   page: number;
   size: number;
 }
+
+export interface Course {
+  id: string;
+  name: string;
+  description?: string;
+  niveauId: string;
+}
+
+export interface CourseAssignment {
+  id: string;
+  courseId: string;
+  courseName: string;
+  niveauId: string;
+  teacherId: string;
+  teacherName: string;
+}
+
+export interface CreateCourseAssignment {
+  courseId: string;
+  niveauId: string;
+  teacherId: string;
+}
+
+export interface CreateCourse {
+  name: string;
+  description?: string;
+  niveauId: string;
+}

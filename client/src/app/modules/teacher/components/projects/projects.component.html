@@ -1,0 +1,99 @@
+<div class="projects-main-container">
+  <button class="add-project-fab" (click)="openCreateModal()">+ Add Project</button>
+  <div class="projects-cards-center">
+    <div *ngFor="let project of projects" class="project-card-centered">
+      <div class="project-card-icon" [style.background]="'#e74c3c'">
+        <span class="material-icons">rocket_launch</span>
+      </div>
+      <div class="project-title">{{ project.name }}</div>
+      <div class="project-meta">{{ project.description }}</div>
+      <div class="project-avatars">
+        <ng-container *ngFor="let collab of project.collaborators?.slice(0,4)">
+          <div class="avatar-circle">{{ collab.firstName?.charAt(0) }}{{ collab.lastName?.charAt(0) }}</div>
+        </ng-container>
+        <span *ngIf="project.collaborators?.length > 4" class="avatar-more">+{{ project.collaborators.length - 4 }}</span>
+      </div>
+      <div class="project-progress-label">Progress</div>
+      <div class="project-progress-bar">
+        <div class="progress-inner" [style.width]="'75%'" style="background:#e74c3c"></div>
+      </div>
+      <div class="project-card-actions">
+        <button class="icon-btn" title="View" (click)="openDetailsModal(project, $event)"><span class="material-icons">visibility</span></button>
+        <button class="icon-btn" title="Edit" (click)="openEditModal(project, $event)"><span class="material-icons">edit</span></button>
+        <button class="icon-btn delete" title="Delete" (click)="deleteProject(project); $event.stopPropagation()"><span class="material-icons">delete</span></button>
+      </div>
+      <div class="project-deadline">{{ project.deadline | date:'short' }}</div>
+    </div>
+  </div>
+  <!-- Modal for creating a new project -->
+  <div class="modal-backdrop" *ngIf="showCreateModal" (click)="closeCreateModal()"></div>
+  <div class="modal" *ngIf="showCreateModal">
+    <div class="modal-content" (click)="$event.stopPropagation()">
+      <h3 style="color:#e74c3c">Create New Project</h3>
+      <form (ngSubmit)="createProject()" #projectForm="ngForm">
+        <label for="projectName">Project Name</label>
+        <input id="projectName" [(ngModel)]="newProject.name" name="name" required placeholder="Project Name" />
+        <label for="projectDesc">Description</label>
+        <textarea id="projectDesc" [(ngModel)]="newProject.description" name="description" placeholder="Description"></textarea>
+        <label for="projectDeadline">Deadline</label>
+        <input id="projectDeadline" [(ngModel)]="newProject.deadline" name="deadline" type="datetime-local" required />
+        <label for="projectClasses">Classes</label>
+        <select id="projectClasses" [(ngModel)]="newProject.classIds" name="classIds" multiple required>
+          <option *ngFor="let c of availableClasses" [value]="c.classId">
+            {{ c.className }} ({{ c.courseName }})
+          </option>
+        </select>
+        <label for="projectCollaborators">Collaborators</label>
+        <input id="projectCollaborators" [(ngModel)]="collaboratorEmail" name="collaboratorEmail" placeholder="Type email to add..." (input)="onCollaboratorInput()" autocomplete="off" />
+        <ul *ngIf="filteredCollaborators.length > 0" class="autocomplete-list">
+          <li *ngFor="let user of filteredCollaborators" (click)="selectCollaborator(user)">{{ user.email }}</li>
+        </ul>
+        <div class="selected-collaborators">
+          <span *ngFor="let id of newProject.collaboratorIds">
+            {{ getUserEmailById(id) }}
+            <button type="button" (click)="removeNewCollaborator(id)">&times;</button>
+          </span>
+        </div>
+        <div class="modal-actions">
+          <button class="create-btn-red" type="submit" [disabled]="!projectForm.form.valid">Create</button>
+          <button class="cancel-btn" type="button" (click)="closeCreateModal()">Cancel</button>
+        </div>
+      </form>
+    </div>
+  </div>
+  <!-- Details Modal -->
+  <div class="modal-backdrop" *ngIf="showDetailsModal" (click)="closeDetailsModal()"></div>
+  <div class="modal" *ngIf="showDetailsModal">
+    <div class="modal-content" (click)="$event.stopPropagation()">
+      <h3 style="color:#e74c3c">Project Details</h3>
+      <div *ngIf="detailsProject">
+        <div><b>Name:</b> {{ detailsProject.name }}</div>
+        <div><b>Description:</b> {{ detailsProject.description }}</div>
+        <div><b>Deadline:</b> {{ detailsProject.deadline | date:'short' }}</div>
+        <div><b>Collaborators:</b>
+          <span *ngFor="let collab of detailsProject.collaborators">{{ collab.email }}</span>
+        </div>
+      </div>
+      <div class="modal-actions">
+        <button class="cancel-btn" type="button" (click)="closeDetailsModal()">Close</button>
+      </div>
+    </div>
+  </div>
+  <!-- Edit Modal -->
+  <div class="modal-backdrop" *ngIf="showEditModal" (click)="closeEditModal()"></div>
+  <div class="modal" *ngIf="showEditModal">
+    <div class="modal-content" (click)="$event.stopPropagation()">
+      <h3 style="color:#e74c3c">Edit Project</h3>
+      <form (ngSubmit)="saveEditProject()" #editProjectForm="ngForm">
+        <label for="editProjectName">Project Name</label>
+        <input id="editProjectName" [(ngModel)]="editProject.name" name="editProjectName" required />
+        <label for="editProjectDesc">Description</label>
+        <textarea id="editProjectDesc" [(ngModel)]="editProject.description" name="editProjectDesc"></textarea>
+        <div class="modal-actions">
+          <button class="create-btn-red" type="submit" [disabled]="!editProjectForm.form.valid">Save</button>
+          <button class="cancel-btn" type="button" (click)="closeEditModal()">Cancel</button>
+        </div>
+      </form>
+    </div>
+  </div>
+</div>

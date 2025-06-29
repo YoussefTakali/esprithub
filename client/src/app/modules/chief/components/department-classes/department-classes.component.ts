@@ -23,9 +23,8 @@ export class DepartmentClassesComponent implements OnInit {
     try {
       this.loading = true;
       this.error = null;
-      
-      // Load classes for the chief's department
-      const classes = await firstValueFrom(this.academicService.getAllClasses());
+      // Load classes for the chief's department using chief endpoint
+      const classes = await firstValueFrom(this.academicService.getMyDepartmentClasses());
       this.classes = classes ?? [];
     } catch (error) {
       console.error('Error loading classes:', error);

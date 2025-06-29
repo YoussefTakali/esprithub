@@ -2,6 +2,7 @@ import { Component, Input, OnChanges, SimpleChanges, OnInit, OnDestroy } from '@
 import { Router } from '@angular/router';
 import { SidebarService } from '../../services/sidebar.service';
 import { AuthService } from '../../services/auth.service';
+import { TeacherDataService } from '../../modules/teacher/services/teacher-data.service';
 import { Subscription } from 'rxjs';
 
 @Component({
@@ -16,12 +17,14 @@ export class SidebarComponent implements OnChanges, OnInit, OnDestroy {
   userId: string | null = null;
   showLevels: boolean = false;
   showClasses: boolean = false;
+  myClasses: any[] = [];
   private subscriptions: Subscription = new Subscription();
 
   constructor(
     public router: Router,
     private sidebarService: SidebarService,
-    private authService: AuthService
+    private authService: AuthService,
+    private teacherData: TeacherDataService
   ) {}
 
   ngOnInit(): void {
@@ -49,6 +52,13 @@ export class SidebarComponent implements OnChanges, OnInit, OnDestroy {
     
     // Initial state update
     this.updateSidebarState();
+
+    // Fetch teacher's classes if the user is a teacher
+    if (this.userRole === 'teacher' || this.userRole === 'TEACHER') {
+      this.teacherData.getMyClasses().subscribe(classes => {
+        this.myClasses = classes;
+      });
+    }
   }
 
   ngOnDestroy(): void {

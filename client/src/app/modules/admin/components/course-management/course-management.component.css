@@ -1,0 +1,13 @@
+.course-management { padding: 2rem; }
+.header { display: flex; justify-content: space-between; align-items: center; }
+.create-btn { background: #1976d2; color: #fff; border: none; padding: 0.5rem 1rem; border-radius: 4px; cursor: pointer; }
+.loading-container, .error-container { margin: 2rem 0; text-align: center; }
+.form-overlay { position: fixed; top: 0; left: 0; width: 100vw; height: 100vh; background: rgba(0,0,0,0.3); display: flex; align-items: center; justify-content: center; }
+.form-container { background: #fff; padding: 2rem; border-radius: 8px; min-width: 320px; }
+.form-header { display: flex; justify-content: space-between; align-items: center; }
+.close-btn { background: none; border: none; font-size: 1.2rem; cursor: pointer; }
+.form-group { margin-bottom: 1rem; }
+.form-actions { display: flex; justify-content: flex-end; gap: 1rem; }
+.cancel-btn, .submit-btn { padding: 0.5rem 1rem; border-radius: 4px; border: none; }
+.cancel-btn { background: #eee; }
+.submit-btn { background: #1976d2; color: #fff; }

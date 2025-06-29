@@ -57,6 +57,10 @@ public class Niveau extends BaseEntity {
     @OneToMany(mappedBy = "niveau", cascade = CascadeType.ALL, fetch = FetchType.LAZY)
     private List<Classe> classes;
 
+    // One-to-many relationship with course assignments
+    @OneToMany(mappedBy = "niveau", cascade = CascadeType.ALL, fetch = FetchType.LAZY)
+    private List<CourseAssignment> courseAssignments;
+
     @PrePersist
     @PreUpdate
     private void generateCode() {

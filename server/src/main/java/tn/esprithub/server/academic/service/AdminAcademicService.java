@@ -6,6 +6,8 @@ import tn.esprithub.server.academic.dto.NiveauDto;
 import tn.esprithub.server.academic.dto.NiveauSummaryDto;
 import tn.esprithub.server.academic.dto.ClasseDto;
 import tn.esprithub.server.academic.dto.CreateClasseDto;
+import tn.esprithub.server.academic.dto.CourseDto;
+import tn.esprithub.server.academic.dto.CourseAssignmentDto;
 import tn.esprithub.server.user.dto.UserSummaryDto;
 
 import java.util.List;
@@ -63,4 +65,11 @@ public interface AdminAcademicService {
     List<DepartementSummaryDto> getDepartementsSummary();
     List<NiveauSummaryDto> getNiveauxSummaryByDepartement(UUID departementId);
     ClasseDto createClasseForNiveau(UUID departementId, UUID niveauId, CreateClasseDto createClasseDto);
+    
+    // Course operations
+    List<CourseDto> getCoursesByNiveau(UUID niveauId);
+    List<CourseAssignmentDto> getCourseAssignmentsByNiveau(UUID niveauId);
+    CourseAssignmentDto createCourseAssignment(CourseAssignmentDto dto);
+    void deleteCourseAssignment(UUID assignmentId);
+    CourseDto createCourse(CourseDto courseDto);
 }

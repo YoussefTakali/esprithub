@@ -2,7 +2,7 @@ import { Component, OnInit } from '@angular/core';
 import { firstValueFrom } from 'rxjs';
 import { AcademicService } from '../../../../shared/services/academic.service';
 import { SnackbarService } from '../../../../shared/services/snackbar.service';
-import { Niveau, CreateNiveau, Departement } from '../../../../shared/models/academic.models';
+import { Niveau, CreateNiveau, Departement, Course, CourseAssignment, CreateCourseAssignment, UserSummary } from '../../../../shared/models/academic.models';
 
 @Component({
   selector: 'app-level-management',
@@ -12,6 +12,9 @@ import { Niveau, CreateNiveau, Departement } from '../../../../shared/models/aca
 export class LevelManagementComponent implements OnInit {
   levels: Niveau[] = [];
   departments: Departement[] = [];
+  assignments: CourseAssignment[] = [];
+  courses: Course[] = [];
+  teachers: UserSummary[] = [];
   
   loading = true;
   saving = false;
@@ -27,6 +30,12 @@ export class LevelManagementComponent implements OnInit {
     annee: 1,
     departementId: ''
   };
+
+  showAssignmentDialog = false;
+  selectedLevel: Niveau | null = null;
+  assignmentLoading = false;
+  assignmentError: string | null = null;
+  assignmentForm: CreateCourseAssignment = { courseId: '', niveauId: '', teacherId: '' };
 
   constructor(
     private readonly academicService: AcademicService,
@@ -170,6 +179,66 @@ export class LevelManagementComponent implements OnInit {
     } finally {
       this.saving = false;
     }
+  }
+
+  async onManageAssignments(level: Niveau) {
+    this.selectedLevel = level;
+    this.showAssignmentDialog = true;
+    this.assignmentLoading = true;
+    this.assignmentError = null;
+    this.assignmentForm = { courseId: '', niveauId: level.id, teacherId: '' };
+    try {
+      const [assignments, courses, teachers] = await Promise.all([
+        firstValueFrom(this.academicService.getCourseAssignmentsByNiveau(level.id)),
+        firstValueFrom(this.academicService.getCoursesByNiveau(level.id)),
+        firstValueFrom(this.academicService.getUsersByRole('TEACHER'))
+      ]);
+      this.assignments = assignments ?? [];
+      this.courses = courses ?? [];
+      this.teachers = teachers ?? [];
+    } catch (error: any) {
+      console.error(error);
+      this.assignmentError = 'Failed to load assignments, courses, or teachers.';
+    } finally {
+      this.assignmentLoading = false;
+    }
+  }
+
+  async addAssignment() {
+    if (!this.assignmentForm.courseId || !this.assignmentForm.teacherId) return;
+    this.assignmentLoading = true;
+    try {
+      const assignment = await firstValueFrom(this.academicService.createCourseAssignment(this.assignmentForm));
+      this.assignments.push(assignment);
+      this.assignmentForm.courseId = '';
+      this.assignmentForm.teacherId = '';
+      this.snackbarService.showSuccess('Assignment added!');
+    } catch (error: any) {
+      console.error(error);
+      this.snackbarService.showError('Failed to add assignment.');
+    } finally {
+      this.assignmentLoading = false;
+    }
+  }
+
+  async removeAssignment(assignmentId: string) {
+    if (!confirm('Remove this assignment?')) return;
+    this.assignmentLoading = true;
+    try {
+      await firstValueFrom(this.academicService.deleteCourseAssignment(assignmentId));
+      this.assignments = this.assignments.filter(a => a.id !== assignmentId);
+      this.snackbarService.showSuccess('Assignment removed!');
+    } catch (error: any) {
+      console.error(error);
+      this.snackbarService.showError('Failed to remove assignment.');
+    } finally {
+      this.assignmentLoading = false;
+    }
+  }
+
+  closeAssignmentDialog() {
+    this.showAssignmentDialog = false;
+    this.selectedLevel = null;
   }
 
   private resetCreateForm(): void {

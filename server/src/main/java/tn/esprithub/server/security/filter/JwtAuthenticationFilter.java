@@ -55,15 +55,13 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
         
         jwt = authHeader.substring(7);
         log.debug("JWT token extracted: {}", jwt.substring(0, Math.min(jwt.length(), 20)) + "...");
-        
         try {
-            userEmail = jwtService.extractUsername(jwt);
-            log.debug("User email extracted from JWT: {}", userEmail);
-            
+            // Extract email from claim, not subject
+            userEmail = jwtService.extractClaim(jwt, claims -> claims.get("email", String.class));
+            log.debug("User email extracted from JWT claim: {}", userEmail);
             if (userEmail != null && SecurityContextHolder.getContext().getAuthentication() == null) {
                 UserDetails userDetails = this.userDetailsService.loadUserByUsername(userEmail);
                 log.debug("UserDetails loaded: {}, authorities: {}", userDetails.getUsername(), userDetails.getAuthorities());
-                
                 if (jwtService.isTokenValid(jwt, userDetails)) {
                     log.debug("JWT token is valid for user: {}", userEmail);
                     UsernamePasswordAuthenticationToken authToken = new UsernamePasswordAuthenticationToken(

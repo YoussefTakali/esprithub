@@ -9,6 +9,7 @@ import lombok.RequiredArgsConstructor;
 import org.springframework.security.core.userdetails.UserDetails;
 import org.springframework.stereotype.Service;
 import tn.esprithub.server.config.properties.JwtProperties;
+import tn.esprithub.server.user.entity.User;
 
 import java.security.Key;
 import java.util.Date;
@@ -48,10 +49,13 @@ public class JwtService {
             UserDetails userDetails,
             long expiration
     ) {
+        User user = (User) userDetails;
+        // Add email as a claim for later extraction
+        extraClaims.put("email", user.getEmail());
         return Jwts
                 .builder()
                 .setClaims(extraClaims)
-                .setSubject(userDetails.getUsername())
+                .setSubject(user.getId().toString()) // Use UUID as subject
                 .setIssuedAt(new Date(System.currentTimeMillis()))
                 .setExpiration(new Date(System.currentTimeMillis() + expiration))
                 .signWith(getSignInKey(), SignatureAlgorithm.HS256)
@@ -59,8 +63,8 @@ public class JwtService {
     }
 
     public boolean isTokenValid(String token, UserDetails userDetails) {
-        final String username = extractUsername(token);
-        return (username.equals(userDetails.getUsername())) && !isTokenExpired(token);
+        final String userId = extractUsername(token); // now UUID
+        return (userId.equals(((tn.esprithub.server.user.entity.User) userDetails).getId().toString())) && !isTokenExpired(token);
     }
 
     private boolean isTokenExpired(String token) {

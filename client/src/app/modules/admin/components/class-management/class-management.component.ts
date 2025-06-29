@@ -3,6 +3,7 @@ import { firstValueFrom } from 'rxjs';
 import { AcademicService } from '../../../../shared/services/academic.service';
 import { UserService } from '../../../../shared/services/user.service';
 import { SnackbarService } from '../../../../shared/services/snackbar.service';
+import { AuthService } from '../../../../services/auth.service';
 import { Classe, CreateClasse, CreateClasseSimple, Niveau, Departement, User, UserRole } from '../../../../shared/models/academic.models';
 
 @Component({
@@ -40,7 +41,8 @@ export class ClassManagementComponent implements OnInit {
   constructor(
     private readonly academicService: AcademicService,
     private readonly userService: UserService,
-    private readonly snackbarService: SnackbarService
+    private readonly snackbarService: SnackbarService,
+    private readonly authService: AuthService
   ) {}
 
   ngOnInit(): void {
@@ -51,16 +53,26 @@ export class ClassManagementComponent implements OnInit {
     try {
       this.loading = true;
       this.error = null;
-      
-      const [classes, departments, teachers] = await Promise.all([
-        firstValueFrom(this.academicService.getAllClasses()),
-        firstValueFrom(this.academicService.getAllDepartements()),
-        firstValueFrom(this.userService.getUsersByRole(UserRole.TEACHER))
-      ]);
-      
-      this.classes = classes ?? [];
+      const user = this.authService.getCurrentUser();
+      let departments;
+      if (user?.role === 'CHIEF' && (user as any).departementId) {
+        const dept = await this.academicService.getDepartementById((user as any).departementId).toPromise();
+        departments = dept ? [dept] : [];
+      } else {
+        departments = await firstValueFrom(this.academicService.getAllDepartements());
+      }
       this.departments = departments ?? [];
-      this.teachers = teachers ?? [];
+      let levels = [];
+      if (this.departments.length > 0) {
+        this.selectedDepartmentId = this.departments[0].id;
+        levels = await firstValueFrom(this.academicService.getNiveauxByDepartement(this.selectedDepartmentId));
+        this.levels = levels ?? [];
+        if (this.levels.length > 0) {
+          this.selectedLevelId = this.levels[0].id;
+          await this.onLevelFilter(this.selectedLevelId);
+        }
+      }
+      this.teachers = await firstValueFrom(this.userService.getUsersByRole(UserRole.TEACHER));
     } catch (error) {
       console.error('Error loading classes:', error);
       this.snackbarService.showError('Failed to load classes. Please try again.');
@@ -71,6 +83,11 @@ export class ClassManagementComponent implements OnInit {
   }
 
   async onDepartmentFilter(departmentId: string | null): Promise<void> {
+    const user = this.authService.getCurrentUser();
+    if (user?.role === 'CHIEF' && (user as any).departementId) {
+      // Chiefs cannot change department
+      return;
+    }
     this.selectedDepartmentId = departmentId;
     this.selectedLevelId = null;
     
@@ -96,14 +113,18 @@ export class ClassManagementComponent implements OnInit {
 
   async onLevelFilter(levelId: string | null): Promise<void> {
     this.selectedLevelId = levelId;
-    
     if (levelId) {
       try {
         this.loading = true;
         const classes = await firstValueFrom(
           this.academicService.getClassesByNiveau(levelId)
         );
-        this.classes = classes ?? [];
+        // Normalize students/teachers arrays
+        this.classes = (classes ?? []).map(classe => ({
+          ...classe,
+          students: Array.isArray(classe.students) ? classe.students : [],
+          teachers: Array.isArray(classe.teachers) ? classe.teachers : []
+        }));
       } catch (error) {
         console.error('Error loading classes:', error);
         this.snackbarService.showError('Failed to load classes for level.');
@@ -125,13 +146,16 @@ export class ClassManagementComponent implements OnInit {
       const levels = await firstValueFrom(
         this.academicService.getNiveauxByDepartement(departmentId)
       );
-      
       const classPromises = levels?.map(level =>
         firstValueFrom(this.academicService.getClassesByNiveau(level.id))
       ) ?? [];
-      
       const classArrays = await Promise.all(classPromises);
-      this.classes = classArrays.flat().filter(Boolean);
+      // Normalize students/teachers arrays
+      this.classes = classArrays.flat().filter(Boolean).map(classe => ({
+        ...classe,
+        students: Array.isArray(classe.students) ? classe.students : [],
+        teachers: Array.isArray(classe.teachers) ? classe.teachers : []
+      }));
     } catch (error) {
       console.error('Error loading classes by department:', error);
       this.snackbarService.showError('Failed to load classes.');
@@ -144,7 +168,13 @@ export class ClassManagementComponent implements OnInit {
   async onCreateClass(): Promise<void> {
     this.showCreateForm = true;
     this.editingClass = null;
-    this.resetCreateForm();
+    const user = this.authService.getCurrentUser();
+    if (user?.role === 'CHIEF' && (user as any).departementId) {
+      this.createFormDepartmentId = (user as any).departementId;
+      await this.onDepartmentSelectedForCreate(this.createFormDepartmentId);
+    } else {
+      this.resetCreateForm();
+    }
   }
 
   async onDepartmentSelectedForCreate(departmentId: string): Promise<void> {

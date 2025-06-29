@@ -22,6 +22,10 @@ const routes: Routes = [
         path: 'chief', 
         loadChildren: () => import('./modules/chief/chief.module').then(m => m.ChiefModule)
       },
+      { 
+        path: 'teacher',
+        loadChildren: () => import('./modules/teacher/teacher.module').then(m => m.TeacherModule)
+      },
       { path: '', redirectTo: '/dashboard', pathMatch: 'full' }
     ]
   },

@@ -10,12 +10,18 @@ import tn.esprithub.server.academic.dto.NiveauDto;
 import tn.esprithub.server.academic.dto.NiveauSummaryDto;
 import tn.esprithub.server.academic.dto.ClasseDto;
 import tn.esprithub.server.academic.dto.CreateClasseDto;
+import tn.esprithub.server.academic.dto.CourseDto;
+import tn.esprithub.server.academic.dto.CourseAssignmentDto;
 import tn.esprithub.server.academic.entity.Departement;
 import tn.esprithub.server.academic.entity.Niveau;
 import tn.esprithub.server.academic.entity.Classe;
+import tn.esprithub.server.academic.entity.Course;
+import tn.esprithub.server.academic.entity.CourseAssignment;
 import tn.esprithub.server.academic.repository.DepartementRepository;
 import tn.esprithub.server.academic.repository.NiveauRepository;
 import tn.esprithub.server.academic.repository.ClasseRepository;
+import tn.esprithub.server.academic.repository.CourseRepository;
+import tn.esprithub.server.academic.repository.CourseAssignmentRepository;
 import tn.esprithub.server.academic.service.AdminAcademicService;
 import tn.esprithub.server.academic.util.mapper.DepartementMapper;
 import tn.esprithub.server.academic.util.mapper.NiveauMapper;
@@ -46,6 +52,8 @@ public class AdminAcademicServiceImpl implements AdminAcademicService {
     private final NiveauRepository niveauRepository;
     private final ClasseRepository classeRepository;
     private final UserRepository userRepository;
+    private final CourseRepository courseRepository;
+    private final CourseAssignmentRepository courseAssignmentRepository;
     
     private final DepartementMapper departementMapper;
     private final NiveauMapper niveauMapper;
@@ -622,6 +630,86 @@ public class AdminAcademicServiceImpl implements AdminAcademicService {
                 .departementId(niveau.getDepartement().getId())
                 .departementNom(niveau.getDepartement().getNom())
                 .totalClasses(totalClasses.intValue())
+                .build();
+    }
+
+    @Override
+    @Transactional(readOnly = true)
+    public List<CourseDto> getCoursesByNiveau(UUID niveauId) {
+        Niveau niveau = niveauRepository.findById(niveauId)
+                .orElseThrow(() -> new BusinessException("Niveau not found"));
+        return courseRepository.findByNiveau(niveau)
+                .stream()
+                .map(course -> CourseDto.builder()
+                        .id(course.getId())
+                        .name(course.getName())
+                        .description(course.getDescription())
+                        .niveauId(niveauId)
+                        .build())
+                .toList();
+    }
+
+    @Override
+    @Transactional(readOnly = true)
+    public List<CourseAssignmentDto> getCourseAssignmentsByNiveau(UUID niveauId) {
+        Niveau niveau = niveauRepository.findById(niveauId)
+                .orElseThrow(() -> new BusinessException("Niveau not found"));
+        return courseAssignmentRepository.findByNiveau(niveau)
+                .stream()
+                .map(assignment -> CourseAssignmentDto.builder()
+                        .id(assignment.getId())
+                        .courseId(assignment.getCourse().getId())
+                        .courseName(assignment.getCourse().getName())
+                        .niveauId(niveauId)
+                        .teacherId(assignment.getTeacher().getId())
+                        .teacherName(assignment.getTeacher().getFullName())
+                        .build())
+                .toList();
+    }
+
+    @Override
+    public CourseAssignmentDto createCourseAssignment(CourseAssignmentDto dto) {
+        Course course = courseRepository.findById(dto.getCourseId())
+                .orElseThrow(() -> new BusinessException("Course not found"));
+        Niveau niveau = niveauRepository.findById(dto.getNiveauId())
+                .orElseThrow(() -> new BusinessException("Niveau not found"));
+        User teacher = userRepository.findById(dto.getTeacherId())
+                .orElseThrow(() -> new BusinessException("Teacher not found"));
+        var assignment = new tn.esprithub.server.academic.entity.CourseAssignment();
+        assignment.setCourse(course);
+        assignment.setNiveau(niveau);
+        assignment.setTeacher(teacher);
+        var saved = courseAssignmentRepository.save(assignment);
+        return CourseAssignmentDto.builder()
+                .id(saved.getId())
+                .courseId(course.getId())
+                .courseName(course.getName())
+                .niveauId(niveau.getId())
+                .teacherId(teacher.getId())
+                .teacherName(teacher.getFullName())
+                .build();
+    }
+
+    @Override
+    public void deleteCourseAssignment(UUID assignmentId) {
+        courseAssignmentRepository.deleteById(assignmentId);
+    }
+
+    @Override
+    public CourseDto createCourse(CourseDto courseDto) {
+        Niveau niveau = niveauRepository.findById(courseDto.getNiveauId())
+                .orElseThrow(() -> new BusinessException("Niveau not found"));
+        Course course = Course.builder()
+                .name(courseDto.getName())
+                .description(courseDto.getDescription())
+                .niveau(niveau)
+                .build();
+        Course saved = courseRepository.save(course);
+        return CourseDto.builder()
+                .id(saved.getId())
+                .name(saved.getName())
+                .description(saved.getDescription())
+                .niveauId(niveau.getId())
                 .build();
     }
 }

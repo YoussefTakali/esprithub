@@ -1,0 +1,27 @@
+<h2 mat-dialog-title>Create Course</h2>
+<div mat-dialog-content>
+  <mat-form-field appearance="fill" class="w-100">
+    <mat-label>Department</mat-label>
+    <mat-select [(ngModel)]="selectedDepartmentId" (selectionChange)="onDepartmentChange()">
+      <mat-option *ngFor="let d of data.departments" [value]="d.id">{{ d.nom }}</mat-option>
+    </mat-select>
+  </mat-form-field>
+  <mat-form-field appearance="fill" class="w-100" *ngIf="niveaux.length">
+    <mat-label>Level</mat-label>
+    <mat-select [(ngModel)]="selectedNiveauId">
+      <mat-option *ngFor="let n of niveaux" [value]="n.id">{{ n.nom }}</mat-option>
+    </mat-select>
+  </mat-form-field>
+  <mat-form-field appearance="fill" class="w-100">
+    <mat-label>Course Name</mat-label>
+    <input matInput [(ngModel)]="name" required />
+  </mat-form-field>
+  <mat-form-field appearance="fill" class="w-100">
+    <mat-label>Description</mat-label>
+    <input matInput [(ngModel)]="description" />
+  </mat-form-field>
+</div>
+<div mat-dialog-actions align="end">
+  <button mat-button (click)="onCancel()">Cancel</button>
+  <button mat-flat-button color="primary" (click)="onCreate()" [disabled]="!name.trim() || !selectedNiveauId">Create</button>
+</div>

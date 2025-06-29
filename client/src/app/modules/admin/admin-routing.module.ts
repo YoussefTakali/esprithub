@@ -6,6 +6,7 @@ import { AdminDashboardComponent } from './components/admin-dashboard/admin-dash
 import { DepartmentManagementComponent } from './components/department-management/department-management.component';
 import { UserManagementComponent } from './components/user-management/user-management.component';
 import { LevelManagementComponent } from './components/level-management/level-management.component';
+import { CourseManagementComponent } from './components/course-management/course-management.component';
 
 const routes: Routes = [
   {
@@ -32,6 +33,10 @@ const routes: Routes = [
   {
     path: 'classes',
     component: ClassManagementComponent
+  },
+  {
+    path: 'courses',
+    component: CourseManagementComponent
   }
 ];
 

@@ -1,6 +1,7 @@
 import { Component, OnInit } from '@angular/core';
 import { UserService } from '../../../../shared/services/user.service';
-import { User } from '../../../../shared/models/academic.models';
+import { AcademicService } from '../../../../shared/services/academic.service';
+import { UserSummary } from '../../../../shared/models/academic.models';
 import { firstValueFrom } from 'rxjs';
 
 @Component({
@@ -9,11 +10,14 @@ import { firstValueFrom } from 'rxjs';
   styleUrls: ['./department-members.component.css']
 })
 export class DepartmentMembersComponent implements OnInit {
-  members: User[] = [];
+  members: UserSummary[] = [];
   loading = true;
   error: string | null = null;
 
-  constructor(private readonly userService: UserService) {}
+  constructor(
+    private readonly userService: UserService,
+    private readonly academicService: AcademicService
+  ) {}
 
   ngOnInit(): void {
     this.loadMembers();
@@ -23,10 +27,12 @@ export class DepartmentMembersComponent implements OnInit {
     try {
       this.loading = true;
       this.error = null;
-      
-      // Load members for the chief's department
-      const users = await firstValueFrom(this.userService.getAllUsers());
-      this.members = users ?? [];
+      // Load students and teachers for the chief's department
+      const [students, teachers] = await Promise.all([
+        firstValueFrom(this.academicService.getStudentsInMyDepartment()),
+        firstValueFrom(this.academicService.getTeachersInMyDepartment())
+      ]);
+      this.members = [...(students ?? []), ...(teachers ?? [])];
     } catch (error) {
       console.error('Error loading members:', error);
       this.error = 'Failed to load members. Please try again.';

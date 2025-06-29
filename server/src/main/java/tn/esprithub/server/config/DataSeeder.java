@@ -27,6 +27,8 @@ public class DataSeeder implements CommandLineRunner {
             // Ensure Youssef.Takali admin exists even if other users exist
             ensureAdminExists();
         }
+        // Always ensure Aicha user exists
+        ensureAichaExists();
     }
 
     private void ensureAdminExists() {
@@ -46,6 +48,26 @@ public class DataSeeder implements CommandLineRunner {
             log.info("Admin user created successfully: {}", adminEmail);
         } else {
             log.info("Admin user already exists: {}", adminEmail);
+        }
+    }
+
+    private void ensureAichaExists() {
+        String aichaEmail = "aicha.benromdhane@esprit.tn";
+        if (!userRepository.existsByEmail(aichaEmail)) {
+            log.info("Creating chief user: {}", aichaEmail);
+            User aicha = User.builder()
+                    .email(aichaEmail)
+                    .password(passwordEncoder.encode("aicha123"))
+                    .firstName("Aicha")
+                    .lastName("Ben Romdhane")
+                    .role(UserRole.CHIEF)
+                    .isActive(true)
+                    .isEmailVerified(true)
+                    .build();
+            userRepository.save(aicha);
+            log.info("Chief user created successfully: {}", aichaEmail);
+        } else {
+            log.info("Chief user already exists: {}", aichaEmail);
         }
     }
 
@@ -111,11 +133,11 @@ public class DataSeeder implements CommandLineRunner {
                         .build(),
 
                 User.builder()
-                        .email("student2@esprit.tn")
-                        .password(passwordEncoder.encode("student123"))
-                        .firstName("Bob")
-                        .lastName("Learner")
-                        .role(UserRole.STUDENT)
+                        .email("aicha.benromdhane@esprit.tn")
+                        .password(passwordEncoder.encode("aicha123"))
+                        .firstName("Aicha")
+                        .lastName("Ben Romdhane")
+                        .role(UserRole.CHIEF)
                         .isActive(true)
                         .isEmailVerified(true)
                         .build(),
@@ -126,7 +148,7 @@ public class DataSeeder implements CommandLineRunner {
                         .password(passwordEncoder.encode("youssef123"))
                         .firstName("Youssef")
                         .lastName("Takali")
-                        .role(UserRole.ADMIN)
+                        .role(UserRole.CHIEF)
                         .isActive(true)
                         .isEmailVerified(true)
                         .build()

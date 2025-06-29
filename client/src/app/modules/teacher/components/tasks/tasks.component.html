@@ -1,0 +1,99 @@
+<!-- Template will be based on your provided classes.component.html, adapted for teacher's view -->
+<span></span>
+<div class="task-management-container">
+  <!-- Sidebar and main content for teacher's tasks page, adapted from classes.component.html -->
+  <div class="task-management-container">
+    <div class="sidebar">
+      <h2 class="sidebar-title">My Classes & Projects</h2>
+      <div class="tree-view">
+        <div *ngFor="let classe of teacherClasses" class="tree-item">
+          <div class="tree-node class-node" [class.expanded]="classe.expanded">
+            <button class="tree-icon arrow-icon" (click)="toggleClass(classe)">
+              <i class="fas" [class.fa-chevron-right]="!classe.expanded" [class.fa-chevron-down]="classe.expanded"></i>
+            </button>
+            <span class="tree-icon">
+              <i class="fas fa-graduation-cap"></i>
+            </span>
+            <button class="tree-label" (click)="filterByClass(classe)">{{ classe.name }}</button>
+          </div>
+          <div *ngIf="classe.expanded" class="tree-children">
+            <div *ngFor="let project of classe.projects" class="tree-item">
+              <div class="tree-node project-node" [class.selected]="selectedProject?.id === project.id" [class.expanded]="project.expanded">
+                <button class="tree-icon arrow-icon" (click)="toggleProject(project)">
+                  <i class="fas" [class.fa-chevron-right]="!project.expanded" [class.fa-chevron-down]="project.expanded"></i>
+                </button>
+                <span class="tree-icon">
+                  <i class="fas fa-folder"></i>
+                </span>
+                <button class="tree-label" (click)="selectProject(project)">{{ project.name }}</button>
+                <button class="add-icon" (click)="addToProject(project, classe.id)">
+                  <i class="fas fa-plus"></i>
+                </button>
+              </div>
+              <div *ngIf="project.expanded" class="tree-children">
+                <div *ngFor="let group of project.groups" class="tree-item">
+                  <div class="tree-node group-node" [class.expanded]="group.expanded">
+                    <button class="tree-icon arrow-icon" (click)="toggleGroup(group)">
+                      <i class="fas" [class.fa-chevron-right]="!group.expanded" [class.fa-chevron-down]="group.expanded"></i>
+                    </button>
+                    <span class="tree-icon">
+                      <i class="fas fa-users"></i>
+                    </span>
+                    <button class="tree-label" (click)="filterByGroup(group)">
+                      {{ group.name }}
+                    </button>
+                    <button class="add-icon" (click)="openAddMemberModal(group)">
+                      <i class="fas fa-plus"></i>
+                    </button>
+                    <button class="remove-icon" (click)="confirmRemoveGroup(group)">
+                      <i class="fas fa-minus"></i>
+                    </button>
+                  </div>
+                  <div *ngIf="group.expanded" class="tree-children">
+                    <div *ngFor="let studentId of group.memberIds" class="tree-item">
+                      <div class="tree-node student-node">
+                        <span class="tree-icon">
+                          <i class="fas fa-user"></i>
+                        </span>
+                        <button class="tree-label" (click)="filterByStudent(studentId)">
+                          {{ getStudentName(StringToNumber(studentId)) }}
+                        </button>
+                        <button class="remove-icon" (click)="confirmRemoveMember(group, studentId)">
+                          <i class="fas fa-minus-circle"></i>
+                        </button>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+    <!-- Main Content - Task list -->
+    <div class="main-content">
+      <div class="content-header">
+        <h1 class="content-title">Tasks for {{ selectedProject?.name || 'All Projects' }}</h1>
+        <div class="header-actions">
+          <div class="search-container">
+            <i class="fas fa-search search-icon"></i>
+            <input type="text" 
+                   placeholder="Search tasks..." 
+                   class="search-input"
+                   [(ngModel)]="searchTerm">
+          </div>
+          <button class="add-task-btn" (click)="addTask()">
+            <i class="fas fa-plus"></i>
+            Add Task
+          </button>
+        </div>
+      </div>
+      <div class="task-grid">
+        <div *ngFor="let task of filteredTasks" class="task-card">
+          <!-- ...task card content as in your design... -->
+        </div>
+      </div>
+    </div>
+  </div>
+</div>

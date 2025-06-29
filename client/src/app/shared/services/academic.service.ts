@@ -12,7 +12,11 @@ import {
   ApiResponse,
   DepartementSummary,
   NiveauSummary,
-  CreateClasseSimple
+  CreateClasseSimple,
+  Course,
+  CreateCourse,
+  CourseAssignment,
+  CreateCourseAssignment
 } from '../models/academic.models';
 import { environment } from '../../../environments/environment';
 
@@ -170,5 +174,93 @@ export class AcademicService {
 
   getUsersByRole(role: string): Observable<UserSummary[]> {
     return this.http.get<UserSummary[]>(`${this.baseUrl}/admin/academic/users/role/${role}`);
+  }
+
+  // ========== COURSE OPERATIONS ==========
+  getCoursesByNiveau(niveauId: string): Observable<Course[]> {
+    return this.http.get<Course[]>(`${this.baseUrl}/admin/academic/niveaux/${niveauId}/courses`);
+  }
+
+  createCourse(course: CreateCourse): Observable<Course> {
+    return this.http.post<Course>(`${this.baseUrl}/admin/academic/courses`, course);
+  }
+
+  // ========== COURSE ASSIGNMENT OPERATIONS ==========
+  getCourseAssignmentsByNiveau(niveauId: string): Observable<CourseAssignment[]> {
+    return this.http.get<CourseAssignment[]>(`${this.baseUrl}/admin/academic/niveaux/${niveauId}/course-assignments`);
+  }
+
+  createCourseAssignment(assignment: CreateCourseAssignment): Observable<CourseAssignment> {
+    return this.http.post<CourseAssignment>(`${this.baseUrl}/admin/academic/course-assignments`, assignment);
+  }
+
+  deleteCourseAssignment(assignmentId: string): Observable<any> {
+    return this.http.delete<any>(`${this.baseUrl}/admin/academic/course-assignments/${assignmentId}`);
+  }
+
+  // ========== CHIEF ENDPOINTS ==========
+
+  // Department (chief)
+  getMyDepartment(): Observable<Departement> {
+    return this.http.get<Departement>(`${this.baseUrl}/chief/academic/my-department`);
+  }
+
+  updateMyDepartment(departement: Partial<CreateDepartement>): Observable<Departement> {
+    return this.http.put<Departement>(`${this.baseUrl}/chief/academic/my-department`, departement);
+  }
+
+  getMyDepartmentWithStatistics(): Observable<Departement> {
+    return this.http.get<Departement>(`${this.baseUrl}/chief/academic/my-department/statistics`);
+  }
+
+  // Niveaux (chief)
+  getMyDepartmentNiveaux(): Observable<Niveau[]> {
+    return this.http.get<Niveau[]>(`${this.baseUrl}/chief/academic/niveaux`);
+  }
+
+  createNiveauInMyDepartment(niveau: CreateNiveau): Observable<Niveau> {
+    return this.http.post<Niveau>(`${this.baseUrl}/chief/academic/niveaux`, niveau);
+  }
+
+  updateNiveauInMyDepartment(id: string, niveau: Partial<CreateNiveau>): Observable<Niveau> {
+    return this.http.put<Niveau>(`${this.baseUrl}/chief/academic/niveaux/${id}`, niveau);
+  }
+
+  deleteNiveauInMyDepartment(id: string): Observable<any> {
+    return this.http.delete(`${this.baseUrl}/chief/academic/niveaux/${id}`);
+  }
+
+  // Classes (chief)
+  getMyDepartmentClasses(): Observable<Classe[]> {
+    return this.http.get<Classe[]>(`${this.baseUrl}/chief/academic/classes`);
+  }
+
+  getClassesByNiveauInMyDepartment(niveauId: string): Observable<Classe[]> {
+    return this.http.get<Classe[]>(`${this.baseUrl}/chief/academic/niveaux/${niveauId}/classes`);
+  }
+
+  createClasseInMyDepartment(classe: CreateClasse): Observable<Classe> {
+    return this.http.post<Classe>(`${this.baseUrl}/chief/academic/classes`, classe);
+  }
+
+  updateClasseInMyDepartment(id: string, classe: Partial<CreateClasse>): Observable<Classe> {
+    return this.http.put<Classe>(`${this.baseUrl}/chief/academic/classes/${id}`, classe);
+  }
+
+  deleteClasseInMyDepartment(id: string): Observable<any> {
+    return this.http.delete(`${this.baseUrl}/chief/academic/classes/${id}`);
+  }
+
+  // Users (chief)
+  getUnassignedUsersInMyDepartment(): Observable<UserSummary[]> {
+    return this.http.get<UserSummary[]>(`${this.baseUrl}/chief/academic/users/unassigned`);
+  }
+
+  getTeachersInMyDepartment(): Observable<UserSummary[]> {
+    return this.http.get<UserSummary[]>(`${this.baseUrl}/chief/academic/users/teachers`);
+  }
+
+  getStudentsInMyDepartment(): Observable<UserSummary[]> {
+    return this.http.get<UserSummary[]>(`${this.baseUrl}/chief/academic/users/students`);
   }
 }

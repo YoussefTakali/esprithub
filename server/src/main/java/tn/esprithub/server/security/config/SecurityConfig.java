@@ -46,7 +46,7 @@ public class SecurityConfig {
                 .cors(cors -> cors.configurationSource(corsConfigurationSource()))
                 .sessionManagement(session -> session.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
                 .headers(headers -> headers
-                        .frameOptions(frameOptions -> frameOptions.deny())
+                        .frameOptions(org.springframework.security.config.annotation.web.configurers.HeadersConfigurer.FrameOptionsConfig::deny)
                         .contentTypeOptions(Customizer.withDefaults())
                         .httpStrictTransportSecurity(hstsConfig -> hstsConfig
                                 .maxAgeInSeconds(31536000)
@@ -75,7 +75,12 @@ public class SecurityConfig {
                         .requestMatchers(CHIEF_ENDPOINTS).hasAnyRole(ROLE_ADMIN, ROLE_CHIEF)
 
                         // Teacher endpoints
-                        .requestMatchers(TEACHER_ENDPOINTS).hasAnyRole(ROLE_ADMIN, ROLE_CHIEF, ROLE_TEACHER)
+                        .requestMatchers("/api/teacher/**").hasAnyRole(ROLE_ADMIN, ROLE_CHIEF, ROLE_TEACHER)
+                        .requestMatchers("/api/projects/**").hasAnyRole(ROLE_ADMIN, ROLE_CHIEF, ROLE_TEACHER)
+                        .requestMatchers("/api/groups/**").hasAnyRole(ROLE_ADMIN, ROLE_CHIEF, ROLE_TEACHER)
+                        .requestMatchers("/api/tasks/**").hasAnyRole(ROLE_ADMIN, ROLE_CHIEF, ROLE_TEACHER)
+                        // Allow teachers to fetch users for collaborators
+                        .requestMatchers(HttpMethod.GET, "/api/v1/users/**").hasAnyRole(ROLE_ADMIN, ROLE_CHIEF, ROLE_TEACHER)
 
                         // All other requests require authentication
                         .anyRequest().authenticated()

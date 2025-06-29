@@ -147,28 +147,17 @@
 
     <div *ngIf="levels.length > 0" class="levels-grid">
       <div *ngFor="let level of levels" class="level-card">
-        <div class="card-header">
-          <div class="level-info">
-            <h3>{{ level.nom }}</h3>
-            <div class="level-meta">
-              <span class="level-code">{{ level.code }}</span>
-              <span class="level-year">{{ getYearDisplayName(level.annee) }}</span>
-            </div>
-          </div>
-          <div class="card-actions">
-            <button 
-              class="action-btn edit" 
-              (click)="onEditLevel(level)"
-              [disabled]="saving"
-              title="Edit level">
+        <div class="level-header">
+          <h3>{{ level.nom }}</h3>
+          <div class="level-actions">
+            <button class="btn-edit" (click)="onEditLevel(level)">
               <i class="fas fa-edit"></i>
             </button>
-            <button 
-              class="action-btn delete" 
-              (click)="onDeleteLevel(level)"
-              [disabled]="saving"
-              title="Delete level">
+            <button class="btn-delete" (click)="onDeleteLevel(level)">
               <i class="fas fa-trash"></i>
+            </button>
+            <button class="btn-assign" (click)="onManageAssignments(level)">
+              <i class="fas fa-tasks"></i> Manage Course Assignments
             </button>
           </div>
         </div>
@@ -210,6 +199,57 @@
             </div>
           </div>
         </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Course Assignment Dialog -->
+  <div *ngIf="showAssignmentDialog" class="assignment-dialog">
+    <div class="dialog-header">
+      <h2>Manage Course Assignments for {{ selectedLevel?.nom }}</h2>
+      <button class="close-btn" (click)="closeAssignmentDialog()">
+        <i class="fas fa-times"></i>
+      </button>
+    </div>
+    <div *ngIf="assignmentLoading" class="loading-container">
+      <div class="spinner"></div>
+      <p>Loading assignments...</p>
+    </div>
+    <div *ngIf="assignmentError && !assignmentLoading" class="error-container">
+      <div class="error-message">
+        <i class="fas fa-exclamation-triangle"></i>
+        <p>{{ assignmentError }}</p>
+      </div>
+    </div>
+    <div *ngIf="!assignmentLoading && !assignmentError">
+      <div class="assignments-list">
+        <h3>Current Assignments</h3>
+        <div *ngIf="assignments.length === 0" class="no-data">
+          <p>No course assignments for this level.</p>
+        </div>
+        <ul *ngIf="assignments.length > 0">
+          <li *ngFor="let a of assignments">
+            <span><b>{{ a.courseName }}</b> &rarr; {{ a.teacherName }}</span>
+            <button class="btn-remove" (click)="removeAssignment(a.id)"><i class="fas fa-trash"></i></button>
+          </li>
+        </ul>
+      </div>
+      <div class="assignment-form">
+        <h3>Add Assignment</h3>
+        <form (ngSubmit)="addAssignment()">
+          <select [(ngModel)]="assignmentForm.courseId" name="courseId" required>
+            <option value="">Select Course</option>
+            <option *ngFor="let c of courses" [value]="c.id">{{ c.name }}</option>
+          </select>
+          <select [(ngModel)]="assignmentForm.teacherId" name="teacherId" required>
+            <option value="">Select Teacher</option>
+            <option *ngFor="let t of teachers" [value]="t.id">{{ t.fullName }}</option>
+          </select>
+          <button type="submit" [disabled]="assignmentLoading || !assignmentForm.courseId || !assignmentForm.teacherId">
+            <i *ngIf="assignmentLoading" class="fas fa-spinner fa-spin"></i>
+            Add Assignment
+          </button>
+        </form>
       </div>
     </div>
   </div>

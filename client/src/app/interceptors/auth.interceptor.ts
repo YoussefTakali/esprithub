@@ -30,19 +30,15 @@ export class AuthInterceptor implements HttpInterceptor {
   }
 
   private shouldAddToken(request: HttpRequest<any>): boolean {
-    // Add token to all API requests except login and refresh endpoints
     const url = request.url;
-    
     // Don't add token to login and refresh requests
     if (url.includes('/auth/login') || url.includes('/auth/refresh')) {
       return false;
     }
-    
-    // Don't add token to external URLs (non-API requests)
-    if (!url.includes('/api/v1/')) {
-      return false;
+    // Add token to all /api/ requests (including /api/teacher, /api/projects, etc.)
+    if (url.includes('/api/')) {
+      return true;
     }
-    
-    return true;
+    return false;
   }
 }

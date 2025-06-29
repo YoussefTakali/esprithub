@@ -1,5 +1,6 @@
 package tn.esprithub.server.academic.controller;
 
+import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.*;
@@ -9,6 +10,9 @@ import tn.esprithub.server.academic.dto.NiveauDto;
 import tn.esprithub.server.academic.dto.NiveauSummaryDto;
 import tn.esprithub.server.academic.dto.ClasseDto;
 import tn.esprithub.server.academic.dto.CreateClasseDto;
+import tn.esprithub.server.academic.dto.CourseDto;
+import tn.esprithub.server.academic.dto.CourseAssignmentDto;
+import tn.esprithub.server.user.dto.UserSummaryDto;
 import tn.esprithub.server.academic.service.AdminAcademicService;
 
 import java.util.List;
@@ -149,6 +153,38 @@ public class AdminAcademicController {
             @PathVariable UUID niveauId,
             @RequestBody CreateClasseDto createClasseDto) {
         return ResponseEntity.ok(adminAcademicService.createClasseForNiveau(departementId, niveauId, createClasseDto));
+    }
+
+    // Course endpoints
+    @GetMapping("/niveaux/{niveauId}/courses")
+    public ResponseEntity<List<CourseDto>> getCoursesByNiveau(@PathVariable UUID niveauId) {
+        return ResponseEntity.ok(adminAcademicService.getCoursesByNiveau(niveauId));
+    }
+
+    @GetMapping("/niveaux/{niveauId}/course-assignments")
+    public ResponseEntity<List<CourseAssignmentDto>> getCourseAssignmentsByNiveau(@PathVariable UUID niveauId) {
+        return ResponseEntity.ok(adminAcademicService.getCourseAssignmentsByNiveau(niveauId));
+    }
+
+    @GetMapping("/users/role/{role}")
+    public ResponseEntity<List<tn.esprithub.server.user.dto.UserSummaryDto>> getUsersByRole(@PathVariable String role) {
+        return ResponseEntity.ok(adminAcademicService.getUsersByRole(role));
+    }
+
+    @PostMapping("/course-assignments")
+    public ResponseEntity<CourseAssignmentDto> createCourseAssignment(@RequestBody CourseAssignmentDto dto) {
+        return new ResponseEntity<>(adminAcademicService.createCourseAssignment(dto), HttpStatus.CREATED);
+    }
+
+    @DeleteMapping("/course-assignments/{assignmentId}")
+    public ResponseEntity<Void> deleteCourseAssignment(@PathVariable UUID assignmentId) {
+        adminAcademicService.deleteCourseAssignment(assignmentId);
+        return ResponseEntity.ok().build();
+    }
+
+    @PostMapping("/courses")
+    public ResponseEntity<CourseDto> createCourse(@RequestBody CourseDto courseDto) {
+        return new ResponseEntity<>(adminAcademicService.createCourse(courseDto), HttpStatus.CREATED);
     }
 
 }

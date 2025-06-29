@@ -1,7 +1,7 @@
 import { Component, OnInit } from '@angular/core';
 import { FormBuilder, FormGroup, Validators } from '@angular/forms';
 import { AcademicService } from '../../../../shared/services/academic.service';
-import { Niveau, CreateNiveau, User, UserRole } from '../../../../shared/models/academic.models';
+import { Niveau, CreateNiveau, User, UserRole, Course, CourseAssignment, CreateCourseAssignment, UserSummary } from '../../../../shared/models/academic.models';
 
 @Component({
   selector: 'app-department-levels',
@@ -20,6 +20,14 @@ export class DepartmentLevelsComponent implements OnInit {
   saving = false;
   error = '';
   success = '';
+  showAssignmentDialog = false;
+  selectedLevel: Niveau | null = null;
+  assignments: CourseAssignment[] = [];
+  courses: Course[] = [];
+  teachers: UserSummary[] = [];
+  assignmentLoading = false;
+  assignmentError: string | null = null;
+  assignmentForm: CreateCourseAssignment = { courseId: '', niveauId: '', teacherId: '' };
 
   constructor(
     private readonly fb: FormBuilder,
@@ -44,27 +52,8 @@ export class DepartmentLevelsComponent implements OnInit {
     try {
       this.loading = true;
       this.error = '';
-
-      // Mock current user
-      this.currentUser = {
-        id: '1',
-        email: 'chief@example.com',
-        firstName: 'Chief',
-        lastName: 'User',
-        role: UserRole.CHIEF,
-        isActive: true,
-        isEmailVerified: true,
-        fullName: 'Chief User',
-        canManageUsers: true,
-        departementId: '1'
-      };
-
-      if (!this.currentUser?.departementId) {
-        this.error = 'No department assigned to this chief.';
-        return;
-      }
-
-      this.academicService.getNiveauxByDepartement(this.currentUser.departementId).subscribe({
+      // Use chief endpoint for levels
+      this.academicService.getMyDepartmentNiveaux().subscribe({
         next: (levels) => {
           this.levels = levels;
           this.filteredLevels = levels;
@@ -76,7 +65,6 @@ export class DepartmentLevelsComponent implements OnInit {
           this.loading = false;
         }
       });
-
     } catch (error) {
       console.error('Error loading levels:', error);
       this.error = 'Failed to load levels.';
@@ -120,21 +108,18 @@ export class DepartmentLevelsComponent implements OnInit {
   }
 
   async onSubmit() {
-    if (this.levelForm.invalid || !this.currentUser?.departementId) {
+    if (this.levelForm.invalid) {
       this.markFormGroupTouched();
       return;
     }
-
     try {
       this.saving = true;
       this.error = '';
       this.success = '';
-
       const formData = this.levelForm.value;
-
       if (this.editingLevel) {
         // Update existing level
-        this.academicService.updateNiveau(this.editingLevel.id, formData).subscribe({
+        this.academicService.updateNiveauInMyDepartment(this.editingLevel.id, formData).subscribe({
           next: (updatedLevel) => {
             const index = this.levels.findIndex(l => l.id === updatedLevel.id);
             if (index !== -1) {
@@ -154,12 +139,7 @@ export class DepartmentLevelsComponent implements OnInit {
         });
       } else {
         // Create new level
-        const createData: CreateNiveau = {
-          ...formData,
-          departementId: this.currentUser.departementId
-        };
-
-        this.academicService.createNiveau(createData).subscribe({
+        this.academicService.createNiveauInMyDepartment(formData).subscribe({
           next: (newLevel) => {
             this.levels.unshift(newLevel);
             this.filterLevels();
@@ -175,7 +155,6 @@ export class DepartmentLevelsComponent implements OnInit {
           }
         });
       }
-
     } catch (error) {
       console.error('Error submitting form:', error);
       this.error = 'An unexpected error occurred.';
@@ -187,9 +166,8 @@ export class DepartmentLevelsComponent implements OnInit {
     if (!confirm(`Are you sure you want to delete "${level.nom}"?`)) {
       return;
     }
-
     try {
-      this.academicService.deleteNiveau(level.id).subscribe({
+      this.academicService.deleteNiveauInMyDepartment(level.id).subscribe({
         next: () => {
           this.levels = this.levels.filter(l => l.id !== level.id);
           this.filterLevels();
@@ -201,11 +179,73 @@ export class DepartmentLevelsComponent implements OnInit {
           this.error = 'Failed to delete level.';
         }
       });
-
     } catch (error) {
       console.error('Error deleting level:', error);
       this.error = 'Failed to delete level.';
     }
+  }
+
+  async onManageAssignments(level: Niveau) {
+    this.selectedLevel = level;
+    this.showAssignmentDialog = true;
+    this.assignmentLoading = true;
+    this.assignmentError = null;
+    this.assignmentForm = { courseId: '', niveauId: level.id, teacherId: '' };
+    try {
+      const [assignments, courses, teachers] = await Promise.all([
+        this.academicService.getCourseAssignmentsByNiveau(level.id).toPromise(),
+        this.academicService.getCoursesByNiveau(level.id).toPromise(),
+        this.academicService.getUsersByRole('TEACHER').toPromise()
+      ]);
+      this.assignments = assignments ?? [];
+      this.courses = courses ?? [];
+      // Only teachers in the chief's department (fallback to departementNom string match)
+      this.teachers = (teachers ?? []).filter(t => t.departementNom === this.selectedLevel?.departementNom);
+    } catch (error: any) {
+      console.error(error);
+      this.assignmentError = 'Failed to load assignments, courses, or teachers.';
+    } finally {
+      this.assignmentLoading = false;
+    }
+  }
+
+  async addAssignment() {
+    if (!this.assignmentForm.courseId || !this.assignmentForm.teacherId) return;
+    this.assignmentLoading = true;
+    try {
+      const assignment = await this.academicService.createCourseAssignment(this.assignmentForm).toPromise();
+      if (assignment) this.assignments.push(assignment);
+      this.assignmentForm.courseId = '';
+      this.assignmentForm.teacherId = '';
+      this.success = 'Assignment added!';
+      setTimeout(() => this.success = '', 2000);
+    } catch (error: any) {
+      console.error(error);
+      this.assignmentError = 'Failed to add assignment.';
+    } finally {
+      this.assignmentLoading = false;
+    }
+  }
+
+  async removeAssignment(assignmentId: string) {
+    if (!confirm('Remove this assignment?')) return;
+    this.assignmentLoading = true;
+    try {
+      await this.academicService.deleteCourseAssignment(assignmentId).toPromise();
+      this.assignments = this.assignments.filter(a => a.id !== assignmentId);
+      this.success = 'Assignment removed!';
+      setTimeout(() => this.success = '', 2000);
+    } catch (error: any) {
+      console.error(error);
+      this.assignmentError = 'Failed to remove assignment.';
+    } finally {
+      this.assignmentLoading = false;
+    }
+  }
+
+  closeAssignmentDialog() {
+    this.showAssignmentDialog = false;
+    this.selectedLevel = null;
   }
 
   private markFormGroupTouched() {

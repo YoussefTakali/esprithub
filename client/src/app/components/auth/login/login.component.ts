@@ -108,8 +108,6 @@ export class LoginComponent implements OnInit {
   }
 
   private redirectToDashboard(): void {
-    const user = this.authService.getCurrentUser();
-    console.log('Redirecting to dashboard for user:', user);
     this.router.navigate(['/dashboard']);
   }
 

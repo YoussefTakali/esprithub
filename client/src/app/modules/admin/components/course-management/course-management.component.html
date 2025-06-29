@@ -1,0 +1,45 @@
+<div class="course-management">
+  <div class="header">
+    <h1>Course Management</h1>
+    <button mat-flat-button color="primary" (click)="openCreateDialog()">Add Course</button>
+  </div>
+
+  <div *ngIf="loading" class="loading-container">
+    <mat-progress-spinner mode="indeterminate" diameter="40"></mat-progress-spinner>
+    <p>Loading...</p>
+  </div>
+
+  <div *ngIf="error && !loading" class="error-container">
+    <div class="error-message">
+      <mat-icon color="warn">error</mat-icon>
+      <p>{{ error }}</p>
+    </div>
+  </div>
+
+  <div class="filters" *ngIf="!loading && departments.length">
+    <mat-form-field appearance="fill" class="w-100">
+      <mat-label>Department</mat-label>
+      <mat-select [(ngModel)]="selectedDepartmentId" (selectionChange)="onDepartmentChange(selectedDepartmentId)">
+        <mat-option *ngFor="let d of departments" [value]="d.id">{{ d.nom }}</mat-option>
+      </mat-select>
+    </mat-form-field>
+    <mat-form-field appearance="fill" class="w-100" *ngIf="niveaux.length">
+      <mat-label>Level</mat-label>
+      <mat-select [(ngModel)]="selectedNiveauId" (selectionChange)="onNiveauChange(selectedNiveauId)">
+        <mat-option *ngFor="let n of niveaux" [value]="n.id">{{ n.nom }}</mat-option>
+      </mat-select>
+    </mat-form-field>
+  </div>
+
+  <div *ngIf="!loading && courses.length > 0">
+    <h2>Courses for Selected Level</h2>
+    <mat-list>
+      <mat-list-item *ngFor="let c of courses">
+        <b>{{ c.name }}</b> <span *ngIf="c.description">- {{ c.description }}</span>
+      </mat-list-item>
+    </mat-list>
+  </div>
+  <div *ngIf="!loading && !courses.length && selectedNiveauId">
+    <p>No courses found for this level.</p>
+  </div>
+</div>
