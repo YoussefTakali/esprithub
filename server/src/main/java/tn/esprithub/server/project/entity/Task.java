@@ -12,6 +12,7 @@ import tn.esprithub.server.user.entity.User;
 import tn.esprithub.server.common.entity.BaseEntity;
 
 import java.time.LocalDateTime;
+import java.util.List;
 
 @Entity
 @Table(name = "tasks")
@@ -28,26 +29,42 @@ public class Task extends BaseEntity {
     @Column(length = 500)
     private String description;
 
-    @ManyToOne(fetch = FetchType.LAZY)
-    @JoinColumn(name = "project_id", nullable = false)
-    private Project project;
-
     @Enumerated(EnumType.STRING)
     @Column(nullable = false)
     private TaskAssignmentType type;
 
     // Assignment targets (nullable depending on type)
-    @ManyToOne(fetch = FetchType.LAZY)
-    @JoinColumn(name = "group_id")
-    private Group assignedToGroup;
+    @ManyToMany(fetch = FetchType.LAZY)
+    @JoinTable(
+        name = "task_groups",
+        joinColumns = @JoinColumn(name = "task_id"),
+        inverseJoinColumns = @JoinColumn(name = "group_id")
+    )
+    private List<Group> assignedToGroups;
 
-    @ManyToOne(fetch = FetchType.LAZY)
-    @JoinColumn(name = "student_id")
-    private User assignedToStudent;
+    @ManyToMany(fetch = FetchType.LAZY)
+    @JoinTable(
+        name = "task_students",
+        joinColumns = @JoinColumn(name = "task_id"),
+        inverseJoinColumns = @JoinColumn(name = "student_id")
+    )
+    private List<User> assignedToStudents;
 
-    @ManyToOne(fetch = FetchType.LAZY)
-    @JoinColumn(name = "classe_id")
-    private Classe assignedToClasse;
+    @ManyToMany(fetch = FetchType.LAZY)
+    @JoinTable(
+        name = "task_classes",
+        joinColumns = @JoinColumn(name = "task_id"),
+        inverseJoinColumns = @JoinColumn(name = "classe_id")
+    )
+    private List<Classe> assignedToClasses;
+
+    @ManyToMany(fetch = FetchType.LAZY)
+    @JoinTable(
+        name = "task_projects",
+        joinColumns = @JoinColumn(name = "task_id"),
+        inverseJoinColumns = @JoinColumn(name = "project_id")
+    )
+    private List<Project> projects;
 
     @Column(name = "due_date")
     private LocalDateTime dueDate;
@@ -62,6 +79,6 @@ public class Task extends BaseEntity {
     private boolean isGraded = false;
 
     @Builder.Default
-    @Column(nullable = false)
+    @Column(name = "visible", nullable = false)
     private boolean isVisible = true;
 }

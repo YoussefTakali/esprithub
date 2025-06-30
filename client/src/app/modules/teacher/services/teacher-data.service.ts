@@ -1,7 +1,7 @@
 import { Injectable } from '@angular/core';
 import { HttpClient } from '@angular/common/http';
 import { Observable } from 'rxjs';
-import { map } from 'rxjs/operators';
+import { map, switchMap } from 'rxjs/operators';
 
 @Injectable({ providedIn: 'root' })
 export class TeacherDataService {
@@ -20,7 +20,7 @@ export class TeacherDataService {
   }
 
   getMyTasks(): Observable<any[]> {
-    return this.http.get<any[]>('http://localhost:8090/api/teacher/tasks');
+    return this.http.get<any[]>('http://localhost:8090/api/tasks');
   }
 
   getTasksByClassId(classId: string): Observable<any[]> {
@@ -112,7 +112,33 @@ export class TeacherDataService {
     return this.http.put<any>(`http://localhost:8090/api/tasks/${taskId}`, { status });
   }
 
-  updateTaskVisibility(taskId: string, isVisible: boolean) {
-    return this.http.put<any>(`http://localhost:8090/api/tasks/${taskId}`, { isVisible });
+  /**
+   * Update task visibility using the current UI state (pass the full task object from the component).
+   * @param task The full task object from the UI (not just the ID)
+   * @param isVisible The new visibility state
+   */
+  updateTaskVisibility(task: any, isVisible: boolean) {
+    const updateDto = {
+      title: task.title,
+      description: task.description,
+      dueDate: task.dueDate,
+      type: task.type,
+      groupIds: task.groupIds,
+      studentIds: task.studentIds,
+      classeIds: task.classeIds,
+      projectIds: task.projectIds,
+      status: task.status,
+      isGraded: task.isGraded,
+      isVisible
+    };
+    return this.http.put<any>(`http://localhost:8090/api/tasks/${task.id}`, updateDto);
+  }
+
+  updateTask(taskId: string, task: any) {
+    return this.http.put<any>(`http://localhost:8090/api/tasks/${taskId}`, task);
+  }
+
+  deleteTask(taskId: string) {
+    return this.http.delete<any>(`http://localhost:8090/api/tasks/${taskId}`);
   }
 }

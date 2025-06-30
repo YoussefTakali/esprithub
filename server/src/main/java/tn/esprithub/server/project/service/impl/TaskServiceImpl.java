@@ -17,12 +17,16 @@ import tn.esprithub.server.project.repository.GroupRepository;
 import tn.esprithub.server.academic.repository.ClasseRepository;
 import tn.esprithub.server.user.repository.UserRepository;
 
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
+import java.util.ArrayList;
 import java.util.List;
-import java.util.Optional;
 import java.util.UUID;
 
 @Service
 public class TaskServiceImpl implements TaskService {
+    private static final Logger log = LoggerFactory.getLogger(TaskServiceImpl.class);
     private final TaskRepository taskRepository;
     private final TaskMapper taskMapper;
     private final ProjectRepository projectRepository;
@@ -40,44 +44,34 @@ public class TaskServiceImpl implements TaskService {
     }
 
     @Override
-    public TaskDto createTask(TaskCreateDto dto) {
-        Task task = taskMapper.toEntity(dto);
-        if (dto.getProjectId() != null) {
-            Project project = projectRepository.findById(dto.getProjectId()).orElseThrow();
-            task.setProject(project);
-        }
-        if (dto.getGroupId() != null) {
-            Group group = groupRepository.findById(dto.getGroupId()).orElse(null);
-            task.setAssignedToGroup(group);
-        }
-        if (dto.getClasseId() != null) {
-            Classe classe = classeRepository.findById(dto.getClasseId()).orElse(null);
-            task.setAssignedToClasse(classe);
-        }
-        if (dto.getStudentId() != null) {
-            User student = userRepository.findById(dto.getStudentId()).orElse(null);
-            task.setAssignedToStudent(student);
-        }
-        return taskMapper.toDto(taskRepository.save(task));
-    }
-
-    @Override
     public TaskDto updateTask(UUID id, TaskUpdateDto dto) {
         Task task = taskRepository.findById(id).orElseThrow();
+        log.info("[TaskServiceImpl] updateTask: dto.isVisible={}, task.isVisible={} (before)", dto.getIsVisible(), task.isVisible());
         taskMapper.updateEntity(dto, task);
-        if (dto.getGroupId() != null) {
-            Group group = groupRepository.findById(dto.getGroupId()).orElse(null);
-            task.setAssignedToGroup(group);
+        log.info("[TaskServiceImpl] updateTask: task.isVisible={} (after mapping)", task.isVisible());
+        // Update projects
+        if (dto.getProjectIds() != null) {
+            List<Project> projects = projectRepository.findAllById(dto.getProjectIds());
+            task.setProjects(new ArrayList<>(projects));
         }
-        if (dto.getClasseId() != null) {
-            Classe classe = classeRepository.findById(dto.getClasseId()).orElse(null);
-            task.setAssignedToClasse(classe);
+        // Update groups
+        if (dto.getGroupIds() != null) {
+            List<Group> groups = groupRepository.findAllById(dto.getGroupIds());
+            task.setAssignedToGroups(new ArrayList<>(groups));
         }
-        if (dto.getStudentId() != null) {
-            User student = userRepository.findById(dto.getStudentId()).orElse(null);
-            task.setAssignedToStudent(student);
+        // Update classes
+        if (dto.getClasseIds() != null) {
+            List<Classe> classes = classeRepository.findAllById(dto.getClasseIds());
+            task.setAssignedToClasses(new ArrayList<>(classes));
         }
-        return taskMapper.toDto(taskRepository.save(task));
+        // Update students
+        if (dto.getStudentIds() != null) {
+            List<User> students = userRepository.findAllById(dto.getStudentIds());
+            task.setAssignedToStudents(new ArrayList<>(students));
+        }
+        TaskDto result = taskMapper.toDto(taskRepository.save(task));
+        log.info("[TaskServiceImpl] updateTask: task.isVisible={} (after save)", result.isVisible());
+        return result;
     }
 
     @Override
@@ -97,11 +91,38 @@ public class TaskServiceImpl implements TaskService {
 
     @Override
     public List<TaskDto> getTasksByClasseId(UUID classeId) {
-        return taskRepository.findByAssignedToClasseId(classeId).stream().map(taskMapper::toDto).toList();
+        return taskRepository.findByAssignedToClasses_Id(classeId).stream().map(taskMapper::toDto).toList();
     }
 
     @Override
     public List<TaskDto> getTasksByProjectId(UUID projectId) {
-        return taskRepository.findByProjectId(projectId).stream().map(taskMapper::toDto).toList();
+        return taskRepository.findByProjects_Id(projectId).stream().map(taskMapper::toDto).toList();
+    }
+
+    @Override
+    public List<TaskDto> createTasks(TaskCreateDto dto) {
+        Task task = taskMapper.toEntity(dto);
+        // Set projects
+        if (dto.getProjectIds() != null) {
+            List<Project> projects = projectRepository.findAllById(dto.getProjectIds());
+            task.setProjects(new ArrayList<>(projects));
+        }
+        // Set groups
+        if (dto.getGroupIds() != null) {
+            List<Group> groups = groupRepository.findAllById(dto.getGroupIds());
+            task.setAssignedToGroups(new ArrayList<>(groups));
+        }
+        // Set classes
+        if (dto.getClasseIds() != null) {
+            List<Classe> classes = classeRepository.findAllById(dto.getClasseIds());
+            task.setAssignedToClasses(new ArrayList<>(classes));
+        }
+        // Set students
+        if (dto.getStudentIds() != null) {
+            List<User> students = userRepository.findAllById(dto.getStudentIds());
+            task.setAssignedToStudents(new ArrayList<>(students));
+        }
+        Task saved = taskRepository.save(task);
+        return List.of(taskMapper.toDto(saved));
     }
 }

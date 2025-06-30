@@ -69,6 +69,9 @@ public class Classe extends BaseEntity {
     )
     private List<User> teachers;
 
+    @ManyToMany(mappedBy = "assignedToClasses")
+    private List<tn.esprithub.server.project.entity.Task> tasks;
+
     @PrePersist
     @PreUpdate
     private void generateCode() {

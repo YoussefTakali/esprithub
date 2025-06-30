@@ -47,7 +47,7 @@ public class Project extends BaseEntity {
     private List<Group> groups;
 
     // Tasks in this project
-    @OneToMany(mappedBy = "project", cascade = CascadeType.ALL, fetch = FetchType.LAZY)
+    @ManyToMany(mappedBy = "projects")
     private List<Task> tasks;
 
     // Collaborators on this project (including the creator if desired)

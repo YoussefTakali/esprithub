@@ -43,4 +43,7 @@ public class Group extends BaseEntity {
     )
     @Builder.Default
     private List<User> students = new java.util.ArrayList<>();
+
+    @ManyToMany(mappedBy = "assignedToGroups")
+    private List<Task> tasks;
 }

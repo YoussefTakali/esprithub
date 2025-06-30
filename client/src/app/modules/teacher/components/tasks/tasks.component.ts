@@ -46,15 +46,27 @@ export class TeacherTasksComponent implements OnInit {
 
   // Add Task modal state
   showAddTaskModal = false;
-  addTaskForm = {
+  addTaskForm: {
+    title: string;
+    description: string;
+    dueDate: string;
+    scopeType: string;
+    projectIds: string[];
+    classeIds: string[]; // <-- changed from classIds
+    groupIds: string[];
+    studentIds: string[];
+    isGraded: boolean;
+    isVisible: boolean;
+    status: string;
+  } = {
     title: '',
     description: '',
     dueDate: '',
-    scopeType: '', // 'PROJECT', 'CLASSE', 'GROUP', 'INDIVIDUAL'
-    projectId: '', // Always required
-    classId: '',
-    groupId: '',
-    studentId: '',
+    scopeType: '',
+    projectIds: [],
+    classeIds: [], // <-- changed from classIds
+    groupIds: [],
+    studentIds: [],
     isGraded: false,
     isVisible: true,
     status: 'DRAFT'
@@ -65,6 +77,12 @@ export class TeacherTasksComponent implements OnInit {
   availableScopeStudents: any[] = [];
 
   taskStatuses = ['DRAFT', 'PUBLISHED', 'IN_PROGRESS', 'COMPLETED', 'CLOSED'];
+
+  // Modal state for edit and delete
+  showEditTaskModal = false;
+  showDeleteTaskModal = false;
+  taskToEdit: any = null;
+  taskToDelete: any = null;
 
   constructor(
     private readonly teacherData: TeacherDataService,
@@ -128,25 +146,39 @@ export class TeacherTasksComponent implements OnInit {
           projects: projectsWithGroups
         };
       }));
-      this.route.queryParamMap.subscribe(params => {
-        const classId = params.get('classId');
-        if (classId) {
-          const foundClass = this.teacherClasses.find(c => c.classId == classId);
-          if (foundClass) {
-            this.selectedClass = foundClass;
-            foundClass.expanded = true;
-            if (foundClass.projects && foundClass.projects.length > 0) {
-              this.selectProject(foundClass.projects[0]);
-            } else {
-              this.selectedProject = null;
-              this.teacherData.getTasksByClassId(classId).subscribe(tasks => {
-                this.filteredTasks = tasks;
-              });
-            }
-            return;
-          }
-        }
-        this.selectFirstProject();
+      // After building teacherClasses, load all tasks by default
+      this.teacherData.getMyTasks().subscribe(tasks => {
+        // Map assignment names for display (multi-scope)
+        this.filteredTasks = (tasks || []).map((task: any) => {
+          // Collect all names for each scope
+          const projectIds = Array.isArray(task.projectIds) ? task.projectIds : (task.projectId ? [task.projectId] : []);
+          const classIds = Array.isArray(task.classeIds) ? task.classeIds : (task.classeId ? [task.classeId] : []);
+          const groupIds = Array.isArray(task.groupIds) ? task.groupIds : (task.groupId ? [task.groupId] : []);
+          const studentIds = Array.isArray(task.studentIds) ? task.studentIds : (task.studentId ? [task.studentId] : []);
+          const projectNames = projectIds.map((id: string) => {
+            const proj = classes.flatMap((c: any) => c.projects).find((p: any) => p.id === id);
+            return proj?.name || id;
+          }).filter(Boolean);
+          const classNames = classIds.map((id: string) => {
+            const c = classes.find((c: any) => c.classId === id);
+            return c?.className || id;
+          }).filter(Boolean);
+          const groupNames = groupIds.map((id: string) => {
+            const g = classes.flatMap((c: any) => c.projects).flatMap((p: any) => p.groups || []).find((g: any) => g.id === id);
+            return g?.name || id;
+          }).filter(Boolean);
+          const studentNames = studentIds.map((id: string) => this.getStudentName(id)).filter(Boolean);
+          return {
+            ...task,
+            isVisible: task.isVisible ?? task.visible ?? task.is_visible ?? false,
+            projectNames,
+            classNames,
+            groupNames,
+            studentNames
+          };
+        });
+        this.selectedProject = null;
+        this.selectedClass = null;
       });
     });
   }
@@ -164,13 +196,19 @@ export class TeacherTasksComponent implements OnInit {
     this.selectedProject = project;
     if (project?.id) {
       this.teacherData.getTasksByProjectId(project.id).subscribe(tasks => {
-        // Map assignment names for display
+        // Map assignment names for display (multi-scope)
         this.filteredTasks = (tasks || []).map((task: any) => {
+          // Collect all names for each scope
+          const projectNames = (task.projectIds || task.projectId) ? ([] as string[]).concat(task.projectNames || [], project.name).filter(Boolean) : [];
+          const classNames = (task.classeIds || task.classeId) ? ([] as string[]).concat(task.classNames || [], this.teacherClasses.find((c: any) => c.classId === (task.classeId || (task.classeIds?.[0])))?.className).filter(Boolean) : [];
+          const groupNames = (task.groupIds || task.groupId) ? ([] as string[]).concat(task.groupNames || [], (project.groups || []).find((g: any) => g.id === (task.groupId || (task.groupIds?.[0])))?.name).filter(Boolean) : [];
+          const studentNames = (task.studentIds || task.studentId) ? ([] as string[]).concat(task.studentNames || [], this.getStudentName(task.studentId || (task.studentIds?.[0]))).filter(Boolean) : [];
           return {
             ...task,
-            projectName: project.name,
-            groupName: (task.groupId && project.groups) ? (project.groups.find((g: any) => g.id === task.groupId)?.name) : undefined,
-            className: (this.teacherClasses.find((c: any) => c.classId === task.classeId)?.className),
+            projectNames,
+            classNames,
+            groupNames,
+            studentNames
           };
         });
       });
@@ -409,20 +447,18 @@ export class TeacherTasksComponent implements OnInit {
       description: '',
       dueDate: '',
       scopeType: '',
-      projectId: '', // Always required
-      classId: '',
-      groupId: '',
-      studentId: '',
+      projectIds: [],
+      classeIds: [],
+      groupIds: [],
+      studentIds: [],
       isGraded: false,
       isVisible: true,
       status: 'DRAFT'
     };
     // Only show unique projects for the current context
-    // If a project is selected, only show that project
     if (this.selectedProject) {
       this.availableScopeProjects = [this.selectedProject];
     } else {
-      // Otherwise, show unique projects (no duplicates)
       const seen = new Set();
       this.availableScopeProjects = this.teacherClasses
         .flatMap(c => c.projects)
@@ -445,174 +481,207 @@ export class TeacherTasksComponent implements OnInit {
       this.snackbar.showError('Title, deadline, and scope are required.');
       return;
     }
-    if (this.addTaskForm.scopeType === 'PROJECT') {
-      if (!this.addTaskForm.projectId) {
-        this.snackbar.showError('Project is required for project scope.');
-        return;
-      }
-      const payload: any = {
-        title: this.addTaskForm.title,
-        description: this.addTaskForm.description,
-        dueDate: this.addTaskForm.dueDate,
-        type: this.addTaskForm.scopeType,
-        status: this.addTaskForm.status,
-        isGraded: this.addTaskForm.isGraded,
-        isVisible: this.addTaskForm.isVisible,
-        projectId: this.addTaskForm.projectId
-      };
-      this.teacherData.createTask(payload).subscribe({
-        next: () => {
-          this.refreshTree();
-          this.snackbar.showSuccess('Task created successfully!');
-          this.closeAddTaskModal();
-        },
-        error: () => this.snackbar.showError('Failed to create task.')
-      });
-    } else if (this.addTaskForm.scopeType === 'CLASSE') {
-      if (!this.addTaskForm.classId) {
-        this.snackbar.showError('Class is required for class scope.');
-        return;
-      }
-      // Assign to each group under that class in all projects
-      const classObj = this.teacherClasses.find(c => c.classId === this.addTaskForm.classId);
-      if (!classObj) {
-        this.snackbar.showError('Class not found.');
-        return;
-      }
-      const allGroups = classObj.projects.flatMap((p: any) => (p.groups || []).map((g: any) => ({
-        groupId: g.id,
-        projectId: p.id
-      })));
-      if (allGroups.length === 0) {
-        this.snackbar.showError('No groups found under this class.');
-        return;
-      }
-      let createdCount = 0;
-      allGroups.forEach((item: { groupId: string; projectId: string }, idx: number) => {
-        const { groupId, projectId } = item;
-        const payload: any = {
-          title: this.addTaskForm.title,
-          description: this.addTaskForm.description,
-          dueDate: this.addTaskForm.dueDate,
-          type: 'GROUP',
-          status: this.addTaskForm.status,
-          isGraded: this.addTaskForm.isGraded,
-          isVisible: this.addTaskForm.isVisible,
-          projectId,
-          groupId,
-          classeId: this.addTaskForm.classId
-        };
-        this.teacherData.createTask(payload).subscribe({
-          next: () => {
-            createdCount++;
-            if (createdCount === allGroups.length) {
-              this.refreshTree();
-              this.snackbar.showSuccess('Task created for all groups in class!');
-              this.closeAddTaskModal();
-            }
-          },
-          error: () => this.snackbar.showError('Failed to create task for a group.')
-        });
-      });
-    } else if (this.addTaskForm.scopeType === 'GROUP') {
-      if (!this.addTaskForm.groupId) {
-        this.snackbar.showError('Group is required for group scope.');
-        return;
-      }
-      // Find group and its project/class
-      let foundGroup: any;
-      let foundProject: any;
-      let foundClass: any;
-      for (const c of this.teacherClasses) {
-        for (const p of c.projects) {
-          const g = (p.groups || []).find((g: any) => g.id === this.addTaskForm.groupId);
-          if (g) {
-            foundGroup = g;
-            foundProject = p;
-            foundClass = c;
-            break;
-          }
-        }
-        if (foundGroup) break;
-      }
-      if (!foundGroup || !foundProject || !foundClass) {
-        this.snackbar.showError('Group not found.');
-        return;
-      }
-      const payload: any = {
-        title: this.addTaskForm.title,
-        description: this.addTaskForm.description,
-        dueDate: this.addTaskForm.dueDate,
-        type: 'GROUP',
-        status: this.addTaskForm.status,
-        isGraded: this.addTaskForm.isGraded,
-        isVisible: this.addTaskForm.isVisible,
-        projectId: foundProject.id,
-        groupId: foundGroup.id,
-        classeId: foundClass.classId
-      };
-      this.teacherData.createTask(payload).subscribe({
-        next: () => {
-          this.refreshTree();
-          this.snackbar.showSuccess('Task created for group!');
-          this.closeAddTaskModal();
-        },
-        error: () => this.snackbar.showError('Failed to create task for group.')
-      });
-    } else if (this.addTaskForm.scopeType === 'INDIVIDUAL') {
-      if (!this.addTaskForm.studentId) {
-        this.snackbar.showError('Student is required for individual scope.');
-        return;
-      }
-      // Find student group/project/class
-      let foundGroup: any;
-      let foundProject: any;
-      let foundClass: any;
-      for (const c of this.teacherClasses) {
-        for (const p of c.projects) {
-          for (const g of (p.groups || [])) {
-            if ((g.memberIds || []).includes(this.addTaskForm.studentId)) {
-              foundGroup = g;
-              foundProject = p;
-              foundClass = c;
-              break;
-            }
-          }
-          if (foundGroup) break;
-        }
-        if (foundGroup) break;
-      }
-      if (!foundGroup || !foundProject || !foundClass) {
-        this.snackbar.showError('Student not found in any group.');
-        return;
-      }
-      const payload: any = {
-        title: this.addTaskForm.title,
-        description: this.addTaskForm.description,
-        dueDate: this.addTaskForm.dueDate,
-        type: 'INDIVIDUAL',
-        status: this.addTaskForm.status,
-        isGraded: this.addTaskForm.isGraded,
-        isVisible: this.addTaskForm.isVisible,
-        projectId: foundProject.id,
-        groupId: foundGroup.id,
-        classeId: foundClass.classId,
-        studentId: this.addTaskForm.studentId
-      };
-      this.teacherData.createTask(payload).subscribe({
-        next: () => {
-          this.refreshTree();
-          this.snackbar.showSuccess('Task created for student!');
-          this.closeAddTaskModal();
-        },
-        error: () => this.snackbar.showError('Failed to create task for student.')
-      });
+    // Always ensure arrays for all multi-select fields
+    const projectIds = Array.isArray(this.addTaskForm.projectIds) ? this.addTaskForm.projectIds.filter(v => !!v) : [];
+    const classeIds = Array.isArray(this.addTaskForm.classeIds) ? this.addTaskForm.classeIds.filter(v => !!v) : [];
+    const groupIds = Array.isArray(this.addTaskForm.groupIds) ? this.addTaskForm.groupIds.filter(v => !!v) : [];
+    const studentIds = Array.isArray(this.addTaskForm.studentIds) ? this.addTaskForm.studentIds.filter(v => !!v) : [];
+    // At least one selection for the chosen scope
+    if (this.addTaskForm.scopeType === 'PROJECT' && projectIds.length === 0) {
+      this.snackbar.showError('Select at least one project.');
+      return;
     }
+    if (this.addTaskForm.scopeType === 'CLASSE' && classeIds.length === 0) {
+      this.snackbar.showError('Select at least one class.');
+      return;
+    }
+    if (this.addTaskForm.scopeType === 'GROUP' && groupIds.length === 0) {
+      this.snackbar.showError('Select at least one group.');
+      return;
+    }
+    if (this.addTaskForm.scopeType === 'INDIVIDUAL' && studentIds.length === 0) {
+      this.snackbar.showError('Select at least one student.');
+      return;
+    }
+    // Build payload for backend (always include arrays)
+    const payload: any = {
+      title: this.addTaskForm.title,
+      description: this.addTaskForm.description,
+      dueDate: this.addTaskForm.dueDate,
+      status: this.addTaskForm.status,
+      isGraded: this.addTaskForm.isGraded,
+      isVisible: this.addTaskForm.isVisible,
+      type: this.addTaskForm.scopeType,
+      projectIds: projectIds,
+      classeIds: classeIds, // <-- changed from classIds
+      groupIds: groupIds,
+      studentIds: studentIds
+    };
+    this.teacherData.createTask(payload).subscribe({
+      next: (created: any) => {
+        // Add the new task(s) to filteredTasks, mapping names for display
+        const newTasks = Array.isArray(created) ? created : [created];
+        const mapped = newTasks.map((task: any) => {
+          const projectNames = (task.projectIds || []).map((id: string) => {
+            const proj = this.teacherClasses.flatMap((c: any) => c.projects).find((p: any) => p.id === id);
+            return proj?.name || id;
+          }).filter(Boolean);
+          const classNames = (task.classeIds || []).map((id: string) => {
+            const c = this.teacherClasses.find((c: any) => c.classId === id);
+            return c?.className || id;
+          }).filter(Boolean);
+          const groupNames = (task.groupIds || []).map((id: string) => {
+            const g = this.teacherClasses.flatMap((c: any) => c.projects).flatMap((p: any) => p.groups || []).find((g: any) => g.id === id);
+            return g?.name || id;
+          }).filter(Boolean);
+          const studentNames = (task.studentIds || []).map((id: string) => this.getStudentName(id)).filter(Boolean);
+          return {
+            ...task,
+            projectNames,
+            classNames,
+            groupNames,
+            studentNames
+          };
+        });
+        this.filteredTasks = [...this.filteredTasks, ...mapped];
+        this.snackbar.showSuccess('Task(s) created successfully!');
+        this.closeAddTaskModal();
+      },
+      error: () => this.snackbar.showError('Failed to create task(s).')
+    });
+  }
+
+  toggleTaskVisibility(task: any) {
+    const newIsVisible = !task.isVisible;
+    const updatedTask = { ...task, isVisible: newIsVisible };
+    this.teacherData.updateTaskVisibility(updatedTask, newIsVisible).subscribe({
+      next: (updated: any) => {
+        // Map assignment names for display (multi-scope)
+        const projectNames = (updated.projectIds || []).map((id: string) => {
+          const proj = this.teacherClasses.flatMap((c: any) => c.projects).find((p: any) => p.id === id);
+          return proj?.name || id;
+        }).filter(Boolean);
+        const classNames = (updated.classeIds || []).map((id: string) => {
+          const c = this.teacherClasses.find((c: any) => c.classId === id);
+          return c?.className || id;
+        }).filter(Boolean);
+        const groupNames = (updated.groupIds || []).map((id: string) => {
+          const g = this.teacherClasses.flatMap((c: any) => c.projects).flatMap((p: any) => p.groups || []).find((g: any) => g.id === id);
+          return g?.name || id;
+        }).filter(Boolean);
+        const studentNames = (updated.studentIds || []).map((id: string) => this.getStudentName(id)).filter(Boolean);
+        const idx = this.filteredTasks.findIndex((t: any) => t.id === task.id);
+        if (idx > -1) {
+          this.filteredTasks[idx] = {
+            ...updated,
+            isVisible: updated.isVisible ?? updated.visible ?? updated.is_visible ?? false,
+            projectNames,
+            classNames,
+            groupNames,
+            studentNames
+          };
+          // Force Angular change detection by reassigning the array
+          this.filteredTasks = [...this.filteredTasks];
+        }
+        this.snackbar.showSuccess('Task visibility updated!');
+      },
+      error: () => this.snackbar.showError('Failed to update visibility.')
+    });
+  }
+  // Open edit modal
+  editTask(task: any) {
+    this.taskToEdit = { ...task };
+    this.showEditTaskModal = true;
+  }
+  closeEditTaskModal() {
+    this.showEditTaskModal = false;
+    this.taskToEdit = null;
+  }
+  saveEditTaskModal() {
+    if (!this.taskToEdit) return;
+    const updatedTask = { ...this.taskToEdit, isVisible: !!this.taskToEdit.isVisible };
+    console.log('Sending to backend:', updatedTask); // Debug log
+    this.teacherData.updateTask(updatedTask.id, updatedTask).subscribe({
+      next: (updated: any) => {
+        const idx = this.filteredTasks.findIndex((t: any) => t.id === updatedTask.id);
+        if (idx > -1) this.filteredTasks[idx] = updated;
+        this.snackbar.showSuccess('Task updated!');
+        this.closeEditTaskModal();
+      },
+      error: () => this.snackbar.showError('Failed to update task.')
+    });
+  }
+
+  // Open delete modal
+  confirmDeleteTask(task: any) {
+    this.taskToDelete = task;
+    this.showDeleteTaskModal = true;
+  }
+  closeDeleteTaskModal() {
+    this.showDeleteTaskModal = false;
+    this.taskToDelete = null;
+  }
+  deleteTaskModal() {
+    if (!this.taskToDelete) return;
+    this.teacherData.deleteTask(this.taskToDelete.id).subscribe({
+      next: () => {
+        this.filteredTasks = this.filteredTasks.filter((t: any) => t.id !== this.taskToDelete.id);
+        this.snackbar.showSuccess('Task deleted!');
+        this.closeDeleteTaskModal();
+      },
+      error: () => this.snackbar.showError('Failed to delete task.')
+    });
+  }
+
+  toggleStatusDropdown(task: any) {
+    this.filteredTasks.forEach(t => { if (t !== task) t.showStatusDropdown = false; });
+    task.showStatusDropdown = !task.showStatusDropdown;
+  }
+
+  changeTaskStatus(task: any, status: string) {
+    task.status = status;
+    task.showStatusDropdown = false;
+    // TODO: Call backend to update status
+    this.teacherData.updateTaskStatus(task.id, status).subscribe();
   }
 
   getStudentName(studentId: string): string {
     const student = this.studentMap[studentId];
     return student?.fullName || (student?.firstName && student?.lastName ? student.firstName + ' ' + student.lastName : student?.firstName || student?.lastName || student?.email || studentId);
+  }
+  getGroupContext(group: any): string {
+    // Find class and project for this group
+    let className = '';
+    let projectName = '';
+    for (const c of this.teacherClasses) {
+      for (const p of c.projects) {
+        if ((p.groups || []).some((g: any) => g.id === group.id)) {
+          className = c.className;
+          projectName = p.name;
+          break;
+        }
+      }
+    }
+    return `${className}, ${projectName}`;
+  }
+  getStudentContext(student: any): string {
+    // Find group, class, and project for this student
+    let groupName = '';
+    let className = '';
+    let projectName = '';
+    for (const c of this.teacherClasses) {
+      for (const p of c.projects) {
+        for (const g of (p.groups || [])) {
+          if ((g.memberIds || []).includes(student.id)) {
+            groupName = g.name;
+            className = c.className;
+            projectName = p.name;
+            break;
+          }
+        }
+      }
+    }
+    return `${groupName}, ${className}, ${projectName}`;
   }
 
   // Add task (placeholder)
@@ -638,21 +707,32 @@ export class TeacherTasksComponent implements OnInit {
     });
   }
 
-  toggleStatusDropdown(task: any) {
-    this.filteredTasks.forEach(t => { if (t !== task) t.showStatusDropdown = false; });
-    task.showStatusDropdown = !task.showStatusDropdown;
+  onProjectCheckboxChange(event: any, id: string) {
+    if (event.target.checked) {
+      if (!this.addTaskForm.projectIds.includes(id)) this.addTaskForm.projectIds.push(id);
+    } else {
+      this.addTaskForm.projectIds = this.addTaskForm.projectIds.filter((v: string) => v !== id);
+    }
   }
-
-  changeTaskStatus(task: any, status: string) {
-    task.status = status;
-    task.showStatusDropdown = false;
-    // TODO: Call backend to update status
-    this.teacherData.updateTaskStatus(task.id, status).subscribe();
+  onClassCheckboxChange(event: any, id: string) {
+    if (event.target.checked) {
+      if (!this.addTaskForm.classeIds.includes(id)) this.addTaskForm.classeIds.push(id);
+    } else {
+      this.addTaskForm.classeIds = this.addTaskForm.classeIds.filter((v: string) => v !== id);
+    }
   }
-
-  toggleTaskVisibility(task: any) {
-    task.isVisible = !task.isVisible;
-    // TODO: Call backend to update visibility
-    this.teacherData.updateTaskVisibility(task.id, task.isVisible).subscribe();
+  onGroupCheckboxChange(event: any, id: string) {
+    if (event.target.checked) {
+      if (!this.addTaskForm.groupIds.includes(id)) this.addTaskForm.groupIds.push(id);
+    } else {
+      this.addTaskForm.groupIds = this.addTaskForm.groupIds.filter((v: string) => v !== id);
+    }
+  }
+  onStudentCheckboxChange(event: any, id: string) {
+    if (event.target.checked) {
+      if (!this.addTaskForm.studentIds.includes(id)) this.addTaskForm.studentIds.push(id);
+    } else {
+      this.addTaskForm.studentIds = this.addTaskForm.studentIds.filter((v: string) => v !== id);
+    }
   }
 }

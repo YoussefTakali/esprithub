@@ -91,6 +91,10 @@ public class User extends BaseEntity implements UserDetails {
     @com.fasterxml.jackson.annotation.JsonIgnore
     private List<tn.esprithub.server.academic.entity.Classe> teachingClasses;
 
+    @ManyToMany(mappedBy = "assignedToStudents")
+    @com.fasterxml.jackson.annotation.JsonIgnore
+    private List<tn.esprithub.server.project.entity.Task> tasks;
+
     // UserDetails implementation
     @Override
     public Collection<? extends GrantedAuthority> getAuthorities() {

@@ -6,22 +6,35 @@ import tn.esprithub.server.project.dto.TaskDto;
 import tn.esprithub.server.project.dto.TaskUpdateDto;
 import tn.esprithub.server.project.entity.Task;
 
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
 @Component
 public class TaskMapper {
+    private static final Logger log = LoggerFactory.getLogger(TaskMapper.class);
+
     public TaskDto toDto(Task task) {
         TaskDto dto = new TaskDto();
         dto.setId(task.getId());
         dto.setTitle(task.getTitle());
         dto.setDescription(task.getDescription());
         dto.setDueDate(task.getDueDate());
-        dto.setProjectId(task.getProject() != null ? task.getProject().getId() : null);
         dto.setType(task.getType());
-        dto.setGroupId(task.getAssignedToGroup() != null ? task.getAssignedToGroup().getId() : null);
-        dto.setStudentId(task.getAssignedToStudent() != null ? task.getAssignedToStudent().getId() : null);
-        dto.setClasseId(task.getAssignedToClasse() != null ? task.getAssignedToClasse().getId() : null);
         dto.setStatus(task.getStatus());
         dto.setGraded(task.isGraded());
         dto.setVisible(task.isVisible());
+        // Map projects
+        if (task.getProjects() != null)
+            dto.setProjectIds(task.getProjects().stream().map(p -> p.getId()).toList());
+        // Map groups
+        if (task.getAssignedToGroups() != null)
+            dto.setGroupIds(task.getAssignedToGroups().stream().map(g -> g.getId()).toList());
+        // Map students
+        if (task.getAssignedToStudents() != null)
+            dto.setStudentIds(task.getAssignedToStudents().stream().map(s -> s.getId()).toList());
+        // Map classes
+        if (task.getAssignedToClasses() != null)
+            dto.setClasseIds(task.getAssignedToClasses().stream().map(c -> c.getId()).toList());
         return dto;
     }
 
@@ -31,9 +44,11 @@ public class TaskMapper {
         if (dto.getDueDate() != null) task.setDueDate(dto.getDueDate());
         if (dto.getType() != null) task.setType(dto.getType());
         if (dto.getStatus() != null) task.setStatus(dto.getStatus());
+        log.info("[TaskMapper] updateEntity: dto.isVisible={} (before), task.isVisible={} (before)", dto.getIsVisible(), task.isVisible());
         task.setGraded(dto.isGraded());
-        task.setVisible(dto.isVisible());
-        // groupId, studentId, classeId, projectId should be set in service with proper entity lookup
+        if (dto.getIsVisible() != null) task.setVisible(dto.getIsVisible());
+        log.info("[TaskMapper] updateEntity: task.isVisible={} (after)", task.isVisible());
+        // Scopes should be set in service
     }
 
     public Task toEntity(TaskCreateDto dto) {
@@ -45,7 +60,7 @@ public class TaskMapper {
         task.setStatus(dto.getStatus());
         task.setGraded(dto.isGraded());
         task.setVisible(dto.isVisible());
-        // groupId, studentId, classeId, projectId should be set in service with proper entity lookup
+        // Scopes should be set in service
         return task;
     }
 }
