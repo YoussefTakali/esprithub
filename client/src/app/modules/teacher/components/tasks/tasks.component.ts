@@ -5,6 +5,9 @@ import { MatDialog } from '@angular/material/dialog';
 import { CreateGroupDialogComponent } from '../groups/create-group-dialog.component';
 import { FormBuilder } from '@angular/forms';
 import { SnackbarService } from 'src/app/shared/services/snackbar.service';
+import { Task } from 'src/app/shared/models/task.model';
+import { EditTaskDialogComponent } from '../tasks/edit-task-dialog.component';
+import { EditTaskDialogModule } from './edit-task-dialog.module';
 
 @Component({
   selector: 'app-teacher-tasks',
@@ -52,11 +55,11 @@ export class TeacherTasksComponent implements OnInit {
     dueDate: string;
     scopeType: string;
     projectIds: string[];
-    classeIds: string[]; // <-- changed from classIds
+    classIds: string[];
     groupIds: string[];
     studentIds: string[];
     isGraded: boolean;
-    isVisible: boolean;
+    visible: boolean;
     status: string;
   } = {
     title: '',
@@ -64,11 +67,11 @@ export class TeacherTasksComponent implements OnInit {
     dueDate: '',
     scopeType: '',
     projectIds: [],
-    classeIds: [], // <-- changed from classIds
+    classIds: [],
     groupIds: [],
     studentIds: [],
     isGraded: false,
-    isVisible: true,
+    visible: true,
     status: 'DRAFT'
   };
   availableScopeProjects: any[] = [];
@@ -77,12 +80,6 @@ export class TeacherTasksComponent implements OnInit {
   availableScopeStudents: any[] = [];
 
   taskStatuses = ['DRAFT', 'PUBLISHED', 'IN_PROGRESS', 'COMPLETED', 'CLOSED'];
-
-  // Modal state for edit and delete
-  showEditTaskModal = false;
-  showDeleteTaskModal = false;
-  taskToEdit: any = null;
-  taskToDelete: any = null;
 
   constructor(
     private readonly teacherData: TeacherDataService,
@@ -168,9 +165,10 @@ export class TeacherTasksComponent implements OnInit {
             return g?.name || id;
           }).filter(Boolean);
           const studentNames = studentIds.map((id: string) => this.getStudentName(id)).filter(Boolean);
+          // Debug log
+          console.log('Task:', task, { projectIds, projectNames, classIds, classNames, groupIds, groupNames, studentIds, studentNames });
           return {
             ...task,
-            isVisible: task.isVisible ?? task.visible ?? task.is_visible ?? false,
             projectNames,
             classNames,
             groupNames,
@@ -448,11 +446,11 @@ export class TeacherTasksComponent implements OnInit {
       dueDate: '',
       scopeType: '',
       projectIds: [],
-      classeIds: [],
+      classIds: [],
       groupIds: [],
       studentIds: [],
       isGraded: false,
-      isVisible: true,
+      visible: true,
       status: 'DRAFT'
     };
     // Only show unique projects for the current context
@@ -483,7 +481,7 @@ export class TeacherTasksComponent implements OnInit {
     }
     // Always ensure arrays for all multi-select fields
     const projectIds = Array.isArray(this.addTaskForm.projectIds) ? this.addTaskForm.projectIds.filter(v => !!v) : [];
-    const classeIds = Array.isArray(this.addTaskForm.classeIds) ? this.addTaskForm.classeIds.filter(v => !!v) : [];
+    const classIds = Array.isArray(this.addTaskForm.classIds) ? this.addTaskForm.classIds.filter(v => !!v) : [];
     const groupIds = Array.isArray(this.addTaskForm.groupIds) ? this.addTaskForm.groupIds.filter(v => !!v) : [];
     const studentIds = Array.isArray(this.addTaskForm.studentIds) ? this.addTaskForm.studentIds.filter(v => !!v) : [];
     // At least one selection for the chosen scope
@@ -491,7 +489,7 @@ export class TeacherTasksComponent implements OnInit {
       this.snackbar.showError('Select at least one project.');
       return;
     }
-    if (this.addTaskForm.scopeType === 'CLASSE' && classeIds.length === 0) {
+    if (this.addTaskForm.scopeType === 'CLASSE' && classIds.length === 0) {
       this.snackbar.showError('Select at least one class.');
       return;
     }
@@ -510,40 +508,16 @@ export class TeacherTasksComponent implements OnInit {
       dueDate: this.addTaskForm.dueDate,
       status: this.addTaskForm.status,
       isGraded: this.addTaskForm.isGraded,
-      isVisible: this.addTaskForm.isVisible,
-      type: this.addTaskForm.scopeType,
+      visible: this.addTaskForm.visible,
+      type: this.addTaskForm.scopeType, // <-- PATCHED: send type
       projectIds: projectIds,
-      classeIds: classeIds, // <-- changed from classIds
+      classeIds: classIds,
       groupIds: groupIds,
       studentIds: studentIds
     };
     this.teacherData.createTask(payload).subscribe({
-      next: (created: any) => {
-        // Add the new task(s) to filteredTasks, mapping names for display
-        const newTasks = Array.isArray(created) ? created : [created];
-        const mapped = newTasks.map((task: any) => {
-          const projectNames = (task.projectIds || []).map((id: string) => {
-            const proj = this.teacherClasses.flatMap((c: any) => c.projects).find((p: any) => p.id === id);
-            return proj?.name || id;
-          }).filter(Boolean);
-          const classNames = (task.classeIds || []).map((id: string) => {
-            const c = this.teacherClasses.find((c: any) => c.classId === id);
-            return c?.className || id;
-          }).filter(Boolean);
-          const groupNames = (task.groupIds || []).map((id: string) => {
-            const g = this.teacherClasses.flatMap((c: any) => c.projects).flatMap((p: any) => p.groups || []).find((g: any) => g.id === id);
-            return g?.name || id;
-          }).filter(Boolean);
-          const studentNames = (task.studentIds || []).map((id: string) => this.getStudentName(id)).filter(Boolean);
-          return {
-            ...task,
-            projectNames,
-            classNames,
-            groupNames,
-            studentNames
-          };
-        });
-        this.filteredTasks = [...this.filteredTasks, ...mapped];
+      next: () => {
+        this.reloadTasks();
         this.snackbar.showSuccess('Task(s) created successfully!');
         this.closeAddTaskModal();
       },
@@ -551,98 +525,33 @@ export class TeacherTasksComponent implements OnInit {
     });
   }
 
-  toggleTaskVisibility(task: any) {
-    const newIsVisible = !task.isVisible;
-    const updatedTask = { ...task, isVisible: newIsVisible };
-    this.teacherData.updateTaskVisibility(updatedTask, newIsVisible).subscribe({
-      next: (updated: any) => {
-        // Map assignment names for display (multi-scope)
-        const projectNames = (updated.projectIds || []).map((id: string) => {
-          const proj = this.teacherClasses.flatMap((c: any) => c.projects).find((p: any) => p.id === id);
-          return proj?.name || id;
-        }).filter(Boolean);
-        const classNames = (updated.classeIds || []).map((id: string) => {
-          const c = this.teacherClasses.find((c: any) => c.classId === id);
-          return c?.className || id;
-        }).filter(Boolean);
-        const groupNames = (updated.groupIds || []).map((id: string) => {
-          const g = this.teacherClasses.flatMap((c: any) => c.projects).flatMap((p: any) => p.groups || []).find((g: any) => g.id === id);
-          return g?.name || id;
-        }).filter(Boolean);
-        const studentNames = (updated.studentIds || []).map((id: string) => this.getStudentName(id)).filter(Boolean);
-        const idx = this.filteredTasks.findIndex((t: any) => t.id === task.id);
-        if (idx > -1) {
-          this.filteredTasks[idx] = {
-            ...updated,
-            isVisible: updated.isVisible ?? updated.visible ?? updated.is_visible ?? false,
-            projectNames,
-            classNames,
-            groupNames,
-            studentNames
-          };
-          // Force Angular change detection by reassigning the array
-          this.filteredTasks = [...this.filteredTasks];
-        }
-        this.snackbar.showSuccess('Task visibility updated!');
-      },
-      error: () => this.snackbar.showError('Failed to update visibility.')
-    });
+  onProjectCheckboxChange(event: any, id: string) {
+    if (event.target.checked) {
+      if (!this.addTaskForm.projectIds.includes(id)) this.addTaskForm.projectIds.push(id);
+    } else {
+      this.addTaskForm.projectIds = this.addTaskForm.projectIds.filter((v: string) => v !== id);
+    }
   }
-  // Open edit modal
-  editTask(task: any) {
-    this.taskToEdit = { ...task };
-    this.showEditTaskModal = true;
+  onClassCheckboxChange(event: any, id: string) {
+    if (event.target.checked) {
+      if (!this.addTaskForm.classIds.includes(id)) this.addTaskForm.classIds.push(id);
+    } else {
+      this.addTaskForm.classIds = this.addTaskForm.classIds.filter((v: string) => v !== id);
+    }
   }
-  closeEditTaskModal() {
-    this.showEditTaskModal = false;
-    this.taskToEdit = null;
+  onGroupCheckboxChange(event: any, id: string) {
+    if (event.target.checked) {
+      if (!this.addTaskForm.groupIds.includes(id)) this.addTaskForm.groupIds.push(id);
+    } else {
+      this.addTaskForm.groupIds = this.addTaskForm.groupIds.filter((v: string) => v !== id);
+    }
   }
-  saveEditTaskModal() {
-    if (!this.taskToEdit) return;
-    const updatedTask = { ...this.taskToEdit, isVisible: !!this.taskToEdit.isVisible };
-    console.log('Sending to backend:', updatedTask); // Debug log
-    this.teacherData.updateTask(updatedTask.id, updatedTask).subscribe({
-      next: (updated: any) => {
-        const idx = this.filteredTasks.findIndex((t: any) => t.id === updatedTask.id);
-        if (idx > -1) this.filteredTasks[idx] = updated;
-        this.snackbar.showSuccess('Task updated!');
-        this.closeEditTaskModal();
-      },
-      error: () => this.snackbar.showError('Failed to update task.')
-    });
-  }
-
-  // Open delete modal
-  confirmDeleteTask(task: any) {
-    this.taskToDelete = task;
-    this.showDeleteTaskModal = true;
-  }
-  closeDeleteTaskModal() {
-    this.showDeleteTaskModal = false;
-    this.taskToDelete = null;
-  }
-  deleteTaskModal() {
-    if (!this.taskToDelete) return;
-    this.teacherData.deleteTask(this.taskToDelete.id).subscribe({
-      next: () => {
-        this.filteredTasks = this.filteredTasks.filter((t: any) => t.id !== this.taskToDelete.id);
-        this.snackbar.showSuccess('Task deleted!');
-        this.closeDeleteTaskModal();
-      },
-      error: () => this.snackbar.showError('Failed to delete task.')
-    });
-  }
-
-  toggleStatusDropdown(task: any) {
-    this.filteredTasks.forEach(t => { if (t !== task) t.showStatusDropdown = false; });
-    task.showStatusDropdown = !task.showStatusDropdown;
-  }
-
-  changeTaskStatus(task: any, status: string) {
-    task.status = status;
-    task.showStatusDropdown = false;
-    // TODO: Call backend to update status
-    this.teacherData.updateTaskStatus(task.id, status).subscribe();
+  onStudentCheckboxChange(event: any, id: string) {
+    if (event.target.checked) {
+      if (!this.addTaskForm.studentIds.includes(id)) this.addTaskForm.studentIds.push(id);
+    } else {
+      this.addTaskForm.studentIds = this.addTaskForm.studentIds.filter((v: string) => v !== id);
+    }
   }
 
   getStudentName(studentId: string): string {
@@ -707,32 +616,100 @@ export class TeacherTasksComponent implements OnInit {
     });
   }
 
-  onProjectCheckboxChange(event: any, id: string) {
-    if (event.target.checked) {
-      if (!this.addTaskForm.projectIds.includes(id)) this.addTaskForm.projectIds.push(id);
-    } else {
-      this.addTaskForm.projectIds = this.addTaskForm.projectIds.filter((v: string) => v !== id);
-    }
+  // Helper to reload tasks and update filteredTasks
+  reloadTasks() {
+    this.teacherData.getMyTasks().subscribe(tasks => {
+      this.filteredTasks = (tasks || []).map((task: any) => {
+        // Collect all names for each scope (same as in ngOnInit)
+        const projectIds = Array.isArray(task.projectIds) ? task.projectIds : (task.projectId ? [task.projectId] : []);
+        const classIds = Array.isArray(task.classeIds) ? task.classeIds : (task.classeId ? [task.classeId] : []);
+        const groupIds = Array.isArray(task.groupIds) ? task.groupIds : (task.groupId ? [task.groupId] : []);
+        const studentIds = Array.isArray(task.studentIds) ? task.studentIds : (task.studentId ? [task.studentId] : []);
+        const projectNames = projectIds.map((id: string) => {
+          const proj = this.teacherClasses.flatMap((c: any) => c.projects).find((p: any) => p.id === id);
+          return proj?.name || id;
+        }).filter(Boolean);
+        const classNames = classIds.map((id: string) => {
+          const c = this.teacherClasses.find((c: any) => c.classId === id);
+          return c?.className || id;
+        }).filter(Boolean);
+        const groupNames = groupIds.map((id: string) => {
+          const g = this.teacherClasses.flatMap((c: any) => c.projects).flatMap((p: any) => p.groups || []).find((g: any) => g.id === id);
+          return g?.name || id;
+        }).filter(Boolean);
+        const studentNames = studentIds.map((id: string) => this.getStudentName(id)).filter(Boolean);
+        return {
+          ...task,
+          projectNames,
+          classNames,
+          groupNames,
+          studentNames
+        };
+      });
+    });
   }
-  onClassCheckboxChange(event: any, id: string) {
-    if (event.target.checked) {
-      if (!this.addTaskForm.classeIds.includes(id)) this.addTaskForm.classeIds.push(id);
-    } else {
-      this.addTaskForm.classeIds = this.addTaskForm.classeIds.filter((v: string) => v !== id);
-    }
+
+  toggleStatusDropdown(task: any) {
+    this.filteredTasks.forEach(t => { if (t !== task) t.showStatusDropdown = false; });
+    task.showStatusDropdown = !task.showStatusDropdown;
   }
-  onGroupCheckboxChange(event: any, id: string) {
-    if (event.target.checked) {
-      if (!this.addTaskForm.groupIds.includes(id)) this.addTaskForm.groupIds.push(id);
-    } else {
-      this.addTaskForm.groupIds = this.addTaskForm.groupIds.filter((v: string) => v !== id);
-    }
+
+  changeTaskStatus(task: any, status: string) {
+    task.status = status;
+    task.showStatusDropdown = false;
+    // TODO: Call backend to update status
+    this.teacherData.updateTaskStatus(task.id, status).subscribe();
   }
-  onStudentCheckboxChange(event: any, id: string) {
-    if (event.target.checked) {
-      if (!this.addTaskForm.studentIds.includes(id)) this.addTaskForm.studentIds.push(id);
-    } else {
-      this.addTaskForm.studentIds = this.addTaskForm.studentIds.filter((v: string) => v !== id);
+
+  toggleTaskVisibility(task: any) {
+    const newValue = !task.visible;
+    this.teacherData.updateTaskVisibility(task.id, newValue).subscribe({
+      next: (res) => {
+        // Update only the toggled task's visible property using backend response
+        task.visible = res.visible;
+      },
+      error: (err) => {
+        this.snackbar.showError('Failed to update visibility.');
+      }
+    });
+  }
+
+  // Edit Task (stub)
+  editTask(task: Task) {
+    const dialogRef = this.dialog.open(EditTaskDialogComponent, {
+      width: '480px',
+      data: { ...task }
+    });
+    dialogRef.afterClosed().subscribe((result: Task | undefined) => {
+      if (result) {
+        this.teacherData.updateTask(result.id, {
+          title: result.title,
+          description: result.description,
+          createdAt: result.createdAt,
+          visible: result.visible
+        }).subscribe({
+          next: (updated) => {
+            // Update the task in filteredTasks in place
+            const idx = this.filteredTasks.findIndex(t => t.id === updated.id);
+            if (idx !== -1) this.filteredTasks[idx] = { ...this.filteredTasks[idx], ...updated };
+            this.snackbar.showSuccess('Task updated successfully!');
+          },
+          error: () => this.snackbar.showError('Failed to update task.')
+        });
+      }
+    });
+  }
+
+  // Delete Task
+  confirmDeleteTask(task: any) {
+    if (confirm(`Are you sure you want to delete the task "${task.title}"?`)) {
+      this.teacherData.deleteTask(task.id).subscribe({
+        next: () => {
+          this.filteredTasks = this.filteredTasks.filter(t => t.id !== task.id);
+          this.snackbar.showSuccess('Task deleted successfully!');
+        },
+        error: () => this.snackbar.showError('Failed to delete task.')
+      });
     }
   }
 }

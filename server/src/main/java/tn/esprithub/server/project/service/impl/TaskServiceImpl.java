@@ -17,16 +17,11 @@ import tn.esprithub.server.project.repository.GroupRepository;
 import tn.esprithub.server.academic.repository.ClasseRepository;
 import tn.esprithub.server.user.repository.UserRepository;
 
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
-
-import java.util.ArrayList;
 import java.util.List;
 import java.util.UUID;
 
 @Service
 public class TaskServiceImpl implements TaskService {
-    private static final Logger log = LoggerFactory.getLogger(TaskServiceImpl.class);
     private final TaskRepository taskRepository;
     private final TaskMapper taskMapper;
     private final ProjectRepository projectRepository;
@@ -46,32 +41,28 @@ public class TaskServiceImpl implements TaskService {
     @Override
     public TaskDto updateTask(UUID id, TaskUpdateDto dto) {
         Task task = taskRepository.findById(id).orElseThrow();
-        log.info("[TaskServiceImpl] updateTask: dto.isVisible={}, task.isVisible={} (before)", dto.getIsVisible(), task.isVisible());
         taskMapper.updateEntity(dto, task);
-        log.info("[TaskServiceImpl] updateTask: task.isVisible={} (after mapping)", task.isVisible());
         // Update projects
         if (dto.getProjectIds() != null) {
             List<Project> projects = projectRepository.findAllById(dto.getProjectIds());
-            task.setProjects(new ArrayList<>(projects));
+            task.setProjects(new java.util.ArrayList<>(projects));
         }
         // Update groups
         if (dto.getGroupIds() != null) {
             List<Group> groups = groupRepository.findAllById(dto.getGroupIds());
-            task.setAssignedToGroups(new ArrayList<>(groups));
+            task.setAssignedToGroups(new java.util.ArrayList<>(groups));
         }
         // Update classes
         if (dto.getClasseIds() != null) {
             List<Classe> classes = classeRepository.findAllById(dto.getClasseIds());
-            task.setAssignedToClasses(new ArrayList<>(classes));
+            task.setAssignedToClasses(new java.util.ArrayList<>(classes));
         }
         // Update students
         if (dto.getStudentIds() != null) {
             List<User> students = userRepository.findAllById(dto.getStudentIds());
-            task.setAssignedToStudents(new ArrayList<>(students));
+            task.setAssignedToStudents(new java.util.ArrayList<>(students));
         }
-        TaskDto result = taskMapper.toDto(taskRepository.save(task));
-        log.info("[TaskServiceImpl] updateTask: task.isVisible={} (after save)", result.isVisible());
-        return result;
+        return taskMapper.toDto(taskRepository.save(task));
     }
 
     @Override
@@ -105,24 +96,24 @@ public class TaskServiceImpl implements TaskService {
         // Set projects
         if (dto.getProjectIds() != null) {
             List<Project> projects = projectRepository.findAllById(dto.getProjectIds());
-            task.setProjects(new ArrayList<>(projects));
+            task.setProjects(new java.util.ArrayList<>(projects));
         }
         // Set groups
         if (dto.getGroupIds() != null) {
             List<Group> groups = groupRepository.findAllById(dto.getGroupIds());
-            task.setAssignedToGroups(new ArrayList<>(groups));
+            task.setAssignedToGroups(new java.util.ArrayList<>(groups));
         }
         // Set classes
         if (dto.getClasseIds() != null) {
             List<Classe> classes = classeRepository.findAllById(dto.getClasseIds());
-            task.setAssignedToClasses(new ArrayList<>(classes));
+            task.setAssignedToClasses(new java.util.ArrayList<>(classes));
         }
         // Set students
         if (dto.getStudentIds() != null) {
             List<User> students = userRepository.findAllById(dto.getStudentIds());
-            task.setAssignedToStudents(new ArrayList<>(students));
+            task.setAssignedToStudents(new java.util.ArrayList<>(students));
         }
         Task saved = taskRepository.save(task);
-        return List.of(taskMapper.toDto(saved));
+        return java.util.List.of(taskMapper.toDto(saved));
     }
 }

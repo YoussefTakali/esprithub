@@ -58,14 +58,6 @@ public class Task extends BaseEntity {
     )
     private List<Classe> assignedToClasses;
 
-    @ManyToMany(fetch = FetchType.LAZY)
-    @JoinTable(
-        name = "task_projects",
-        joinColumns = @JoinColumn(name = "task_id"),
-        inverseJoinColumns = @JoinColumn(name = "project_id")
-    )
-    private List<Project> projects;
-
     @Column(name = "due_date")
     private LocalDateTime dueDate;
 
@@ -81,4 +73,19 @@ public class Task extends BaseEntity {
     @Builder.Default
     @Column(name = "visible", nullable = false)
     private boolean isVisible = true;
+
+    @ManyToMany(fetch = FetchType.LAZY)
+    @JoinTable(
+        name = "task_projects",
+        joinColumns = @JoinColumn(name = "task_id"),
+        inverseJoinColumns = @JoinColumn(name = "project_id")
+    )
+    private List<Project> projects;
+
+    public List<Project> getProjects() {
+        return projects;
+    }
+    public void setProjects(List<Project> projects) {
+        this.projects = projects;
+    }
 }

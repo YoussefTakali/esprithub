@@ -104,15 +104,15 @@
                 'status-published': task.status === 'PUBLISHED',
                 'status-closed': task.status === 'CLOSED'
               }"
-              (click)="toggleStatusDropdown(task)">
+              (click)="toggleStatusDropdown(task)" tabindex="0" (keydown.enter)="toggleStatusDropdown(task)">
               {{ task.status | titlecase }}
               <i class="fas fa-caret-down"></i>
               <div *ngIf="task.showStatusDropdown" class="status-dropdown">
-                <div *ngFor="let status of taskStatuses" (click)="changeTaskStatus(task, status)">{{ status | titlecase }}</div>
+                <div *ngFor="let status of taskStatuses" (click)="changeTaskStatus(task, status)" tabindex="0" (keydown.enter)="changeTaskStatus(task, status)">{{ status | titlecase }}</div>
               </div>
             </span>
-            <span class="task-visibility" (click)="toggleTaskVisibility(task)">
-              <i class="fas" [ngClass]="task.isVisible ? 'fa-eye' : 'fa-eye-slash'"></i>
+            <span class="task-visibility" (click)="toggleTaskVisibility(task)" tabindex="0" (keydown.enter)="toggleTaskVisibility(task)">
+              <i class="fas" [ngClass]="task.visible ? 'fa-eye' : 'fa-eye-slash'"></i>
             </span>
           </div>
           <div class="task-description">{{ task.description }}</div>
@@ -264,7 +264,7 @@
             <label *ngFor="let c of availableScopeClasses">
               <input type="checkbox"
                      [value]="c.classId"
-                     [checked]="addTaskForm.classeIds.includes(c.classId)"
+                     [checked]="addTaskForm.classIds.includes(c.classId)"
                      (change)="onClassCheckboxChange($event, c.classId)"
                      name="addTaskClassIds" />
               {{ c.className }}
@@ -308,44 +308,12 @@
       </select>
       <div style="display:flex; gap:1rem; align-items:center;">
         <label><input type="checkbox" [(ngModel)]="addTaskForm.isGraded" name="addTaskIsGraded" /> Graded</label>
-        <label><input type="checkbox" [(ngModel)]="addTaskForm.isVisible" name="addTaskIsVisible" /> Visible</label>
+        <label><input type="checkbox" [(ngModel)]="addTaskForm.visible" name="addTaskVisible" /> Visible</label>
       </div>
       <div class="modal-actions">
         <button class="create-btn-red" type="submit">Create</button>
         <button class="cancel-btn" type="button" (click)="closeAddTaskModal()">Cancel</button>
       </div>
     </form>
-  </div>
-</div>
-<!-- Edit Task Modal -->
-<div class="modal-backdrop" *ngIf="showEditTaskModal" (click)="closeEditTaskModal()" (keydown.escape)="closeEditTaskModal()"></div>
-<div class="modal" *ngIf="showEditTaskModal">
-  <div class="modal-content" (click)="$event.stopPropagation()" (keydown.escape)="closeEditTaskModal()">
-    <h3 style="color:#3498db">Edit Task</h3>
-    <form (ngSubmit)="saveEditTaskModal()">
-      <label for="editTitle">Title</label>
-      <input id="editTitle" class="modal-input" [(ngModel)]="taskToEdit.title" name="editTitle" required />
-      <label for="editDescription">Description</label>
-      <textarea id="editDescription" class="modal-input" [(ngModel)]="taskToEdit.description" name="editDescription"></textarea>
-      <label>
-        Visible: <input type="checkbox" [(ngModel)]="taskToEdit.isVisible" name="editIsVisible" />
-      </label>
-      <div class="modal-actions">
-        <button class="create-btn-red" type="submit">Save</button>
-        <button class="cancel-btn" type="button" (click)="closeEditTaskModal()">Cancel</button>
-      </div>
-    </form>
-  </div>
-</div>
-<!-- Delete Task Modal -->
-<div class="modal-backdrop" *ngIf="showDeleteTaskModal" (click)="closeDeleteTaskModal()" (keydown.escape)="closeDeleteTaskModal()"></div>
-<div class="modal" *ngIf="showDeleteTaskModal">
-  <div class="modal-content" (click)="$event.stopPropagation()" (keydown.escape)="closeDeleteTaskModal()">
-    <h3 style="color:#e74c3c">Delete Task</h3>
-    <p>Are you sure you want to delete the task <b>{{ taskToDelete?.title }}</b>?</p>
-    <div class="modal-actions">
-      <button class="create-btn-red" type="button" (click)="deleteTaskModal()">Delete</button>
-      <button class="cancel-btn" type="button" (click)="closeDeleteTaskModal()">Cancel</button>
-    </div>
   </div>
 </div>

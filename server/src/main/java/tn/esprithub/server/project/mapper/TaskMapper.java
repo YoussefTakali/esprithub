@@ -6,13 +6,8 @@ import tn.esprithub.server.project.dto.TaskDto;
 import tn.esprithub.server.project.dto.TaskUpdateDto;
 import tn.esprithub.server.project.entity.Task;
 
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
-
 @Component
 public class TaskMapper {
-    private static final Logger log = LoggerFactory.getLogger(TaskMapper.class);
-
     public TaskDto toDto(Task task) {
         TaskDto dto = new TaskDto();
         dto.setId(task.getId());
@@ -44,10 +39,8 @@ public class TaskMapper {
         if (dto.getDueDate() != null) task.setDueDate(dto.getDueDate());
         if (dto.getType() != null) task.setType(dto.getType());
         if (dto.getStatus() != null) task.setStatus(dto.getStatus());
-        log.info("[TaskMapper] updateEntity: dto.isVisible={} (before), task.isVisible={} (before)", dto.getIsVisible(), task.isVisible());
-        task.setGraded(dto.isGraded());
+        if (dto.getIsGraded() != null) task.setGraded(dto.getIsGraded());
         if (dto.getIsVisible() != null) task.setVisible(dto.getIsVisible());
-        log.info("[TaskMapper] updateEntity: task.isVisible={} (after)", task.isVisible());
         // Scopes should be set in service
     }
 

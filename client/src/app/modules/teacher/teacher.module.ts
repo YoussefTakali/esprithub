@@ -11,6 +11,7 @@ import { TeacherDashboardComponent } from './components/dashboard/dashboard.comp
 import { TeacherTasksComponent } from './components/tasks/tasks.component';
 import { TeacherProjectsComponent } from './components/projects/projects.component';
 import { CreateGroupDialogComponent } from './components/groups/create-group-dialog.component';
+import { EditTaskDialogModule } from './components/tasks/edit-task-dialog.module';
 
 const routes: Routes = [
   { path: 'dashboard', component: TeacherDashboardComponent },
@@ -36,7 +37,8 @@ const routes: Routes = [
     MatFormFieldModule,
     MatInputModule,
     MatSelectModule,
-    MatButtonModule
+    MatButtonModule,
+    EditTaskDialogModule
   ]
 })
 export class TeacherModule { }

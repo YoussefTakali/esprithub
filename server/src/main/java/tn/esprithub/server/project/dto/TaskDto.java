@@ -22,6 +22,6 @@ public class TaskDto {
     private List<UUID> classeIds;
     private TaskStatus status;
     private boolean isGraded;
-    @JsonProperty("isVisible")
+    @JsonProperty("visible")
     private boolean isVisible;
 }

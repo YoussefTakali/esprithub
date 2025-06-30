@@ -5,10 +5,9 @@ import org.springframework.stereotype.Repository;
 import tn.esprithub.server.project.entity.Task;
 
 import java.util.List;
-import java.util.UUID;
 
 @Repository
-public interface TaskRepository extends JpaRepository<Task, UUID> {
-    List<Task> findByAssignedToClasses_Id(UUID classeId);
-    List<Task> findByProjects_Id(UUID projectId);
+public interface TaskRepository extends JpaRepository<Task, java.util.UUID> {
+    List<Task> findByAssignedToClasses_Id(java.util.UUID classeId);
+    List<Task> findByProjects_Id(java.util.UUID projectId);
 }
