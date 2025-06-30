@@ -59,4 +59,11 @@ public class GroupController {
         List<GroupDto> dtos = groups.stream().map(GroupMapper::toDto).toList();
         return ResponseEntity.ok(dtos);
     }
+
+    @GetMapping("/by-project-and-class")
+    public ResponseEntity<List<GroupDto>> getGroupsByProjectAndClass(@RequestParam UUID projectId, @RequestParam UUID classeId) {
+        List<Group> groups = groupService.getGroupsByProjectIdAndClasseId(projectId, classeId);
+        List<GroupDto> dtos = groups.stream().map(GroupMapper::toDto).toList();
+        return ResponseEntity.ok(dtos);
+    }
 }

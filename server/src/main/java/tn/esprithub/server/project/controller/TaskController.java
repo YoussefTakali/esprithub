@@ -2,6 +2,9 @@ package tn.esprithub.server.project.controller;
 
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
+import tn.esprithub.server.project.dto.TaskCreateDto;
+import tn.esprithub.server.project.dto.TaskDto;
+import tn.esprithub.server.project.dto.TaskUpdateDto;
 import tn.esprithub.server.project.entity.Task;
 import tn.esprithub.server.project.service.TaskService;
 
@@ -18,13 +21,13 @@ public class TaskController {
     }
 
     @PostMapping
-    public ResponseEntity<Task> createTask(@RequestBody Task task) {
-        return ResponseEntity.ok(taskService.createTask(task));
+    public ResponseEntity<TaskDto> createTask(@RequestBody TaskCreateDto dto) {
+        return ResponseEntity.ok(taskService.createTask(dto));
     }
 
     @PutMapping("/{id}")
-    public ResponseEntity<Task> updateTask(@PathVariable UUID id, @RequestBody Task task) {
-        return ResponseEntity.ok(taskService.updateTask(id, task));
+    public ResponseEntity<TaskDto> updateTask(@PathVariable UUID id, @RequestBody TaskUpdateDto dto) {
+        return ResponseEntity.ok(taskService.updateTask(id, dto));
     }
 
     @DeleteMapping("/{id}")
@@ -34,22 +37,22 @@ public class TaskController {
     }
 
     @GetMapping("/{id}")
-    public ResponseEntity<Task> getTaskById(@PathVariable UUID id) {
+    public ResponseEntity<TaskDto> getTaskById(@PathVariable UUID id) {
         return ResponseEntity.ok(taskService.getTaskById(id));
     }
 
     @GetMapping
-    public ResponseEntity<List<Task>> getAllTasks() {
+    public ResponseEntity<List<TaskDto>> getAllTasks() {
         return ResponseEntity.ok(taskService.getAllTasks());
     }
 
     @GetMapping("/by-class/{classeId}")
-    public ResponseEntity<List<Task>> getTasksByClasseId(@PathVariable UUID classeId) {
+    public ResponseEntity<List<TaskDto>> getTasksByClasseId(@PathVariable UUID classeId) {
         return ResponseEntity.ok(taskService.getTasksByClasseId(classeId));
     }
 
     @GetMapping("/by-project/{projectId}")
-    public ResponseEntity<List<Task>> getTasksByProjectId(@PathVariable UUID projectId) {
+    public ResponseEntity<List<TaskDto>> getTasksByProjectId(@PathVariable UUID projectId) {
         return ResponseEntity.ok(taskService.getTasksByProjectId(projectId));
     }
 }

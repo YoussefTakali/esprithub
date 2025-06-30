@@ -1,15 +1,17 @@
 package tn.esprithub.server.project.service;
 
-import tn.esprithub.server.project.entity.Task;
+import tn.esprithub.server.project.dto.TaskCreateDto;
+import tn.esprithub.server.project.dto.TaskUpdateDto;
+import tn.esprithub.server.project.dto.TaskDto;
 import java.util.List;
 import java.util.UUID;
 
 public interface TaskService {
-    Task createTask(Task task);
-    Task updateTask(UUID id, Task task);
+    TaskDto createTask(TaskCreateDto dto);
+    TaskDto updateTask(UUID id, TaskUpdateDto dto);
     void deleteTask(UUID id);
-    Task getTaskById(UUID id);
-    List<Task> getAllTasks();
-    List<Task> getTasksByClasseId(UUID classeId);
-    List<Task> getTasksByProjectId(UUID projectId);
+    TaskDto getTaskById(UUID id);
+    List<TaskDto> getAllTasks();
+    List<TaskDto> getTasksByClasseId(UUID classeId);
+    List<TaskDto> getTasksByProjectId(UUID projectId);
 }

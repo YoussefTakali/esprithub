@@ -129,4 +129,9 @@ public class GroupServiceImpl implements GroupService {
     public List<Group> getGroupsByProjectId(UUID projectId) {
         return groupRepository.findByProjectId(projectId);
     }
+
+    @Override
+    public List<Group> getGroupsByProjectIdAndClasseId(UUID projectId, UUID classeId) {
+        return groupRepository.findByProjectIdAndClasseId(projectId, classeId);
+    }
 }

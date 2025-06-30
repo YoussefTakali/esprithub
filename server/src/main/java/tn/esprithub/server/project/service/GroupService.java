@@ -15,4 +15,5 @@ public interface GroupService {
     Group getGroupById(UUID id);
     List<Group> getAllGroups();
     List<Group> getGroupsByProjectId(UUID projectId);
+    List<Group> getGroupsByProjectIdAndClasseId(UUID projectId, UUID classeId);
 }

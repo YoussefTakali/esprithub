@@ -5,6 +5,7 @@ import jakarta.validation.constraints.NotBlank;
 import lombok.*;
 import lombok.experimental.SuperBuilder;
 import tn.esprithub.server.project.enums.TaskAssignmentType;
+import tn.esprithub.server.project.enums.TaskStatus;
 import tn.esprithub.server.project.entity.Group;
 import tn.esprithub.server.academic.entity.Classe;
 import tn.esprithub.server.user.entity.User;
@@ -50,4 +51,17 @@ public class Task extends BaseEntity {
 
     @Column(name = "due_date")
     private LocalDateTime dueDate;
+
+    @Builder.Default
+    @Enumerated(EnumType.STRING)
+    @Column(nullable = false)
+    private TaskStatus status = TaskStatus.DRAFT;
+
+    @Builder.Default
+    @Column(nullable = false)
+    private boolean isGraded = false;
+
+    @Builder.Default
+    @Column(nullable = false)
+    private boolean isVisible = true;
 }

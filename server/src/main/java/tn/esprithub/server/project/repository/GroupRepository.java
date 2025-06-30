@@ -10,4 +10,5 @@ import java.util.UUID;
 @Repository
 public interface GroupRepository extends JpaRepository<Group, java.util.UUID> {
     List<Group> findByProjectId(UUID projectId);
+    List<Group> findByProjectIdAndClasseId(UUID projectId, UUID classeId);
 }

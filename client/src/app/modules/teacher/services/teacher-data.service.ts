@@ -99,4 +99,20 @@ export class TeacherDataService {
   getGroupsByProject(projectId: string) {
     return this.http.get<any[]>(`http://localhost:8090/api/groups?projectId=${projectId}`);
   }
+
+  getGroupsByProjectAndClass(projectId: string, classeId: string): Observable<any[]> {
+    return this.http.get<any[]>(`http://localhost:8090/api/groups/by-project-and-class?projectId=${projectId}&classeId=${classeId}`);
+  }
+
+  createTask(task: any) {
+    return this.http.post<any>('http://localhost:8090/api/tasks', task);
+  }
+
+  updateTaskStatus(taskId: string, status: string) {
+    return this.http.put<any>(`http://localhost:8090/api/tasks/${taskId}`, { status });
+  }
+
+  updateTaskVisibility(taskId: string, isVisible: boolean) {
+    return this.http.put<any>(`http://localhost:8090/api/tasks/${taskId}`, { isVisible });
+  }
 }
