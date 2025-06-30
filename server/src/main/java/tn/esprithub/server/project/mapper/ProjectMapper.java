@@ -3,6 +3,8 @@ package tn.esprithub.server.project.mapper;
 import tn.esprithub.server.project.dto.ProjectDto;
 import tn.esprithub.server.project.entity.Project;
 import tn.esprithub.server.user.entity.User;
+import tn.esprithub.server.project.dto.GroupSummaryDto;
+import tn.esprithub.server.project.mapper.GroupSummaryMapper;
 import java.util.stream.Collectors;
 
 public class ProjectMapper {
@@ -15,6 +17,7 @@ public class ProjectMapper {
         dto.setDescription(project.getDescription());
         dto.setCreatedAt(project.getCreatedAt());
         dto.setUpdatedAt(project.getUpdatedAt());
+        dto.setDeadline(project.getDeadline());
         if (project.getCreatedBy() != null) {
             dto.setCreatedBy(SimpleUserMapper.toDto(project.getCreatedBy()));
         }
@@ -23,9 +26,30 @@ public class ProjectMapper {
         }
         if (project.getClasses() != null) {
             dto.setClassIds(project.getClasses().stream().map(c -> c.getId()).toList());
+            dto.setClasses(
+                project.getClasses().stream().map(c -> {
+                    ProjectDto.ClassSummary cs = new ProjectDto.ClassSummary();
+                    cs.setId(c.getId());
+                    cs.setName(c.getNom());
+                    cs.setCourseName(c.getNiveau() != null ? c.getNiveau().getNom() : null);
+                    return cs;
+                }).toList()
+            );
         }
         if (project.getGroups() != null) {
             dto.setGroupIds(project.getGroups().stream().map(g -> g.getId()).toList());
+            dto.setGroups(
+                project.getGroups().stream()
+                    .map(GroupSummaryMapper::toDto)
+                    .map(groupSummaryDto -> {
+                        ProjectDto.GroupSummaryDto dtoGroup = new ProjectDto.GroupSummaryDto();
+                        dtoGroup.setId(groupSummaryDto.getId());
+                        dtoGroup.setName(groupSummaryDto.getName());
+                        dtoGroup.setStudentIds(groupSummaryDto.getStudentIds());
+                        return dtoGroup;
+                    })
+                    .toList()
+            );
         }
         if (project.getTasks() != null) {
             dto.setTaskIds(project.getTasks().stream().map(t -> t.getId()).toList());

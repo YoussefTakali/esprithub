@@ -11,7 +11,11 @@ import tn.esprithub.server.academic.repository.ClasseRepository;
 import tn.esprithub.server.academic.repository.CourseAssignmentRepository;
 import tn.esprithub.server.academic.entity.Classe;
 import tn.esprithub.server.academic.entity.CourseAssignment;
+import tn.esprithub.server.project.dto.ProjectUpdateDto;
+import tn.esprithub.server.project.dto.ProjectDto;
+import tn.esprithub.server.project.mapper.ProjectMapper;
 
+import java.util.ArrayList;
 import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
@@ -32,13 +36,34 @@ public class ProjectServiceImpl implements ProjectService {
 
     @Override
     public Project createProject(Project project) {
+        if (project.getClasses() != null && !project.getClasses().isEmpty()) {
+            List<Classe> managedClasses = classeRepository.findAllById(
+                project.getClasses().stream().map(Classe::getId).toList()
+            );
+            project.setClasses(managedClasses);
+        }
         return projectRepository.save(project);
     }
 
     @Override
+    public Project updateProject(UUID id, ProjectUpdateDto dto) {
+        Project existing = projectRepository.findById(id).orElseThrow();
+        if (dto.getName() != null) existing.setName(dto.getName());
+        if (dto.getDescription() != null) existing.setDescription(dto.getDescription());
+        if (dto.getDeadline() != null) existing.setDeadline(dto.getDeadline());
+        if (dto.getClassIds() != null) {
+            List<Classe> classes = classeRepository.findAllById(dto.getClassIds());
+            existing.setClasses(classes);
+        }
+        if (dto.getCollaboratorIds() != null) {
+            existing.setCollaborators(userRepository.findAllById(dto.getCollaboratorIds()));
+        }
+        return projectRepository.save(existing);
+    }
+
+    @Override
     public Project updateProject(UUID id, Project project) {
-        project.setId(id);
-        return projectRepository.save(project);
+        throw new UnsupportedOperationException("Use updateProject(UUID, ProjectUpdateDto) instead.");
     }
 
     @Override
@@ -81,16 +106,21 @@ public class ProjectServiceImpl implements ProjectService {
 
     @Override
     public List<TeacherClassCourseDto> getMyClassesWithCourses(User teacher) {
-        // Get all classes where the teacher is assigned
-        List<Classe> classes = classeRepository.findByTeachers_Id(teacher.getId());
-        return classes.stream().map(classe -> {
-            // Find course assignment for this teacher and class's niveau
-            List<CourseAssignment> assignments = courseAssignmentRepository.findByNiveauId(classe.getNiveau().getId());
-            String courseName = assignments.stream()
-                .filter(a -> a.getTeacher().getId().equals(teacher.getId()))
-                .map(a -> a.getCourse().getName())
-                .findFirst().orElse("-");
-            return new TeacherClassCourseDto(classe.getId(), classe.getNom(), courseName);
-        }).toList();
+        List<CourseAssignment> assignments = courseAssignmentRepository.findByTeacher_Id(teacher.getId());
+        List<TeacherClassCourseDto> result = new ArrayList<>();
+        // Fetch all projects for this teacher (created or collaborated)
+        List<Project> allProjects = projectRepository.findWithClassesByCreatedByOrCollaborator(teacher.getId());
+        for (CourseAssignment assignment : assignments) {
+            List<Classe> classes = classeRepository.findByNiveauId(assignment.getNiveau().getId());
+            for (Classe classe : classes) {
+                // Only include projects where this class is the primary (first) class
+                List<ProjectDto> projectDtos = allProjects.stream()
+                    .filter(p -> p.getClasses() != null && !p.getClasses().isEmpty() && p.getClasses().get(0).getId().equals(classe.getId()))
+                    .map(ProjectMapper::toDto)
+                    .toList();
+                result.add(new TeacherClassCourseDto(classe.getId(), classe.getNom(), assignment.getCourse().getName(), projectDtos));
+            }
+        }
+        return result;
     }
 }

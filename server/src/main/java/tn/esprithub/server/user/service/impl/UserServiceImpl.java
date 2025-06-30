@@ -160,6 +160,14 @@ public class UserServiceImpl implements UserService {
         return userMapper.toUserSummaryDtoList(users);
     }
 
+    @Override
+    @Transactional(readOnly = true)
+    public List<UserSummaryDto> getAllUserSummaries() {
+        log.info("Fetching all user summaries");
+        List<User> users = userRepository.findAll();
+        return userMapper.toUserSummaryDtoList(users);
+    }
+
     // ========== DEPARTMENT MANAGEMENT ==========
 
     @Override
@@ -503,5 +511,26 @@ public class UserServiceImpl implements UserService {
             
             user.setClasse(classe);
         }
+    }
+
+    @Override
+    public List<UserDto> batchAssignStudentsToClasse(List<UUID> studentIds, UUID classeId) {
+        log.info("Batch assigning students {} to classe {}", studentIds, classeId);
+        Classe classe = classeRepository.findById(classeId)
+                .orElseThrow(() -> new BusinessException("Classe non trouvée avec l'ID: " + classeId));
+        long currentStudentCount = userRepository.countStudentsByClasse(classeId);
+        if (currentStudentCount + studentIds.size() > classe.getCapacite()) {
+            throw new BusinessException("La capacité de la classe serait dépassée");
+        }
+        List<User> students = userRepository.findAllById(studentIds);
+        for (User student : students) {
+            if (student.getRole() != UserRole.STUDENT) {
+                throw new BusinessException("L'utilisateur " + student.getId() + " n'est pas un étudiant");
+            }
+            student.setClasse(classe);
+        }
+        userRepository.saveAll(students);
+        log.info("Successfully batch assigned students to classe");
+        return students.stream().map(userMapper::toUserDto).toList();
     }
 }

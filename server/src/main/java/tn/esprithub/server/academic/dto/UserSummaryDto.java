@@ -20,7 +20,5 @@ public class UserSummaryDto {
     private String fullName;
     private UserRole role;
     private Boolean isActive;
-    
-    // Additional fields for context
     private String githubUsername;
 }

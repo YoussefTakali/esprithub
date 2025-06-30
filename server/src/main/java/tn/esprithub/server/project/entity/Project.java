@@ -1,5 +1,6 @@
 package tn.esprithub.server.project.entity;
 
+import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
 import jakarta.persistence.*;
 import jakarta.validation.constraints.NotBlank;
 import lombok.*;
@@ -8,6 +9,7 @@ import tn.esprithub.server.academic.entity.Classe;
 import tn.esprithub.server.user.entity.User;
 import tn.esprithub.server.common.entity.BaseEntity;
 
+import java.time.LocalDateTime;
 import java.util.List;
 
 @Entity
@@ -17,6 +19,7 @@ import java.util.List;
 @SuperBuilder
 @NoArgsConstructor
 @AllArgsConstructor
+@JsonIgnoreProperties({"groups", "tasks", "collaborators", "classes"})
 public class Project extends BaseEntity {
     @NotBlank
     @Column(nullable = false, length = 100)
@@ -55,4 +58,7 @@ public class Project extends BaseEntity {
         inverseJoinColumns = @JoinColumn(name = "user_id")
     )
     private List<User> collaborators;
+
+    @Column(name = "deadline")
+    private LocalDateTime deadline;
 }

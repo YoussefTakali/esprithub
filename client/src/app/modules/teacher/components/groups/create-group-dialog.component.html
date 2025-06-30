@@ -9,7 +9,7 @@
     <mat-label>Group Members</mat-label>
     <mat-select formControlName="members" multiple>
       <mat-option *ngFor="let student of students" [value]="student.id">
-        {{ student.name }}
+        {{ student.fullName || (student.firstName + ' ' + student.lastName) || student.firstName || student.lastName || student.email }}
       </mat-option>
     </mat-select>
   </mat-form-field>

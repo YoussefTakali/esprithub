@@ -27,6 +27,7 @@ public interface UserService {
     List<UserDto> getActiveUsers();
     List<UserDto> getInactiveUsers();
     List<UserSummaryDto> searchUsers(String searchTerm);
+    List<UserSummaryDto> getAllUserSummaries();
     
     // Department management (ADMIN and CHIEF)
     List<UserDto> getUsersByDepartement(UUID departementId);
@@ -44,6 +45,7 @@ public interface UserService {
     UserDto removeStudentFromClasse(UUID studentId);
     UserDto assignTeacherToClasse(UUID teacherId, UUID classeId);
     UserDto removeTeacherFromClasse(UUID teacherId, UUID classeId);
+    List<UserDto> batchAssignStudentsToClasse(List<UUID> studentIds, UUID classeId);
     
     // Status management (ADMIN only)
     UserDto activateUser(UUID id);

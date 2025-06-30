@@ -10,4 +10,5 @@ import java.util.UUID;
 public interface CourseAssignmentRepository extends JpaRepository<CourseAssignment, UUID> {
     List<CourseAssignment> findByNiveau(Niveau niveau);
     List<CourseAssignment> findByNiveauId(UUID niveauId);
+    List<CourseAssignment> findByTeacher_Id(UUID teacherId);
 }

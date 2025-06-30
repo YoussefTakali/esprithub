@@ -6,12 +6,14 @@ import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 import tn.esprithub.server.academic.entity.Classe;
+import tn.esprithub.server.project.dto.ProjectDto;
 import tn.esprithub.server.project.entity.Project;
 import tn.esprithub.server.user.entity.User;
 import tn.esprithub.server.academic.repository.ClasseRepository;
 import tn.esprithub.server.project.repository.ProjectRepository;
 import tn.esprithub.server.teacher.dto.TeacherClassCourseDto;
 import tn.esprithub.server.teacher.service.TeacherClassCourseService;
+import tn.esprithub.server.project.mapper.ProjectMapper;
 
 import java.util.List;
 
@@ -36,10 +38,11 @@ public class TeacherController {
     }
 
     @GetMapping("/projects")
-    public ResponseEntity<List<Project>> getMyProjects(@AuthenticationPrincipal User currentUser) {
-        // Return projects where the teacher is creator or collaborator
-        List<Project> projects = projectRepository.findByCreatedBy_IdOrCollaborators_Id(currentUser.getId(), currentUser.getId());
-        return ResponseEntity.ok(projects);
+    public ResponseEntity<List<ProjectDto>> getMyProjects(@AuthenticationPrincipal User currentUser) {
+        // Return projects where the teacher is creator or collaborator, with classes eagerly loaded
+        List<Project> projects = projectRepository.findWithClassesByCreatedByOrCollaborator(currentUser.getId());
+        List<ProjectDto> dtos = projects.stream().map(ProjectMapper::toDto).toList();
+        return ResponseEntity.ok(dtos);
     }
 
     @GetMapping("/classes-with-courses")

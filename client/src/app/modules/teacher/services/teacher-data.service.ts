@@ -81,4 +81,22 @@ export class TeacherDataService {
     // Updated to use the correct backend endpoint for group creation
     return this.http.get<any[]>(`http://localhost:8090/api/v1/users/classes/${classId}/students`);
   }
+
+  // GROUP MANAGEMENT
+  createGroup(group: any) {
+    return this.http.post<any>('http://localhost:8090/api/groups', group);
+  }
+
+  updateGroup(groupId: string, group: any) {
+    // group is expected to be in DTO format: { id, name, classeId, projectId, studentIds }
+    return this.http.put<any>(`http://localhost:8090/api/groups/${groupId}`, group);
+  }
+
+  deleteGroup(groupId: string) {
+    return this.http.delete<any>(`http://localhost:8090/api/groups/${groupId}`);
+  }
+
+  getGroupsByProject(projectId: string) {
+    return this.http.get<any[]>(`http://localhost:8090/api/groups?projectId=${projectId}`);
+  }
 }

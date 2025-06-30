@@ -1,5 +1,6 @@
 package tn.esprithub.server.project.entity;
 
+import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
 import jakarta.persistence.*;
 import jakarta.validation.constraints.NotBlank;
 import lombok.*;
@@ -17,6 +18,7 @@ import java.util.List;
 @SuperBuilder
 @NoArgsConstructor
 @AllArgsConstructor
+@JsonIgnoreProperties({"project", "classe", "students"})
 public class Group extends BaseEntity {
     @NotBlank
     @Column(nullable = false, length = 100)
@@ -39,5 +41,6 @@ public class Group extends BaseEntity {
         joinColumns = @JoinColumn(name = "group_id"),
         inverseJoinColumns = @JoinColumn(name = "student_id")
     )
-    private List<User> students;
+    @Builder.Default
+    private List<User> students = new java.util.ArrayList<>();
 }

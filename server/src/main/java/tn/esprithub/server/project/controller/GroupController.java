@@ -4,6 +4,10 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 import tn.esprithub.server.project.entity.Group;
 import tn.esprithub.server.project.service.GroupService;
+import tn.esprithub.server.project.dto.GroupDto;
+import tn.esprithub.server.project.dto.GroupCreateDto;
+import tn.esprithub.server.project.dto.GroupUpdateDto;
+import tn.esprithub.server.project.mapper.GroupMapper;
 
 import java.util.List;
 import java.util.UUID;
@@ -18,13 +22,15 @@ public class GroupController {
     }
 
     @PostMapping
-    public ResponseEntity<Group> createGroup(@RequestBody Group group) {
-        return ResponseEntity.ok(groupService.createGroup(group));
+    public ResponseEntity<GroupDto> createGroup(@RequestBody GroupCreateDto dto) {
+        Group created = groupService.createGroup(dto);
+        return ResponseEntity.ok(GroupMapper.toDto(created));
     }
 
     @PutMapping("/{id}")
-    public ResponseEntity<Group> updateGroup(@PathVariable UUID id, @RequestBody Group group) {
-        return ResponseEntity.ok(groupService.updateGroup(id, group));
+    public ResponseEntity<GroupDto> updateGroup(@PathVariable UUID id, @RequestBody GroupUpdateDto dto) {
+        Group updated = groupService.updateGroup(id, dto);
+        return ResponseEntity.ok(GroupMapper.toDto(updated));
     }
 
     @DeleteMapping("/{id}")
@@ -34,12 +40,23 @@ public class GroupController {
     }
 
     @GetMapping("/{id}")
-    public ResponseEntity<Group> getGroupById(@PathVariable UUID id) {
-        return ResponseEntity.ok(groupService.getGroupById(id));
+    public ResponseEntity<GroupDto> getGroupById(@PathVariable UUID id) {
+        Group group = groupService.getGroupById(id);
+        if (group == null) {
+            return ResponseEntity.notFound().build();
+        }
+        return ResponseEntity.ok(GroupMapper.toDto(group));
     }
 
     @GetMapping
-    public ResponseEntity<List<Group>> getAllGroups() {
-        return ResponseEntity.ok(groupService.getAllGroups());
+    public ResponseEntity<List<GroupDto>> getGroups(@RequestParam(value = "projectId", required = false) UUID projectId) {
+        List<Group> groups;
+        if (projectId != null) {
+            groups = groupService.getGroupsByProjectId(projectId);
+        } else {
+            groups = groupService.getAllGroups();
+        }
+        List<GroupDto> dtos = groups.stream().map(GroupMapper::toDto).toList();
+        return ResponseEntity.ok(dtos);
     }
 }

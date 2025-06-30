@@ -12,7 +12,6 @@ import tn.esprithub.server.academic.dto.ClasseDto;
 import tn.esprithub.server.academic.dto.CreateClasseDto;
 import tn.esprithub.server.academic.dto.CourseDto;
 import tn.esprithub.server.academic.dto.CourseAssignmentDto;
-import tn.esprithub.server.user.dto.UserSummaryDto;
 import tn.esprithub.server.academic.service.AdminAcademicService;
 
 import java.util.List;

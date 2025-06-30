@@ -9,6 +9,7 @@ import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.security.core.Authentication;
 import org.springframework.web.bind.annotation.*;
 import tn.esprithub.server.user.dto.UserDto;
+import tn.esprithub.server.user.dto.BatchAssignStudentsRequest;
 import tn.esprithub.server.user.dto.CreateUserDto;
 import tn.esprithub.server.user.dto.UpdateUserDto;
 import tn.esprithub.server.user.dto.UserSummaryDto;
@@ -325,5 +326,31 @@ public class UserController {
         // This would extract the user ID from the JWT token or session
         // For now, return a placeholder - this needs to be implemented based on your auth setup
         return UUID.randomUUID(); // TODO: Implement proper user ID extraction
+    }
+
+    @GetMapping("/summary")
+    @PreAuthorize("hasRole('ADMIN') or hasRole('CHIEF') or hasRole('TEACHER')")
+    public ResponseEntity<List<UserSummaryDto>> getAllUserSummaries() {
+        log.info("API: Getting all user summaries (id, name, email)");
+        List<UserSummaryDto> users = userService.getAllUserSummaries();
+        return ResponseEntity.ok(users);
+    }
+
+    // Get students by class (for group creation, etc.)
+    @GetMapping("/classes/{classId}/students")
+    @PreAuthorize("hasRole('ADMIN') or hasRole('TEACHER') or hasRole('CHIEF')")
+    public ResponseEntity<List<UserDto>> getStudentsByClass(@PathVariable UUID classId) {
+        return ResponseEntity.ok(userService.getStudentsByClasse(classId));
+    }
+
+    // Batch assign students to a class
+    @PostMapping("/admin/academic/classes/{classeId}/students")
+    @PreAuthorize("hasRole('ADMIN')")
+    public ResponseEntity<List<UserDto>> batchAssignStudentsToClasse(
+            @PathVariable UUID classeId,
+            @Valid @RequestBody BatchAssignStudentsRequest request) {
+        log.info("Admin API: Batch assigning students {} to classe {}", request.getStudentIds(), classeId);
+        List<UserDto> assigned = userService.batchAssignStudentsToClasse(request.getStudentIds(), classeId);
+        return ResponseEntity.ok(assigned);
     }
 }
