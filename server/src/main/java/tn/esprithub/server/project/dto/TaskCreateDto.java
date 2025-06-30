@@ -19,6 +19,14 @@ public class TaskCreateDto {
     private List<UUID> studentIds;
     private List<UUID> classeIds;
     private TaskStatus status;
-    private boolean isGraded;
+    private Boolean graded;
     private boolean isVisible;
+
+    public Boolean getGraded() {
+        return graded;
+    }
+
+    public void setGraded(Boolean graded) {
+        this.graded = graded;
+    }
 }

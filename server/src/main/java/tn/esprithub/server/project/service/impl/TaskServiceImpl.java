@@ -42,6 +42,10 @@ public class TaskServiceImpl implements TaskService {
     public TaskDto updateTask(UUID id, TaskUpdateDto dto) {
         Task task = taskRepository.findById(id).orElseThrow();
         taskMapper.updateEntity(dto, task);
+        // Update graded explicitly (Spring may not map boolean fields correctly)
+        if (dto.getGraded() != null) {
+            task.setGraded(dto.getGraded());
+        }
         // Update projects
         if (dto.getProjectIds() != null) {
             List<Project> projects = projectRepository.findAllById(dto.getProjectIds());
@@ -93,6 +97,10 @@ public class TaskServiceImpl implements TaskService {
     @Override
     public List<TaskDto> createTasks(TaskCreateDto dto) {
         Task task = taskMapper.toEntity(dto);
+        // Explicitly set graded if present in DTO
+        if (dto.getGraded() != null) {
+            task.setGraded(dto.getGraded());
+        }
         // Set projects
         if (dto.getProjectIds() != null) {
             List<Project> projects = projectRepository.findAllById(dto.getProjectIds());

@@ -4,5 +4,6 @@ export interface Task {
   description: string;
   createdAt: string;
   visible: boolean;
+  graded: boolean;
   [key: string]: any;
 }

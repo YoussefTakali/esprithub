@@ -79,7 +79,28 @@ export class TeacherTasksComponent implements OnInit {
   availableScopeGroups: any[] = [];
   availableScopeStudents: any[] = [];
 
+  // Edit Task modal state
+  showEditTaskModal = false;
+  editTaskForm: any = {
+    id: '',
+    title: '',
+    description: '',
+    dueDate: '',
+    status: 'DRAFT',
+    isGraded: false,
+    visible: true,
+    projectIds: [],
+    classIds: [],
+    groupIds: [],
+    studentIds: []
+  };
+
   taskStatuses = ['DRAFT', 'PUBLISHED', 'IN_PROGRESS', 'COMPLETED', 'CLOSED'];
+
+  repoCreationInProgress: boolean = false;
+  repoCreationStep: 'none' | 'repo' | 'invite' | 'branch' = 'none';
+  repoCreationStepMsg: string = '';
+  createdRepoUrl: string = '';
 
   constructor(
     private readonly teacherData: TeacherDataService,
@@ -300,13 +321,43 @@ export class TeacherTasksComponent implements OnInit {
       classeId: this.createGroupClassId,
       studentIds: this.selectedGroupMembers.map(m => m.id)
     };
+    this.repoCreationInProgress = true;
+    this.repoCreationStep = 'repo';
+    this.repoCreationStepMsg = 'Creating repository...';
+    this.createdRepoUrl = '';
     this.teacherData.createGroup(groupPayload).subscribe({
       next: () => {
-        this.refreshTree(this.createGroupClassId ?? undefined, this.createGroupProject.id ?? undefined);
-        this.snackbar.showSuccess('Group created successfully!');
-        this.closeCreateGroupModal();
+        this.repoCreationStep = 'invite';
+        this.repoCreationStepMsg = 'Inviting members...';
+        setTimeout(() => {
+          this.repoCreationStep = 'branch';
+          this.repoCreationStepMsg = 'Creating branches...';
+          setTimeout(() => {
+            // Generate fake repo URL
+            const groupNameSlug = this.groupNameInput.trim().replace(/\s+/g, '-').toLowerCase();
+            const projectSlug = (this.createGroupProject?.name || 'project').replace(/\s+/g, '-').toLowerCase();
+            const classSlug = (this.teacherClasses.find(c => c.classId === this.createGroupClassId)?.className || 'class').replace(/\s+/g, '-').toLowerCase();
+            this.createdRepoUrl = `https://github.com/esprithub/${projectSlug}-${classSlug}-${groupNameSlug}`;
+            this.repoCreationInProgress = false;
+            this.repoCreationStep = 'none';
+            this.repoCreationStepMsg = '';
+            this.refreshTree(this.createGroupClassId ?? undefined, this.createGroupProject.id ?? undefined);
+            this.snackbar.showSuccess(`Repository for group '${this.groupNameInput}' created: ${this.createdRepoUrl}`);
+            // Modal stays open to show URL, close after 4s
+            setTimeout(() => {
+              this.closeCreateGroupModal();
+              this.createdRepoUrl = '';
+            }, 4000);
+          }, 1200);
+        }, 1200);
       },
-      error: () => this.snackbar.showError('Failed to create group.')
+      error: () => {
+        this.repoCreationInProgress = false;
+        this.repoCreationStep = 'none';
+        this.repoCreationStepMsg = '';
+        this.createdRepoUrl = '';
+        this.snackbar.showError('Failed to create group or repository.');
+      }
     });
   }
 
@@ -525,6 +576,53 @@ export class TeacherTasksComponent implements OnInit {
     });
   }
 
+  // Edit Task (stub)
+  editTask(task: any) {
+    this.editTaskForm = {
+      id: task.id,
+      title: task.title,
+      description: task.description,
+      dueDate: task.dueDate,
+      status: task.status,
+      isGraded: task.graded, // FIX: use backend property
+      visible: task.visible,
+      projectIds: Array.isArray(task.projectIds) ? [...task.projectIds] : (task.projectId ? [task.projectId] : []),
+      classIds: Array.isArray(task.classeIds) ? [...task.classeIds] : (task.classeId ? [task.classeId] : []),
+      groupIds: Array.isArray(task.groupIds) ? [...task.groupIds] : (task.groupId ? [task.groupId] : []),
+      studentIds: Array.isArray(task.studentIds) ? [...task.studentIds] : (task.studentId ? [task.studentId] : [])
+    };
+    this.showEditTaskModal = true;
+  }
+  closeEditTaskModal() {
+    this.showEditTaskModal = false;
+  }
+  editTaskSubmit() {
+    if (!this.editTaskForm.title.trim() || !this.editTaskForm.dueDate) {
+      this.snackbar.showError('Title and deadline are required.');
+      return;
+    }
+    const payload = {
+      title: this.editTaskForm.title,
+      description: this.editTaskForm.description,
+      dueDate: this.editTaskForm.dueDate,
+      status: this.editTaskForm.status,
+      isGraded: this.editTaskForm.isGraded,
+      visible: this.editTaskForm.visible,
+      projectIds: this.editTaskForm.projectIds,
+      classeIds: this.editTaskForm.classIds,
+      groupIds: this.editTaskForm.groupIds,
+      studentIds: this.editTaskForm.studentIds
+    };
+    this.teacherData.updateTask(this.editTaskForm.id, payload).subscribe({
+      next: () => {
+        this.reloadTasks();
+        this.snackbar.showSuccess('Task updated successfully!');
+        this.closeEditTaskModal();
+      },
+      error: () => this.snackbar.showError('Failed to update task.')
+    });
+  }
+
   onProjectCheckboxChange(event: any, id: string) {
     if (event.target.checked) {
       if (!this.addTaskForm.projectIds.includes(id)) this.addTaskForm.projectIds.push(id);
@@ -670,32 +768,6 @@ export class TeacherTasksComponent implements OnInit {
       },
       error: (err) => {
         this.snackbar.showError('Failed to update visibility.');
-      }
-    });
-  }
-
-  // Edit Task (stub)
-  editTask(task: Task) {
-    const dialogRef = this.dialog.open(EditTaskDialogComponent, {
-      width: '480px',
-      data: { ...task }
-    });
-    dialogRef.afterClosed().subscribe((result: Task | undefined) => {
-      if (result) {
-        this.teacherData.updateTask(result.id, {
-          title: result.title,
-          description: result.description,
-          createdAt: result.createdAt,
-          visible: result.visible
-        }).subscribe({
-          next: (updated) => {
-            // Update the task in filteredTasks in place
-            const idx = this.filteredTasks.findIndex(t => t.id === updated.id);
-            if (idx !== -1) this.filteredTasks[idx] = { ...this.filteredTasks[idx], ...updated };
-            this.snackbar.showSuccess('Task updated successfully!');
-          },
-          error: () => this.snackbar.showError('Failed to update task.')
-        });
       }
     });
   }

@@ -20,7 +20,8 @@ export class EditTaskDialogComponent implements OnInit {
       title: [data.title, Validators.required],
       description: [data.description],
       createdAt: [data.createdAt, Validators.required],
-      visible: [data.visible]
+      visible: [data.visible],
+      graded: [data.graded] // add graded to the form
     });
   }
 

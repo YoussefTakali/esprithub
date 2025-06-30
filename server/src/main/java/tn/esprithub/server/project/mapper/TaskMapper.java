@@ -39,7 +39,7 @@ public class TaskMapper {
         if (dto.getDueDate() != null) task.setDueDate(dto.getDueDate());
         if (dto.getType() != null) task.setType(dto.getType());
         if (dto.getStatus() != null) task.setStatus(dto.getStatus());
-        if (dto.getIsGraded() != null) task.setGraded(dto.getIsGraded());
+        if (dto.getGraded() != null) task.setGraded(dto.getGraded());
         if (dto.getIsVisible() != null) task.setVisible(dto.getIsVisible());
         // Scopes should be set in service
     }
@@ -51,7 +51,8 @@ public class TaskMapper {
         task.setDueDate(dto.getDueDate());
         task.setType(dto.getType());
         task.setStatus(dto.getStatus());
-        task.setGraded(dto.isGraded());
+        // Use Boolean.TRUE.equals for null safety
+        task.setGraded(Boolean.TRUE.equals(dto.getGraded()));
         task.setVisible(dto.isVisible());
         // Scopes should be set in service
         return task;

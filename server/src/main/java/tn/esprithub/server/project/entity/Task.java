@@ -67,8 +67,8 @@ public class Task extends BaseEntity {
     private TaskStatus status = TaskStatus.DRAFT;
 
     @Builder.Default
-    @Column(nullable = false)
-    private boolean isGraded = false;
+    @Column(name = "is_graded", nullable = false)
+    private boolean graded = false;
 
     @Builder.Default
     @Column(name = "visible", nullable = false)
@@ -88,4 +88,6 @@ public class Task extends BaseEntity {
     public void setProjects(List<Project> projects) {
         this.projects = projects;
     }
+    public boolean isGraded() { return graded; }
+    public void setGraded(boolean graded) { this.graded = graded; }
 }

@@ -173,6 +173,17 @@
           <button type="button" (click)="removeGroupMember(m.id)">&times;</button>
         </span>
       </div>
+      <div *ngIf="repoCreationInProgress" class="repo-creation-modal">
+        <mat-progress-bar mode="indeterminate"></mat-progress-bar>
+        <div class="step-msg">{{ repoCreationStepMsg }}</div>
+      </div>
+      <div *ngIf="createdRepoUrl && !repoCreationInProgress" class="repo-url-success">
+        <mat-icon color="primary">check_circle</mat-icon>
+        <div>
+          Repository for group <b>{{ groupNameInput }}</b> created:<br>
+          <a href="{{ createdRepoUrl }}" target="_blank">{{ createdRepoUrl }}</a>
+        </div>
+      </div>
       <div class="modal-actions">
         <button class="create-btn-red" type="submit">Create</button>
         <button class="cancel-btn" type="button" (click)="closeCreateGroupModal()">Cancel</button>
@@ -313,6 +324,37 @@
       <div class="modal-actions">
         <button class="create-btn-red" type="submit">Create</button>
         <button class="cancel-btn" type="button" (click)="closeAddTaskModal()">Cancel</button>
+      </div>
+    </form>
+  </div>
+</div>
+<!-- Edit Task Modal -->
+<div class="modal-backdrop" *ngIf="showEditTaskModal" (click)="closeEditTaskModal()" (keydown.escape)="closeEditTaskModal()"></div>
+<div class="modal" *ngIf="showEditTaskModal">
+  <div class="modal-content" (click)="$event.stopPropagation()" (keydown.escape)="closeEditTaskModal()">
+    <h3 style="color:#e74c3c">Edit Task</h3>
+    <form (ngSubmit)="editTaskSubmit()">
+      <label for="editTaskTitle">Title</label>
+      <input id="editTaskTitle" class="modal-input" [(ngModel)]="editTaskForm.title" name="editTaskTitle" required placeholder="Task Title" />
+      <label for="editTaskDescription">Description</label>
+      <textarea id="editTaskDescription" class="modal-input" [(ngModel)]="editTaskForm.description" name="editTaskDescription" placeholder="Task Description"></textarea>
+      <label for="editTaskDueDate">Deadline</label>
+      <input id="editTaskDueDate" class="modal-input" type="datetime-local" [(ngModel)]="editTaskForm.dueDate" name="editTaskDueDate" required />
+      <label for="editTaskStatus">Status</label>
+      <select id="editTaskStatus" class="modal-input" [(ngModel)]="editTaskForm.status" name="editTaskStatus" required>
+        <option value="DRAFT">Draft</option>
+        <option value="PUBLISHED">Published</option>
+        <option value="IN_PROGRESS">In Progress</option>
+        <option value="COMPLETED">Completed</option>
+        <option value="CLOSED">Closed</option>
+      </select>
+      <div style="display:flex; gap:1rem; align-items:center;">
+        <label><input type="checkbox" [(ngModel)]="editTaskForm.isGraded" name="editTaskIsGraded" /> Graded</label>
+        <label><input type="checkbox" [(ngModel)]="editTaskForm.visible" name="editTaskVisible" /> Visible</label>
+      </div>
+      <div class="modal-actions">
+        <button class="create-btn-red" type="submit">Save</button>
+        <button class="cancel-btn" type="button" (click)="closeEditTaskModal()">Cancel</button>
       </div>
     </form>
   </div>

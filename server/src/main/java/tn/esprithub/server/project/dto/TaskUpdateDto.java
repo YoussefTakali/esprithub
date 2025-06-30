@@ -19,7 +19,8 @@ public class TaskUpdateDto {
     private UUID studentId;
     private UUID classeId;
     private TaskStatus status;
-    private Boolean isGraded;
+    @JsonProperty("isGraded")
+    private Boolean graded;
     private List<UUID> projectIds;
     private List<UUID> groupIds;
     private List<UUID> studentIds;

@@ -18,6 +18,7 @@ import java.util.Optional;
 import java.util.UUID;
 import tn.esprithub.server.project.dto.GroupCreateDto;
 import tn.esprithub.server.project.dto.GroupUpdateDto;
+import tn.esprithub.server.integration.github.GithubService;
 
 @Service
 public class GroupServiceImpl implements GroupService {
@@ -26,12 +27,14 @@ public class GroupServiceImpl implements GroupService {
     private final ClasseRepository classeRepository;
     private final ProjectRepository projectRepository;
     private final UserRepository userRepository;
+    private final GithubService githubService;
 
-    public GroupServiceImpl(GroupRepository groupRepository, ClasseRepository classeRepository, ProjectRepository projectRepository, UserRepository userRepository) {
+    public GroupServiceImpl(GroupRepository groupRepository, ClasseRepository classeRepository, ProjectRepository projectRepository, UserRepository userRepository, GithubService githubService) {
         this.groupRepository = groupRepository;
         this.classeRepository = classeRepository;
         this.projectRepository = projectRepository;
         this.userRepository = userRepository;
+        this.githubService = githubService;
     }
 
     @Override
@@ -81,7 +84,29 @@ public class GroupServiceImpl implements GroupService {
         group.setClasse(managedClasse);
         group.setProject(managedProject);
         group.setStudents(managedStudents);
-        return groupRepository.save(group);
+        Group savedGroup = groupRepository.save(group);
+        // --- GITHUB INTEGRATION ---
+        try {
+            // Compose repo name: projectName-className-groupName
+            String repoName = managedProject.getName() + "-" + managedClasse.getNom() + "-" + group.getName();
+            String creatorToken = managedStudents.get(0).getGithubToken();
+            String repoFullName = githubService.createRepositoryForUser(repoName, creatorToken);
+            if (repoFullName != null && !repoFullName.isBlank()) {
+                logger.info("GitHub repository created successfully: {}", repoFullName);
+            } else {
+                logger.warn("GitHub repository creation returned empty repo name for group: {}", savedGroup.getName());
+            }
+            for (var student : managedStudents) {
+                if (student.getGithubUsername() != null && !student.getGithubUsername().isBlank()) {
+                    githubService.inviteUserToRepo(repoFullName, student.getGithubUsername(), creatorToken);
+                    githubService.createBranch(repoFullName, student.getFirstName() + student.getLastName(), creatorToken);
+                }
+            }
+        } catch (Exception e) {
+            logger.error("GitHub integration failed for group {}: {}", savedGroup.getName(), e.getMessage());
+            // Optionally: throw or handle gracefully
+        }
+        return savedGroup;
     }
 
     @Override
