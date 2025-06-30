@@ -8,6 +8,7 @@ import { SnackbarService } from 'src/app/shared/services/snackbar.service';
 import { Task } from 'src/app/shared/models/task.model';
 import { EditTaskDialogComponent } from '../tasks/edit-task-dialog.component';
 import { EditTaskDialogModule } from './edit-task-dialog.module';
+import { Group } from 'src/app/shared/models/group.model';
 
 @Component({
   selector: 'app-teacher-tasks',
@@ -326,32 +327,35 @@ export class TeacherTasksComponent implements OnInit {
     this.repoCreationStepMsg = 'Creating repository...';
     this.createdRepoUrl = '';
     this.teacherData.createGroup(groupPayload).subscribe({
-      next: () => {
-        this.repoCreationStep = 'invite';
-        this.repoCreationStepMsg = 'Inviting members...';
-        setTimeout(() => {
-          this.repoCreationStep = 'branch';
-          this.repoCreationStepMsg = 'Creating branches...';
+      next: (res: Group) => {
+        if (res.repoCreated) {
+          this.repoCreationStep = 'invite';
+          this.repoCreationStepMsg = 'Inviting members...';
           setTimeout(() => {
-            // Generate fake repo URL
-            const groupNameSlug = this.groupNameInput.trim().replace(/\s+/g, '-').toLowerCase();
-            const projectSlug = (this.createGroupProject?.name || 'project').replace(/\s+/g, '-').toLowerCase();
-            const classSlug = (this.teacherClasses.find(c => c.classId === this.createGroupClassId)?.className || 'class').replace(/\s+/g, '-').toLowerCase();
-            this.createdRepoUrl = `https://github.com/esprithub/${projectSlug}-${classSlug}-${groupNameSlug}`;
-            this.repoCreationInProgress = false;
-            this.repoCreationStep = 'none';
-            this.repoCreationStepMsg = '';
-            this.refreshTree(this.createGroupClassId ?? undefined, this.createGroupProject.id ?? undefined);
-            this.snackbar.showSuccess(`Repository for group '${this.groupNameInput}' created: ${this.createdRepoUrl}`);
-            // Modal stays open to show URL, close after 4s
+            this.repoCreationStep = 'branch';
+            this.repoCreationStepMsg = 'Creating branches...';
             setTimeout(() => {
-              this.closeCreateGroupModal();
-              this.createdRepoUrl = '';
-            }, 4000);
+              this.createdRepoUrl = res.repoUrl || '';
+              this.repoCreationInProgress = false;
+              this.repoCreationStep = 'none';
+              this.repoCreationStepMsg = '';
+              this.refreshTree(this.createGroupClassId ?? undefined, this.createGroupProject.id ?? undefined);
+              this.snackbar.showSuccess(`Repository for group '${this.groupNameInput}' created: ${this.createdRepoUrl}`);
+              setTimeout(() => {
+                this.closeCreateGroupModal();
+                this.createdRepoUrl = '';
+              }, 4000);
+            }, 1200);
           }, 1200);
-        }, 1200);
+        } else {
+          this.repoCreationInProgress = false;
+          this.repoCreationStep = 'none';
+          this.repoCreationStepMsg = '';
+          this.createdRepoUrl = '';
+          this.snackbar.showError(res.repoError || 'Failed to create repository.');
+        }
       },
-      error: () => {
+      error: (err) => {
         this.repoCreationInProgress = false;
         this.repoCreationStep = 'none';
         this.repoCreationStepMsg = '';

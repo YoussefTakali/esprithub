@@ -11,4 +11,7 @@ public class GroupDto {
     private UUID projectId;
     private UUID classeId;
     private List<UUID> studentIds;
+    private boolean repoCreated;
+    private String repoUrl;
+    private String repoError;
 }

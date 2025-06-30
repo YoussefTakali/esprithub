@@ -86,6 +86,9 @@ public class GroupServiceImpl implements GroupService {
         group.setStudents(managedStudents);
         Group savedGroup = groupRepository.save(group);
         // --- GITHUB INTEGRATION ---
+        boolean repoCreated = false;
+        String repoUrl = null;
+        String repoError = null;
         try {
             // Compose repo name: projectName-className-groupName
             String repoName = managedProject.getName() + "-" + managedClasse.getNom() + "-" + group.getName();
@@ -93,8 +96,11 @@ public class GroupServiceImpl implements GroupService {
             String repoFullName = githubService.createRepositoryForUser(repoName, creatorToken);
             if (repoFullName != null && !repoFullName.isBlank()) {
                 logger.info("GitHub repository created successfully: {}", repoFullName);
+                repoCreated = true;
+                repoUrl = "https://github.com/" + repoFullName;
             } else {
                 logger.warn("GitHub repository creation returned empty repo name for group: {}", savedGroup.getName());
+                repoError = "GitHub repository creation returned empty repo name.";
             }
             for (var student : managedStudents) {
                 if (student.getGithubUsername() != null && !student.getGithubUsername().isBlank()) {
@@ -104,8 +110,12 @@ public class GroupServiceImpl implements GroupService {
             }
         } catch (Exception e) {
             logger.error("GitHub integration failed for group {}: {}", savedGroup.getName(), e.getMessage());
-            // Optionally: throw or handle gracefully
+            repoError = e.getMessage();
         }
+        // Attach repo info to group for controller (not persisted)
+        savedGroup.setRepoCreated(repoCreated); // You may need to add these fields to Group entity if you want to persist
+        savedGroup.setRepoUrl(repoUrl);
+        savedGroup.setRepoError(repoError);
         return savedGroup;
     }
 

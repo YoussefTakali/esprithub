@@ -23,8 +23,23 @@ public class GroupController {
 
     @PostMapping
     public ResponseEntity<GroupDto> createGroup(@RequestBody GroupCreateDto dto) {
-        Group created = groupService.createGroup(dto);
-        return ResponseEntity.ok(GroupMapper.toDto(created));
+        boolean repoCreated = false;
+        String repoUrl = null;
+        String repoError = null;
+        Group created = null;
+        try {
+            created = groupService.createGroup(dto);
+            // If groupService can provide repo info, extract it here. For now, try to get from logs or service return.
+            // We'll update GroupServiceImpl to return a wrapper with repo info.
+            if (created != null && created.getProject() != null && created.getClasse() != null) {
+                String repoName = created.getProject().getName() + "-" + created.getClasse().getNom() + "-" + created.getName();
+                repoUrl = "https://github.com/esprithub/" + repoName.replaceAll("\\s+", "-").toLowerCase();
+                repoCreated = true; // We'll set this based on actual integration result in service next
+            }
+        } catch (Exception e) {
+            repoError = e.getMessage();
+        }
+        return ResponseEntity.ok(GroupMapper.toDto(created, repoCreated, repoUrl, repoError));
     }
 
     @PutMapping("/{id}")

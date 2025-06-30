@@ -184,6 +184,12 @@
           <a href="{{ createdRepoUrl }}" target="_blank">{{ createdRepoUrl }}</a>
         </div>
       </div>
+      <div *ngIf="!repoCreationInProgress && !createdRepoUrl && repoCreationStep === 'none' && repoCreationStepMsg === ''">
+        <div class="repo-url-error" *ngIf="repoCreationStep === 'none' && !createdRepoUrl">
+          <mat-icon color="warn">error</mat-icon>
+          <span>Repository creation failed. Please try again.</span>
+        </div>
+      </div>
       <div class="modal-actions">
         <button class="create-btn-red" type="submit">Create</button>
         <button class="cancel-btn" type="button" (click)="closeCreateGroupModal()">Cancel</button>

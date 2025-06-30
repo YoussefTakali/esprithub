@@ -46,4 +46,11 @@ public class Group extends BaseEntity {
 
     @ManyToMany(mappedBy = "assignedToGroups")
     private List<Task> tasks;
+
+    @Transient
+    private boolean repoCreated;
+    @Transient
+    private String repoUrl;
+    @Transient
+    private String repoError;
 }
