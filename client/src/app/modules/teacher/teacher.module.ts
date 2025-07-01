@@ -9,9 +9,15 @@ import { MatSelectModule } from '@angular/material/select';
 import { MatButtonModule } from '@angular/material/button';
 import { MatProgressBarModule } from '@angular/material/progress-bar';
 import { MatIconModule } from '@angular/material/icon';
+import { MatTabsModule } from '@angular/material/tabs';
+import { MatProgressSpinnerModule } from '@angular/material/progress-spinner';
+import { MatSnackBarModule } from '@angular/material/snack-bar';
+import { MatCardModule } from '@angular/material/card';
+import { MatTooltipModule } from '@angular/material/tooltip';
 import { TeacherDashboardComponent } from './components/dashboard/dashboard.component';
 import { TeacherTasksComponent } from './components/tasks/tasks.component';
 import { TeacherProjectsComponent } from './components/projects/projects.component';
+import { RepositoriesComponent } from './components/repositories/repositories.component';
 import { CreateGroupDialogComponent } from './components/groups/create-group-dialog.component';
 import { EditTaskDialogModule } from './components/tasks/edit-task-dialog.module';
 
@@ -19,6 +25,7 @@ const routes: Routes = [
   { path: 'dashboard', component: TeacherDashboardComponent },
   { path: 'tasks', component: TeacherTasksComponent },
   { path: 'projects', component: TeacherProjectsComponent },
+  { path: 'repositories', component: RepositoriesComponent },
   { path: '', redirectTo: 'dashboard', pathMatch: 'full' },
   { path: '**', redirectTo: 'dashboard' }
 ];
@@ -28,6 +35,7 @@ const routes: Routes = [
     TeacherDashboardComponent,
     TeacherTasksComponent,
     TeacherProjectsComponent,
+    RepositoriesComponent,
     CreateGroupDialogComponent
   ],
   imports: [
@@ -42,6 +50,11 @@ const routes: Routes = [
     MatButtonModule,
     MatProgressBarModule,
     MatIconModule,
+    MatTabsModule,
+    MatProgressSpinnerModule,
+    MatSnackBarModule,
+    MatCardModule,
+    MatTooltipModule,
     EditTaskDialogModule
   ]
 })

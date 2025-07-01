@@ -21,13 +21,18 @@ public class GitHubController {
     @Value("${spring.security.oauth2.client.registration.github.client-id}")
     private String githubClientId;
 
+    @Value("${spring.security.oauth2.client.registration.github.scope}")
+    private String githubScope;
+
     private static final String GITHUB_AUTH_URL = "https://github.com/login/oauth/authorize";
     private static final String REDIRECT_URI = "http://localhost:4200/auth/github/callback";
-    private static final String SCOPE = "user:email"; // Minimal scope for security
 
     @GetMapping("/auth-url")
     public ResponseEntity<Map<String, String>> getGitHubAuthUrl() {
         log.info("Generating GitHub OAuth URL");
+        log.debug("GitHub Client ID: {}", githubClientId);
+        log.debug("GitHub Scope: {}", githubScope);
+        log.debug("Redirect URI: {}", REDIRECT_URI);
 
         // Generate a random state parameter for security
         String state = UUID.randomUUID().toString();
@@ -36,10 +41,12 @@ public class GitHubController {
         String authUrl = GITHUB_AUTH_URL +
                 "?client_id=" + githubClientId +
                 "&redirect_uri=" + URLEncoder.encode(REDIRECT_URI, StandardCharsets.UTF_8) +
-                "&scope=" + URLEncoder.encode(SCOPE, StandardCharsets.UTF_8) +
+                "&scope=" + URLEncoder.encode(githubScope, StandardCharsets.UTF_8) +
+                "&prompt=consent" +
                 "&state=" + state;
 
         log.info("Generated GitHub auth URL with state: {}", state);
+        log.debug("Full GitHub auth URL: {}", authUrl);
 
         return ResponseEntity.ok(Map.of(
                 "authUrl", authUrl,

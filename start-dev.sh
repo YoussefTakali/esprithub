@@ -49,5 +49,9 @@ read -p "Start the backend server now? (y/n): " START_BACKEND
 if [ "$START_BACKEND" = "y" ] || [ "$START_BACKEND" = "Y" ]; then
     echo "Starting Spring Boot backend..."
     cd server
+    export GITHUB_CLIENT_ID
+    export GITHUB_CLIENT_SECRET
+    export GITHUB_SCOPE
+    export GITHUB_ORG_NAME
     ./mvnw spring-boot:run
 fi

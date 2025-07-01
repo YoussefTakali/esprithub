@@ -1,5 +1,7 @@
 package tn.esprithub.server.project.service.impl;
 
+import org.springframework.security.core.Authentication;
+import org.springframework.security.core.userdetails.UserDetails;
 import org.springframework.stereotype.Service;
 import tn.esprithub.server.academic.entity.Classe;
 import tn.esprithub.server.academic.repository.ClasseRepository;
@@ -19,6 +21,7 @@ import java.util.UUID;
 import tn.esprithub.server.project.dto.GroupCreateDto;
 import tn.esprithub.server.project.dto.GroupUpdateDto;
 import tn.esprithub.server.integration.github.GithubService;
+import tn.esprithub.server.user.entity.User;
 
 @Service
 public class GroupServiceImpl implements GroupService {
@@ -63,7 +66,7 @@ public class GroupServiceImpl implements GroupService {
     }
 
     @Override
-    public Group createGroup(GroupCreateDto dto) {
+    public Group createGroup(GroupCreateDto dto, Authentication authentication) {
         logger.info("Incoming group create DTO: {}", dto);
         if (dto.getClasseId() == null) {
             throw new IllegalArgumentException("Missing or invalid 'classeId' in group payload");
@@ -74,6 +77,20 @@ public class GroupServiceImpl implements GroupService {
         if (dto.getStudentIds() == null || dto.getStudentIds().isEmpty()) {
             throw new IllegalArgumentException("Group must have at least one student");
         }
+        
+        // Get the authenticated teacher
+        String teacherEmail = getUserEmailFromAuthentication(authentication);
+        User teacher = userRepository.findByEmail(teacherEmail)
+                .orElseThrow(() -> new IllegalArgumentException("Teacher not found"));
+        
+        // Validate teacher has GitHub credentials
+        if (teacher.getGithubToken() == null || teacher.getGithubToken().isBlank()) {
+            throw new IllegalArgumentException("Teacher must have GitHub token configured to create groups");
+        }
+        if (teacher.getGithubUsername() == null || teacher.getGithubUsername().isBlank()) {
+            throw new IllegalArgumentException("Teacher must have GitHub username configured to create groups");
+        }
+        
         Classe managedClasse = classeRepository.findById(dto.getClasseId()).orElseThrow(() -> new IllegalArgumentException("Classe not found with provided id"));
         Project managedProject = projectRepository.findById(dto.getProjectId()).orElseThrow(() -> new IllegalArgumentException("Project not found with provided id"));
         var managedStudents = dto.getStudentIds().stream()
@@ -85,27 +102,55 @@ public class GroupServiceImpl implements GroupService {
         group.setProject(managedProject);
         group.setStudents(managedStudents);
         Group savedGroup = groupRepository.save(group);
+        
         // --- GITHUB INTEGRATION ---
         boolean repoCreated = false;
         String repoUrl = null;
         String repoError = null;
         try {
-            // Compose repo name: projectName-className-groupName
-            String repoName = managedProject.getName() + "-" + managedClasse.getNom() + "-" + group.getName();
-            String creatorToken = managedStudents.get(0).getGithubToken();
-            String repoFullName = githubService.createRepositoryForUser(repoName, creatorToken);
-            if (repoFullName != null && !repoFullName.isBlank()) {
-                logger.info("GitHub repository created successfully: {}", repoFullName);
-                repoCreated = true;
-                repoUrl = "https://github.com/" + repoFullName;
+            String teacherToken = teacher.getGithubToken();
+            
+            // Test the GitHub token first
+            if (!githubService.testGitHubToken(teacherToken)) {
+                repoError = "Invalid GitHub token or insufficient permissions. Please ensure your GitHub token has 'repo' scope.";
+                logger.error("GitHub token validation failed for teacher: {}", teacher.getEmail());
             } else {
-                logger.warn("GitHub repository creation returned empty repo name for group: {}", savedGroup.getName());
-                repoError = "GitHub repository creation returned empty repo name.";
-            }
-            for (var student : managedStudents) {
-                if (student.getGithubUsername() != null && !student.getGithubUsername().isBlank()) {
-                    githubService.inviteUserToRepo(repoFullName, student.getGithubUsername(), creatorToken);
-                    githubService.createBranch(repoFullName, student.getFirstName() + student.getLastName(), creatorToken);
+                // Compose repo name: projectName-className-groupName (sanitize for GitHub)
+                String repoName = (managedProject.getName() + "-" + managedClasse.getNom() + "-" + group.getName())
+                    .replaceAll("[^a-zA-Z0-9-_.]", "-")  // Replace invalid characters
+                    .replaceAll("-+", "-")  // Collapse multiple dashes
+                    .toLowerCase();
+                
+                String repoFullName = githubService.createRepositoryForUser(repoName, teacherToken);
+                if (repoFullName != null && !repoFullName.isBlank()) {
+                    logger.info("GitHub repository created successfully: {}", repoFullName);
+                    repoCreated = true;
+                    repoUrl = "https://github.com/" + repoFullName;
+                    
+                    // Invite students to the repository and create branches for them
+                    for (var student : managedStudents) {
+                        String studentIdentifier = student.getFirstName() + " " + student.getLastName() + " (" + student.getEmail() + ")";
+                        
+                        // Try to invite by GitHub username first (if available)
+                        if (student.getGithubUsername() != null && !student.getGithubUsername().isBlank()) {
+                            logger.info("Inviting student '{}' with GitHub username '{}' to repository '{}'", 
+                                       studentIdentifier, student.getGithubUsername(), repoFullName);
+                            githubService.inviteUserToRepo(repoFullName, student.getGithubUsername(), teacherToken);
+                        } else {
+                            // Fallback to email invitation
+                            logger.info("Inviting student '{}' by email '{}' to repository '{}' (no GitHub username available)", 
+                                       studentIdentifier, student.getEmail(), repoFullName);
+                            githubService.inviteUserByEmailToRepo(repoFullName, student.getEmail(), teacherToken);
+                        }
+                        
+                        // Create a branch for each student
+                        String branchName = student.getFirstName() + "-" + student.getLastName();
+                        logger.info("Creating branch '{}' for student '{}' in repository '{}'", branchName, studentIdentifier, repoFullName);
+                        githubService.createBranch(repoFullName, branchName, teacherToken);
+                    }
+                } else {
+                    logger.warn("GitHub repository creation returned empty repo name for group: {}", savedGroup.getName());
+                    repoError = "GitHub repository creation returned empty repo name.";
                 }
             }
         } catch (Exception e) {
@@ -113,10 +158,18 @@ public class GroupServiceImpl implements GroupService {
             repoError = e.getMessage();
         }
         // Attach repo info to group for controller (not persisted)
-        savedGroup.setRepoCreated(repoCreated); // You may need to add these fields to Group entity if you want to persist
+        savedGroup.setRepoCreated(repoCreated);
         savedGroup.setRepoUrl(repoUrl);
         savedGroup.setRepoError(repoError);
         return savedGroup;
+    }
+
+    private String getUserEmailFromAuthentication(Authentication authentication) {
+        if (authentication.getPrincipal() instanceof UserDetails userDetails) {
+            return userDetails.getUsername(); // In our case, username IS the email
+        } else {
+            return authentication.getName(); // Fallback
+        }
     }
 
     @Override

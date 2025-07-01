@@ -1,6 +1,7 @@
 package tn.esprithub.server.project.controller;
 
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.core.Authentication;
 import org.springframework.web.bind.annotation.*;
 import tn.esprithub.server.project.entity.Group;
 import tn.esprithub.server.project.service.GroupService;
@@ -22,23 +23,21 @@ public class GroupController {
     }
 
     @PostMapping
-    public ResponseEntity<GroupDto> createGroup(@RequestBody GroupCreateDto dto) {
-        boolean repoCreated = false;
-        String repoUrl = null;
-        String repoError = null;
+    public ResponseEntity<GroupDto> createGroup(@RequestBody GroupCreateDto dto, Authentication authentication) {
         Group created = null;
         try {
-            created = groupService.createGroup(dto);
-            // If groupService can provide repo info, extract it here. For now, try to get from logs or service return.
-            // We'll update GroupServiceImpl to return a wrapper with repo info.
-            if (created != null && created.getProject() != null && created.getClasse() != null) {
-                String repoName = created.getProject().getName() + "-" + created.getClasse().getNom() + "-" + created.getName();
-                repoUrl = "https://github.com/esprithub/" + repoName.replaceAll("\\s+", "-").toLowerCase();
-                repoCreated = true; // We'll set this based on actual integration result in service next
-            }
+            created = groupService.createGroup(dto, authentication);
         } catch (Exception e) {
-            repoError = e.getMessage();
+            // If group creation fails completely, return error
+            return ResponseEntity.ok(GroupMapper.toDto(null, false, null, e.getMessage()));
         }
+        
+        // Extract repository information from the created group
+        // The service sets these fields temporarily for the controller response
+        boolean repoCreated = created.isRepoCreated();
+        String repoUrl = created.getRepoUrl();
+        String repoError = created.getRepoError();
+        
         return ResponseEntity.ok(GroupMapper.toDto(created, repoCreated, repoUrl, repoError));
     }
 

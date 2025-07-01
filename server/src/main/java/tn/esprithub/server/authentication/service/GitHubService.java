@@ -19,6 +19,7 @@ public class GitHubService {
 
     private static final String ACCEPT_HEADER = "Accept";
     private static final String AUTHORIZATION_HEADER = "Authorization";
+    private static final String BEARER_PREFIX = "Bearer ";
     private static final String GITHUB_API_ACCEPT = "application/vnd.github.v3+json";
     private static final String JSON_ACCEPT = "application/json";
 
@@ -29,6 +30,9 @@ public class GitHubService {
         String githubClientId = gitHubProperties.getId();
         String githubClientSecret = gitHubProperties.getSecret();
         log.info("Attempting to exchange code for token with client_id: {}", githubClientId);
+        log.debug("GitHub code received: {}", request.getCode() != null ? "Present" : "Missing");
+        log.debug("GitHub state received: {}", request.getState() != null ? "Present" : "Missing");
+        
         try {
             @SuppressWarnings("unchecked")
             Map<String, Object> tokenResponse = webClient.post()
@@ -43,10 +47,25 @@ public class GitHubService {
                     .bodyToMono(Map.class)
                     .block();
 
+            log.debug("GitHub token response received: {}", tokenResponse != null ? "Success" : "Null response");
+            
             if (tokenResponse != null && tokenResponse.containsKey("access_token")) {
+                log.info("Successfully obtained GitHub access token");
+                // Check for any warnings or additional info in the response
+                if (tokenResponse.containsKey("scope")) {
+                    log.info("GitHub token granted scopes: {}", tokenResponse.get("scope"));
+                }
                 return (String) tokenResponse.get("access_token");
             } else {
-                log.error("Failed to exchange code for token: {}", tokenResponse);
+                log.error("Failed to exchange code for token. Response: {}", tokenResponse);
+                if (tokenResponse != null) {
+                    if (tokenResponse.containsKey("error")) {
+                        String error = (String) tokenResponse.get("error");
+                        String errorDescription = (String) tokenResponse.get("error_description");
+                        log.error("GitHub OAuth error: {} - {}", error, errorDescription);
+                        throw new BusinessException("GitHub authentication failed: " + error + " - " + errorDescription);
+                    }
+                }
                 throw new BusinessException("Failed to obtain GitHub access token");
             }
         } catch (Exception e) {
@@ -60,7 +79,7 @@ public class GitHubService {
             @SuppressWarnings("unchecked")
             Map<String, Object> user = webClient.get()
                     .uri("https://api.github.com/user")
-                    .header(AUTHORIZATION_HEADER, "Bearer " + accessToken)
+                    .header(AUTHORIZATION_HEADER, BEARER_PREFIX + accessToken)
                     .header(ACCEPT_HEADER, GITHUB_API_ACCEPT)
                     .retrieve()
                     .onStatus(HttpStatus.UNAUTHORIZED::equals, 
@@ -79,7 +98,7 @@ public class GitHubService {
             // Get primary email from GitHub API
             Object[] emails = webClient.get()
                     .uri("https://api.github.com/user/emails")
-                    .header(AUTHORIZATION_HEADER, "Bearer " + accessToken)
+                    .header(AUTHORIZATION_HEADER, BEARER_PREFIX + accessToken)
                     .header(ACCEPT_HEADER, GITHUB_API_ACCEPT)
                     .retrieve()
                     .onStatus(HttpStatus.UNAUTHORIZED::equals, 
@@ -126,6 +145,36 @@ public class GitHubService {
         } catch (Exception e) {
             log.warn("GitHub token validation failed", e);
             return false;
+        }
+    }
+
+    /**
+     * Check the scopes available for a GitHub token and log warnings if required scopes are missing
+     */
+    public void checkTokenScopes(String accessToken) {
+        try {
+            String scopes = webClient.get()
+                    .uri("https://api.github.com/user")
+                    .header(AUTHORIZATION_HEADER, BEARER_PREFIX + accessToken)
+                    .header(ACCEPT_HEADER, GITHUB_API_ACCEPT)
+                    .retrieve()
+                    .toEntity(String.class)
+                    .map(response -> response.getHeaders().getFirst("X-OAuth-Scopes"))
+                    .block();
+
+            log.info("GitHub token current scopes: {}", scopes != null ? scopes : "No scopes header found");
+            
+            if (scopes == null || !scopes.contains("repo")) {
+                log.warn("GitHub token is missing 'repo' scope. Repository creation may fail. Current scopes: {}", scopes);
+                log.warn("User should re-authenticate with the correct scopes to create repositories");
+            }
+            
+            if (scopes == null || !scopes.contains("user:email")) {
+                log.warn("GitHub token is missing 'user:email' scope. Email verification may be limited. Current scopes: {}", scopes);
+            }
+            
+        } catch (Exception e) {
+            log.warn("Could not check GitHub token scopes: {}", e.getMessage());
         }
     }
 }

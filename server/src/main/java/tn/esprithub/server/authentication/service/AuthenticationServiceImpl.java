@@ -26,6 +26,8 @@ import java.util.Map;
 @Transactional
 public class AuthenticationServiceImpl implements IAuthenticationService {
 
+    private static final String USER_NOT_FOUND = "User not found";
+
     private final UserRepository userRepository;
     private final AuthenticationManager authenticationManager;
     private final JwtService jwtService;
@@ -46,7 +48,7 @@ public class AuthenticationServiceImpl implements IAuthenticationService {
 
         // Fetch user from database
         User user = userRepository.findByEmail(request.getEmail())
-                .orElseThrow(() -> new UsernameNotFoundException("User not found"));
+                .orElseThrow(() -> new UsernameNotFoundException(USER_NOT_FOUND));
 
         // Update last login
         user.setLastLogin(LocalDateTime.now());
@@ -68,63 +70,98 @@ public class AuthenticationServiceImpl implements IAuthenticationService {
     @Override
     public AuthResponse linkGitHubAccount(GitHubTokenRequest request, String userEmail) {
         log.info("Linking GitHub account for user: {}", userEmail);
+        log.debug("OAuth state parameter: {}", request.getState());
+        log.debug("OAuth code parameter: {}", request.getCode() != null ? "Present" : "Missing");
 
         // Validate state parameter (CSRF protection)
         if (request.getState() == null || request.getState().trim().isEmpty()) {
+            log.error("GitHub OAuth failed: Invalid or missing state parameter for user {}", userEmail);
             throw new BusinessException("Invalid OAuth state parameter");
         }
 
         User user = userRepository.findByEmail(userEmail)
-                .orElseThrow(() -> new BusinessException("User not found"));
+                .orElseThrow(() -> {
+                    log.error("GitHub OAuth failed: User not found with email {}", userEmail);
+                    return new BusinessException(USER_NOT_FOUND);
+                });
 
-        // Exchange code for GitHub access token
-        String githubToken = gitHubService.exchangeCodeForToken(request);
+        log.info("Found user for GitHub linking: {} (ID: {})", user.getEmail(), user.getId());
 
-        // Get GitHub user information
-        Map<String, Object> githubUser = gitHubService.getGitHubUser(githubToken);
-        String githubUsername = (String) githubUser.get("login");
+        try {
+            // Exchange code for GitHub access token
+            log.info("Exchanging OAuth code for GitHub access token...");
+            String githubToken = gitHubService.exchangeCodeForToken(request);
+            log.info("Successfully obtained GitHub access token for user {}", userEmail);
 
-        // Validate GitHub username
-        if (githubUsername == null || githubUsername.trim().isEmpty()) {
-            throw new BusinessException("Invalid GitHub user information");
+            // Check token scopes and warn if repo scope is missing
+            gitHubService.checkTokenScopes(githubToken);
+
+            // Get GitHub user information
+            log.info("Fetching GitHub user information...");
+            Map<String, Object> githubUser = gitHubService.getGitHubUser(githubToken);
+            String githubUsername = (String) githubUser.get("login");
+
+            // Validate GitHub username
+            if (githubUsername == null || githubUsername.trim().isEmpty()) {
+                log.error("GitHub OAuth failed: Invalid GitHub user information for user {}", userEmail);
+                throw new BusinessException("Invalid GitHub user information");
+            }
+
+            log.info("GitHub user found: {}", githubUsername);
+
+            // Get GitHub user email and validate it matches the Esprit account (case-insensitive)
+            String githubEmail = gitHubService.getGitHubUserEmail(githubToken);
+            
+            log.info("Email comparison: Esprit='{}', GitHub='{}'", userEmail, githubEmail);
+            log.info("Case-insensitive comparison result: {}", userEmail.equalsIgnoreCase(githubEmail));
+            
+            if (!userEmail.equalsIgnoreCase(githubEmail)) {
+                log.warn("GitHub email mismatch for user {}: GitHub email {} does not match Esprit email {}", 
+                         userEmail, githubEmail, userEmail);
+                throw new BusinessException(
+                    "GitHub email (" + githubEmail + ") does not match your Esprit account email (" + userEmail + "). " +
+                    "Please ensure your GitHub account uses the same email address as your Esprit account."
+                );
+            }
+
+            // Check if GitHub account is already linked to another user
+            User existingGitHubUser = userRepository.findByGithubUsername(githubUsername).orElse(null);
+            if (existingGitHubUser != null) {
+                if (existingGitHubUser.getId().equals(user.getId())) {
+                    // Same user trying to re-link their GitHub account - allow it
+                    log.info("User {} is re-linking their existing GitHub account: {}", userEmail, githubUsername);
+                } else {
+                    // Different user already has this GitHub account linked
+                    log.error("GitHub OAuth failed: GitHub username '{}' is already linked to user '{}' (ID: {}), but user '{}' (ID: {}) is trying to link it", 
+                             githubUsername, existingGitHubUser.getEmail(), existingGitHubUser.getId(), userEmail, user.getId());
+                    throw new BusinessException("This GitHub account (" + githubUsername + ") is already linked to another user (" + existingGitHubUser.getEmail() + ")");
+                }
+            }
+
+            // Update user with GitHub information
+            user.setGithubToken(githubToken);
+            user.setGithubUsername(githubUsername);
+            userRepository.save(user);
+
+            // Generate new tokens
+            String accessToken = jwtService.generateToken(user);
+            String refreshToken = jwtService.generateRefreshToken(user);
+
+            log.info("GitHub account linked successfully for user: {} with GitHub username: {}", userEmail, githubUsername);
+
+            return AuthResponse.builder()
+                    .accessToken(accessToken)
+                    .refreshToken(refreshToken)
+                    .user(authMapper.toUserDto(user))
+                    .build();
+                    
+        } catch (BusinessException e) {
+            log.error("GitHub OAuth failed for user {}: {}", userEmail, e.getMessage());
+            throw e;
+        } catch (Exception e) {
+            log.error("Unexpected error during GitHub OAuth for user {}: {}", userEmail, e.getMessage(), e);
+            throw new BusinessException("GitHub authentication failed due to an unexpected error: " + e.getMessage());
         }
-
-        // Get GitHub user email and validate it matches the Esprit account (case-insensitive)
-        String githubEmail = gitHubService.getGitHubUserEmail(githubToken);
-        
-        log.info("Email comparison: Esprit='{}', GitHub='{}'", userEmail, githubEmail);
-        log.info("Case-insensitive comparison result: {}", userEmail.equalsIgnoreCase(githubEmail));
-        
-        if (!userEmail.equalsIgnoreCase(githubEmail)) {
-            log.warn("GitHub email mismatch for user {}: GitHub email {} does not match Esprit email {}", 
-                     userEmail, githubEmail, userEmail);
-            throw new BusinessException(
-                "GitHub email (" + githubEmail + ") does not match your Esprit account email (" + userEmail + "). " +
-                "Please ensure your GitHub account uses the same email address as your Esprit account."
-            );
-        }
-
-        // Check if GitHub account is already linked to another user
-        if (userRepository.existsByGithubUsername(githubUsername)) {
-            throw new BusinessException("This GitHub account is already linked to another user");
-        }
-
-        // Update user with GitHub information
-        user.setGithubToken(githubToken);
-        user.setGithubUsername(githubUsername);
-        userRepository.save(user);
-
-        // Generate new tokens
-        String accessToken = jwtService.generateToken(user);
-        String refreshToken = jwtService.generateRefreshToken(user);
-
-        log.info("GitHub account linked successfully for user: {} with GitHub username: {}", userEmail, githubUsername);
-
-        return AuthResponse.builder()
-                .accessToken(accessToken)
-                .refreshToken(refreshToken)
-                .user(authMapper.toUserDto(user))
-                .build();
     }
 
     @Override
@@ -136,7 +173,7 @@ public class AuthenticationServiceImpl implements IAuthenticationService {
         }
 
         User user = userRepository.findByEmail(userEmail)
-                .orElseThrow(() -> new BusinessException("User not found"));
+                .orElseThrow(() -> new BusinessException(USER_NOT_FOUND));
 
         if (!jwtService.isTokenValid(request.getRefreshToken(), user)) {
             throw new BusinessException("Invalid refresh token");
@@ -162,7 +199,7 @@ public class AuthenticationServiceImpl implements IAuthenticationService {
     @Override
     public boolean validateGitHubToken(String userEmail) {
         User user = userRepository.findByEmail(userEmail)
-                .orElseThrow(() -> new BusinessException("User not found"));
+                .orElseThrow(() -> new BusinessException(USER_NOT_FOUND));
 
         if (user.getGithubToken() == null) {
             return false;

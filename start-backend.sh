@@ -29,10 +29,14 @@ fi
 echo "📋 GitHub OAuth Configuration:"
 echo "   Client ID: ${GITHUB_CLIENT_ID:-'NOT SET'}"
 echo "   Client Secret: ${GITHUB_CLIENT_SECRET:+[HIDDEN]}"
+echo "   Scope: ${GITHUB_SCOPE:-'NOT SET'}"
+echo "   Organization: ${GITHUB_ORG_NAME:-'NOT SET'}"
 
 # Start the backend
 echo "🌱 Starting Spring Boot application..."
 cd server
 export GITHUB_CLIENT_ID
 export GITHUB_CLIENT_SECRET
+export GITHUB_SCOPE
+export GITHUB_ORG_NAME
 ./mvnw spring-boot:run
