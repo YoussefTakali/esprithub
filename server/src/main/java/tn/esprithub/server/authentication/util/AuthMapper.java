@@ -1,15 +1,27 @@
 package tn.esprithub.server.authentication.util;
 
-import org.mapstruct.Mapper;
-import org.mapstruct.Mapping;
 import org.springframework.stereotype.Component;
 import tn.esprithub.server.authentication.dto.AuthResponse;
 import tn.esprithub.server.user.entity.User;
 
-@Mapper(componentModel = "spring")
 @Component
-public interface AuthMapper {
+public class AuthMapper {
 
-    @Mapping(target = "hasGithubToken", expression = "java(user.getGithubToken() != null)")
-    AuthResponse.UserDto toUserDto(User user);
+    public AuthResponse.UserDto toUserDto(User user) {
+        if (user == null) {
+            return null;
+        }
+        
+        return AuthResponse.UserDto.builder()
+                .id(user.getId())
+                .email(user.getEmail())
+                .firstName(user.getFirstName())
+                .lastName(user.getLastName())
+                .role(user.getRole())
+                .githubUsername(user.getGithubName())
+                .githubName(user.getGithubName())
+                .hasGithubToken(user.getGithubToken() != null)
+                .lastLogin(user.getLastLogin())
+                .build();
+    }
 }

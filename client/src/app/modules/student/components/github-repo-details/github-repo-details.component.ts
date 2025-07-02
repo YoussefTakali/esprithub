@@ -8,9 +8,10 @@ import { StudentService } from '../../services/student.service';
   styleUrls: ['./github-repo-details.component.css']
 })
 export class GitHubRepoDetailsComponent implements OnInit {
-  repository: any = null; // Changed from Repository | null to any to handle enhanced data
+  repository: any = null;
   loading = true;
   error: string | null = null;
+  showCodeDropdown = false;
 
   constructor(
     private readonly route: ActivatedRoute,
@@ -57,13 +58,32 @@ export class GitHubRepoDetailsComponent implements OnInit {
     }
   }
 
+  toggleCodeDropdown(): void {
+    this.showCodeDropdown = !this.showCodeDropdown;
+  }
+
   copyToClipboard(text: string, type: string): void {
     navigator.clipboard.writeText(text).then(() => {
-      // You could show a toast notification here
       console.log(`${type} copied to clipboard`);
+      // You could show a toast notification here
     }).catch(err => {
       console.error('Failed to copy to clipboard:', err);
     });
+  }
+
+  getRelativeTime(date: Date | string): string {
+    if (!date) return 'Unknown';
+    
+    const dateObj = typeof date === 'string' ? new Date(date) : date;
+    const now = new Date();
+    const diffInMs = now.getTime() - dateObj.getTime();
+    const diffInDays = Math.floor(diffInMs / (1000 * 60 * 60 * 24));
+    
+    if (diffInDays === 0) return 'today';
+    if (diffInDays === 1) return '1 day ago';
+    if (diffInDays < 30) return `${diffInDays} days ago`;
+    if (diffInDays < 365) return `${Math.floor(diffInDays / 30)} month${Math.floor(diffInDays / 30) > 1 ? 's' : ''} ago`;
+    return `${Math.floor(diffInDays / 365)} year${Math.floor(diffInDays / 365) > 1 ? 's' : ''} ago`;
   }
 
   formatDate(date: Date | string): string {
@@ -99,5 +119,10 @@ export class GitHubRepoDetailsComponent implements OnInit {
       'Kotlin': '#f18e33'
     };
     return colors[language] || '#6c757d';
+  }
+
+  getFileIcon(type: string): string {
+    if (type === 'folder') return 'fas fa-folder';
+    return 'fas fa-file';
   }
 }

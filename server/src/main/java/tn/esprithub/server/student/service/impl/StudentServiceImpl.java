@@ -19,6 +19,9 @@ import tn.esprithub.server.student.dto.StudentProjectDto;
 import tn.esprithub.server.student.service.StudentService;
 import tn.esprithub.server.user.entity.User;
 import tn.esprithub.server.user.repository.UserRepository;
+import tn.esprithub.server.github.service.GitHubRepositoryService;
+import tn.esprithub.server.github.dto.GitHubRepositoryDetailsDto;
+import tn.esprithub.server.repository.repository.RepositoryEntityRepository;
 
 import java.time.DayOfWeek;
 import java.time.LocalDateTime;
@@ -35,6 +38,8 @@ public class StudentServiceImpl implements StudentService {
     private final UserRepository userRepository;
     private final TaskRepository taskRepository;
     private final GroupRepository groupRepository;
+    private final GitHubRepositoryService gitHubRepositoryService;
+    private final RepositoryEntityRepository repositoryEntityRepository;
 
     @Override
     public StudentDashboardDto getStudentDashboard(String studentEmail) {
@@ -127,7 +132,7 @@ public class StudentServiceImpl implements StudentService {
                         .hasRepository(group.getRepository() != null)
                         .createdAt(group.getCreatedAt())
                         .build())
-                .collect(Collectors.toList());
+                .toList();
     }
 
     @Override
@@ -177,7 +182,7 @@ public class StudentServiceImpl implements StudentService {
                         .totalTasks(project.getTasks() != null ? project.getTasks().size() : 0)
                         .createdAt(project.getCreatedAt())
                         .build())
-                .collect(Collectors.toList());
+                .toList();
     }
 
     @Override
@@ -291,39 +296,72 @@ public class StudentServiceImpl implements StudentService {
         User student = getStudentByEmail(studentEmail);
         log.info("Getting repositories for student: {} (ID: {})", studentEmail, student.getId());
         
-        // Get all groups with repositories that the student is a member of
-        List<tn.esprithub.server.project.entity.Group> studentGroups = groupRepository.findGroupsWithRepositoriesByStudentId(student.getId());
-        log.info("Found {} groups for student {}", studentGroups.size(), studentEmail);
+        // Get all groups that the student is a member of (including those without repositories)
+        List<tn.esprithub.server.project.entity.Group> allGroups = groupRepository.findGroupsByStudentId(student.getId());
+        log.info("Found {} total groups for student {}", allGroups.size(), studentEmail);
         
-        // Log each group and whether it has a repository
-        for (tn.esprithub.server.project.entity.Group group : studentGroups) {
-            log.info("Group: {} (ID: {}), Has Repository: {}", 
-                group.getName(), group.getId(), group.getRepository() != null);
-            
-            // Log the raw repository_id from the database to debug the issue
-            try {
-                // Use reflection to access the repository_id field directly if available
-                log.info("Group {} - Repository object: {}", group.getName(), group.getRepository());
-                
-                // Try to access repository ID through database query
-                log.info("Checking database for group {} repository_id...", group.getName());
-                
-            } catch (Exception e) {
-                log.error("Error checking repository for group {}: {}", group.getName(), e.getMessage());
+        // Log each group and check repository status in detail
+        for (tn.esprithub.server.project.entity.Group group : allGroups) {
+            log.info("Group: {} (ID: {})", group.getName(), group.getId());
+            log.info("  - Has Repository: {}", group.getRepository() != null);
+            log.info("  - Has Project: {}", group.getProject() != null);
+            if (group.getProject() != null) {
+                log.info("  - Project: {} (ID: {})", group.getProject().getName(), group.getProject().getId());
             }
-            
             if (group.getRepository() != null) {
-                log.info("Repository details - Name: {}, ID: {}", 
-                    group.getRepository().getName(), group.getRepository().getId());
+                log.info("  - Repository: {} (ID: {}, Full Name: {})", 
+                    group.getRepository().getName(), 
+                    group.getRepository().getId(),
+                    group.getRepository().getFullName());
+            } else {
+                log.warn("  - Group {} has no repository linked in database", group.getName());
             }
         }
         
-        List<Map<String, Object>> repositories = studentGroups.stream()
-                .filter(group -> {
-                    boolean hasRepo = group.getRepository() != null;
-                    log.info("Filtering group {} - has repository: {}", group.getName(), hasRepo);
-                    return hasRepo;
-                }) // Only groups with repositories
+        // Filter groups that have repositories
+        List<tn.esprithub.server.project.entity.Group> groupsWithRepos = allGroups.stream()
+                .filter(group -> group.getRepository() != null)
+                .toList();
+        
+        log.info("Found {} groups with repositories for student {}", groupsWithRepos.size(), studentEmail);
+        
+        if (groupsWithRepos.isEmpty()) {
+            log.warn("No groups with repositories found for student {}. " +
+                    "This means either: " +
+                    "1) The student is not in any groups with repositories, or " +
+                    "2) The repository relationship is not properly set in the database, or " +
+                    "3) The repository records are missing from the database", studentEmail);
+            
+            // Let's also check if there are any repositories in the database at all
+            log.info("Attempting to diagnose repository linking issue...");
+            
+            // Count total repositories in database
+            long totalRepos = repositoryEntityRepository.count();
+            log.info("Total repositories in database: {}", totalRepos);
+            
+            if (totalRepos > 0) {
+                // Get all repositories and log their basic info
+                List<tn.esprithub.server.repository.entity.Repository> allRepos = repositoryEntityRepository.findAll();
+                log.info("Found {} repositories in database:", allRepos.size());
+                for (tn.esprithub.server.repository.entity.Repository repo : allRepos) {
+                    log.info("  - Repository: {} (ID: {}, Full Name: {}, Owner: {})", 
+                        repo.getName(), 
+                        repo.getId(), 
+                        repo.getFullName(),
+                        repo.getOwner() != null ? repo.getOwner().getFullName() : "null");
+                }
+                
+                // Check if any of these repositories should be linked to the student's groups
+                log.info("Checking if any repositories should be linked to student's groups...");
+                for (tn.esprithub.server.project.entity.Group group : allGroups) {
+                    log.info("  - Group {} should potentially have repository with pattern matching group name", group.getName());
+                }
+            } else {
+                log.warn("No repositories found in database at all! This suggests repositories need to be created first.");
+            }
+        }
+        
+        List<Map<String, Object>> repositories = groupsWithRepos.stream()
                 .map(group -> {
                     Map<String, Object> repo = new HashMap<>();
                     repo.put("id", group.getRepository().getId());
@@ -352,70 +390,100 @@ public class StudentServiceImpl implements StudentService {
                     repo.put("canPush", true);
                     repo.put("canPull", true);
                     
+                    log.info("Mapped repository: {} for group: {}", repo.get("name"), group.getName());
                     return repo;
                 })
-                .collect(Collectors.toList()); // Use collect to get a mutable list
-        
-        // If no repositories found through direct linking, try to find repositories by name matching
-        if (repositories.isEmpty()) {
-            log.info("No directly linked repositories found, trying to find by name matching...");
-            
-            // Get all groups (without repository constraint) that the student is member of
-            List<tn.esprithub.server.project.entity.Group> allStudentGroups = groupRepository.findGroupsByStudentId(student.getId());
-            
-            for (tn.esprithub.server.project.entity.Group group : allStudentGroups) {
-                log.info("Checking group: {} for name-based repository matching", group.getName());
-                
-                // Try to find a repository that contains the group name
-                // This is a temporary workaround for the broken linking
-                Map<String, Object> mockRepo = new HashMap<>();
-                mockRepo.put("id", group.getId().toString()); // Use group ID as consistent repository ID
-                mockRepo.put("name", "Nora-Matthews-Harper-Hebert-" + group.getName());
-                mockRepo.put("fullName", "aichabnr001/Nora-Matthews-Harper-Hebert-" + group.getName());
-                mockRepo.put("description", "Repository for group project: Nora Matthews-Harper Hebert-" + group.getName());
-                mockRepo.put("url", "https://github.com/aichabnr001/Nora-Matthews-Harper-Hebert-" + group.getName());
-                mockRepo.put("cloneUrl", "https://github.com/aichabnr001/Nora-Matthews-Harper-Hebert-" + group.getName() + ".git");
-                mockRepo.put("sshUrl", "git@github.com:aichabnr001/Nora-Matthews-Harper-Hebert-" + group.getName() + ".git");
-                mockRepo.put("isPrivate", true);
-                mockRepo.put("defaultBranch", "main");
-                mockRepo.put("isActive", true);
-                mockRepo.put("createdAt", LocalDateTime.now());
-                mockRepo.put("updatedAt", LocalDateTime.now());
-                // Get the project creator (teacher) to determine the actual repository owner
-                User projectCreator = group.getProject() != null ? group.getProject().getCreatedBy() : null;
-                String ownerName = "Unknown Owner";
-                
-                if (projectCreator != null) {
-                    // Try to get GitHub name first, fall back to full name, then username
-                    if (projectCreator.getGithubName() != null && !projectCreator.getGithubName().trim().isEmpty()) {
-                        ownerName = projectCreator.getGithubName();
-                    } else if (projectCreator.getFirstName() != null && projectCreator.getLastName() != null) {
-                        ownerName = projectCreator.getFirstName() + " " + projectCreator.getLastName();
-                    } else if (projectCreator.getGithubUsername() != null && !projectCreator.getGithubUsername().trim().isEmpty()) {
-                        ownerName = projectCreator.getGithubUsername();
-                    }
-                }
-                
-                mockRepo.put("ownerName", ownerName);
-                
-                // Add group information
-                mockRepo.put("groupId", group.getId());
-                mockRepo.put("groupName", group.getName());
-                mockRepo.put("projectId", group.getProject() != null ? group.getProject().getId() : null);
-                mockRepo.put("projectName", group.getProject() != null ? group.getProject().getName() : "No Project");
-                
-                // Add access level
-                mockRepo.put("accessLevel", "MEMBER");
-                mockRepo.put("canPush", true);
-                mockRepo.put("canPull", true);
-                
-                repositories.add(mockRepo);
-                log.info("Added mock repository for group: {}", group.getName());
-            }
-        }
+                .toList();
         
         log.info("Returning {} repositories for student {}", repositories.size(), studentEmail);
+        
+        // If no repositories found through direct linking, generate mock repositories for groups
+        if (repositories.isEmpty() && !allGroups.isEmpty()) {
+            log.info("No directly linked repositories found, generating mock repositories for groups...");
+            
+            repositories = allGroups.stream()
+                    .map(group -> {
+                        Map<String, Object> mockRepo = new HashMap<>();
+                        
+                        // Use group ID as repository ID for consistency
+                        mockRepo.put("id", group.getId().toString());
+                        
+                        // Generate repository name based on group and project
+                        String repoName = generateRepositoryName(group);
+                        mockRepo.put("name", repoName);
+                        mockRepo.put("fullName", "student-repos/" + repoName);
+                        mockRepo.put("description", "Repository for group project: " + group.getName());
+                        mockRepo.put("url", "https://github.com/student-repos/" + repoName);
+                        mockRepo.put("cloneUrl", "https://github.com/student-repos/" + repoName + ".git");
+                        mockRepo.put("sshUrl", "git@github.com:student-repos/" + repoName + ".git");
+                        mockRepo.put("isPrivate", true);
+                        mockRepo.put("defaultBranch", "main");
+                        mockRepo.put("isActive", true);
+                        mockRepo.put("createdAt", group.getCreatedAt());
+                        mockRepo.put("updatedAt", LocalDateTime.now());
+                        
+                        // Determine owner name
+                        String ownerName = "Unknown Owner";
+                        if (group.getProject() != null && group.getProject().getCreatedBy() != null) {
+                            User projectCreator = group.getProject().getCreatedBy();
+                            if (projectCreator.getGithubName() != null && !projectCreator.getGithubName().trim().isEmpty()) {
+                                ownerName = projectCreator.getGithubName();
+                            } else if (projectCreator.getFullName() != null) {
+                                ownerName = projectCreator.getFullName();
+                            } else if (projectCreator.getGithubUsername() != null) {
+                                ownerName = projectCreator.getGithubUsername();
+                            }
+                        }
+                        mockRepo.put("ownerName", ownerName);
+                        
+                        // Add group information
+                        mockRepo.put("groupId", group.getId());
+                        mockRepo.put("groupName", group.getName());
+                        mockRepo.put("projectId", group.getProject() != null ? group.getProject().getId() : null);
+                        mockRepo.put("projectName", group.getProject() != null ? group.getProject().getName() : "No Project");
+                        
+                        // Add access level
+                        mockRepo.put("accessLevel", "MEMBER");
+                        mockRepo.put("canPush", true);
+                        mockRepo.put("canPull", true);
+                        
+                        log.info("Generated mock repository: {} for group: {}", repoName, group.getName());
+                        return mockRepo;
+                    })
+                    .toList();
+            
+            log.info("Generated {} mock repositories for student {}", repositories.size(), studentEmail);
+        }
+        
         return repositories;
+    }
+    
+    private String generateRepositoryName(tn.esprithub.server.project.entity.Group group) {
+        StringBuilder repoName = new StringBuilder();
+        
+        // Add project name if available
+        if (group.getProject() != null && group.getProject().getName() != null) {
+            repoName.append(group.getProject().getName().replaceAll("[^a-zA-Z0-9]", "-"));
+        } else {
+            repoName.append("project");
+        }
+        
+        repoName.append("-");
+        
+        // Add group name
+        if (group.getName() != null) {
+            repoName.append(group.getName().replaceAll("[^a-zA-Z0-9]", "-"));
+        } else {
+            repoName.append("group");
+        }
+        
+        // Clean up the name
+        String cleanName = repoName.toString()
+                .toLowerCase()
+                .replaceAll("-+", "-")
+                .replaceAll("^-|-$", "");
+        
+        return cleanName.isEmpty() ? "repository-" + group.getId().toString().substring(0, 8) : cleanName;
     }
 
     @Override
@@ -425,86 +493,179 @@ public class StudentServiceImpl implements StudentService {
         
         // First, check if the student has access to this repository
         List<Map<String, Object>> accessibleRepos = getAccessibleRepositories(studentEmail);
-        log.info("Found {} accessible repositories for student {}", accessibleRepos.size(), studentEmail);
-        
-        // Log all repository IDs for debugging
-        for (Map<String, Object> repo : accessibleRepos) {
-            log.info("Available repository ID: {}, name: {}", repo.get("id"), repo.get("name"));
-        }
         
         Map<String, Object> repository = accessibleRepos.stream()
                 .filter(repo -> repositoryId.equals(repo.get("id")))
                 .findFirst()
-                .orElseGet(() -> {
-                    log.warn("Repository with ID {} not found in accessible repositories for student {}. Attempting to find by group ID.", repositoryId, studentEmail);
-                    
-                    // Try to find a group with this ID and create a mock repository
-                    List<tn.esprithub.server.project.entity.Group> allGroups = groupRepository.findGroupsByStudentId(student.getId());
-                    for (tn.esprithub.server.project.entity.Group group : allGroups) {
-                        if (repositoryId.equals(group.getId().toString())) {
-                            log.info("Found matching group {} for repository ID {}", group.getName(), repositoryId);
-                            
-                            Map<String, Object> mockRepo = new HashMap<>();
-                            mockRepo.put("id", group.getId().toString());
-                            mockRepo.put("name", "Nora-Matthews-Harper-Hebert-" + group.getName());
-                            mockRepo.put("fullName", "aichabnr001/Nora-Matthews-Harper-Hebert-" + group.getName());
-                            mockRepo.put("description", "Repository for group project: " + group.getName());
-                            mockRepo.put("url", "https://github.com/aichabnr001/Nora-Matthews-Harper-Hebert-" + group.getName());
-                            mockRepo.put("cloneUrl", "https://github.com/aichabnr001/Nora-Matthews-Harper-Hebert-" + group.getName() + ".git");
-                            mockRepo.put("sshUrl", "git@github.com:aichabnr001/Nora-Matthews-Harper-Hebert-" + group.getName() + ".git");
-                            mockRepo.put("isPrivate", true);
-                            mockRepo.put("defaultBranch", "main");
-                            mockRepo.put("isActive", true);
-                            mockRepo.put("createdAt", LocalDateTime.now());
-                            mockRepo.put("updatedAt", LocalDateTime.now());
-                            
-                            // Add group and project information
-                            mockRepo.put("groupId", group.getId());
-                            mockRepo.put("groupName", group.getName());
-                            mockRepo.put("projectId", group.getProject() != null ? group.getProject().getId() : null);
-                            mockRepo.put("projectName", group.getProject() != null ? group.getProject().getName() : "No Project");
-                            mockRepo.put("accessLevel", "MEMBER");
-                            mockRepo.put("canPush", true);
-                            mockRepo.put("canPull", true);
-                            
-                            return mockRepo;
-                        }
-                    }
-                    
-                    log.error("Repository with ID {} not found for student {}", repositoryId, studentEmail);
-                    throw new BusinessException("Repository not found or access denied");
-                });
+                .orElseThrow(() -> new BusinessException("Repository not found or access denied"));
         
         // Get the group associated with this repository
         List<tn.esprithub.server.project.entity.Group> studentGroups = groupRepository.findGroupsByStudentId(student.getId());
-        log.info("Found {} groups for student {}", studentGroups.size(), studentEmail);
         
         tn.esprithub.server.project.entity.Group group = studentGroups.stream()
-                .filter(g -> {
-                    boolean matches = repositoryId.equals(g.getId().toString()) || 
-                                    (repository.get("name") != null && repository.get("name").toString().contains(g.getName()));
-                    log.info("Checking group {} (ID: {}), matches: {}", g.getName(), g.getId(), matches);
-                    return matches;
-                })
+                .filter(g -> repositoryId.equals(g.getId().toString()) || 
+                           (g.getRepository() != null && repositoryId.equals(g.getRepository().getId().toString())))
                 .findFirst()
                 .orElse(null);
         
-        log.info("Selected group: {}", group != null ? group.getName() : "none");
+        // Extract owner and repo name from the repository URL or name
+        String repoFullName = (String) repository.get("fullName");
+        if (repoFullName == null || !repoFullName.contains("/")) {
+            log.error("Invalid repository full name: {}", repoFullName);
+            throw new BusinessException("Invalid repository format");
+        }
         
-        // Build enhanced repository details
-        Map<String, Object> details = new HashMap<>(repository);
+        String[] parts = repoFullName.split("/");
+        String owner = parts[0];
+        String repoName = parts[1];
         
-        if (group != null && group.getProject() != null && group.getProject().getCreatedBy() != null) {
-            User projectCreator = group.getProject().getCreatedBy();
+        log.info("Attempting to fetch GitHub data for repository: {}/{}", owner, repoName);
+        
+        // Try to get real GitHub data first
+        GitHubRepositoryDetailsDto githubData = null;
+        boolean isRealGitHubRepo = false;
+        
+        try {
+            githubData = gitHubRepositoryService.getRepositoryDetails(owner, repoName, student);
+            isRealGitHubRepo = true;
+            log.info("Successfully fetched real GitHub data for: {}/{}", owner, repoName);
+        } catch (Exception e) {
+            log.info("Repository {}/{} not found on GitHub (likely a mock repository): {}", owner, repoName, e.getMessage());
+            // githubData remains null, continue with mock data generation
+        }
+        
+        final GitHubRepositoryDetailsDto finalGithubData = githubData;
+        
+        // Build repository details
+        Map<String, Object> details = new HashMap<>();
+        
+        if (isRealGitHubRepo && finalGithubData != null) {
+            // Use real GitHub data
+            details.put("id", repository.get("id")); // Keep our internal ID
+            details.put("name", finalGithubData.getName());
+            details.put("fullName", finalGithubData.getFullName());
+            details.put("description", finalGithubData.getDescription());
+            details.put("url", finalGithubData.getHtmlUrl());
+            details.put("cloneUrl", finalGithubData.getCloneUrl());
+            details.put("sshUrl", finalGithubData.getSshUrl());
+            details.put("isPrivate", finalGithubData.getIsPrivate());
+            details.put("defaultBranch", finalGithubData.getDefaultBranch());
+            details.put("createdAt", finalGithubData.getCreatedAt());
+            details.put("updatedAt", finalGithubData.getUpdatedAt());
+            details.put("isActive", true);
             
-            // Enhanced owner information
-            Map<String, Object> ownerInfo = new HashMap<>();
-            ownerInfo.put("login", projectCreator.getGithubUsername());
-            ownerInfo.put("name", projectCreator.getGithubName() != null ? projectCreator.getGithubName() : projectCreator.getFullName());
-            ownerInfo.put("email", projectCreator.getEmail());
-            ownerInfo.put("fullName", projectCreator.getFullName());
-            ownerInfo.put("avatarUrl", "https://github.com/" + projectCreator.getGithubUsername() + ".png");
-            details.put("owner", ownerInfo);
+            // Owner information from GitHub
+            if (finalGithubData.getOwner() != null) {
+                Map<String, Object> ownerInfo = new HashMap<>();
+                ownerInfo.put("login", finalGithubData.getOwner().getLogin());
+                ownerInfo.put("name", finalGithubData.getOwner().getName());
+                ownerInfo.put("avatarUrl", finalGithubData.getOwner().getAvatarUrl());
+                ownerInfo.put("type", finalGithubData.getOwner().getType());
+                ownerInfo.put("htmlUrl", finalGithubData.getOwner().getHtmlUrl());
+                details.put("owner", ownerInfo);
+            }
+            
+            // Real repository statistics from GitHub
+            Map<String, Object> stats = new HashMap<>();
+            stats.put("stars", finalGithubData.getStargazersCount());
+            stats.put("forks", finalGithubData.getForksCount());
+            stats.put("watchers", finalGithubData.getWatchersCount());
+            stats.put("issues", finalGithubData.getOpenIssuesCount());
+            stats.put("commits", finalGithubData.getRecentCommits() != null ? finalGithubData.getRecentCommits().size() : 0);
+            stats.put("branches", finalGithubData.getBranches() != null ? finalGithubData.getBranches().size() : 0);
+            stats.put("contributors", finalGithubData.getContributors() != null ? finalGithubData.getContributors().size() : 0);
+            details.put("stats", stats);
+            
+            // Real recent activity from GitHub commits
+            if (finalGithubData.getRecentCommits() != null && !finalGithubData.getRecentCommits().isEmpty()) {
+                List<Map<String, Object>> recentActivity = finalGithubData.getRecentCommits().stream()
+                        .limit(10)
+                        .map(commit -> {
+                            Map<String, Object> activity = new HashMap<>();
+                            activity.put("type", "commit");
+                            activity.put("message", commit.getMessage());
+                            activity.put("author", commit.getAuthorName());
+                            activity.put("date", commit.getDate());
+                            activity.put("sha", commit.getSha());
+                            activity.put("url", commit.getHtmlUrl());
+                            return activity;
+                        })
+                        .toList();
+                details.put("recentActivity", recentActivity);
+            }
+            
+            // Real branches information from GitHub
+            if (finalGithubData.getBranches() != null) {
+                List<Map<String, Object>> branches = finalGithubData.getBranches().stream()
+                        .map(branch -> {
+                            Map<String, Object> branchInfo = new HashMap<>();
+                            branchInfo.put("name", branch.getName());
+                            branchInfo.put("sha", branch.getSha());
+                            branchInfo.put("isDefault", branch.getName().equals(finalGithubData.getDefaultBranch()));
+                            branchInfo.put("isProtected", branch.getIsProtected());
+                            if (branch.getLastCommit() != null) {
+                                branchInfo.put("lastCommit", branch.getLastCommit().getMessage());
+                            }
+                            return branchInfo;
+                        })
+                        .toList();
+                details.put("branches", branches);
+            }
+            
+            // Real languages from GitHub
+            if (finalGithubData.getLanguages() != null && !finalGithubData.getLanguages().isEmpty()) {
+                int totalBytes = finalGithubData.getLanguages().values().stream().mapToInt(Integer::intValue).sum();
+                Map<String, Object> languages = new HashMap<>();
+                finalGithubData.getLanguages().forEach((lang, bytes) -> {
+                    double percentage = totalBytes > 0 ? (double) bytes / totalBytes * 100 : 0;
+                    languages.put(lang, Math.round(percentage * 100.0) / 100.0);
+                });
+                details.put("languages", languages);
+            }
+            
+            // Contributors from GitHub
+            if (finalGithubData.getContributors() != null) {
+                List<Map<String, Object>> contributors = finalGithubData.getContributors().stream()
+                        .map(contributor -> {
+                            Map<String, Object> contributorInfo = new HashMap<>();
+                            contributorInfo.put("login", contributor.getLogin());
+                            contributorInfo.put("name", contributor.getName());
+                            contributorInfo.put("avatarUrl", contributor.getAvatarUrl());
+                            contributorInfo.put("contributions", contributor.getContributions());
+                            contributorInfo.put("htmlUrl", contributor.getHtmlUrl());
+                            return contributorInfo;
+                        })
+                        .toList();
+                details.put("contributors", contributors);
+            }
+            
+        } else {
+            // Generate mock repository details
+            details = createMockRepositoryDetails(repository, group);
+        }
+        
+        // Add group and project context (local data)
+        if (group != null) {
+            details.put("groupId", group.getId());
+            details.put("groupName", group.getName());
+            details.put("accessLevel", "MEMBER");
+            details.put("canPush", true);
+            details.put("canPull", true);
+            
+            if (group.getProject() != null) {
+                details.put("projectId", group.getProject().getId());
+                details.put("projectName", group.getProject().getName());
+                
+                Map<String, Object> projectInfo = new HashMap<>();
+                projectInfo.put("id", group.getProject().getId());
+                projectInfo.put("name", group.getProject().getName());
+                projectInfo.put("description", group.getProject().getDescription());
+                if (group.getProject().getCreatedBy() != null) {
+                    projectInfo.put("createdBy", group.getProject().getCreatedBy().getFullName());
+                }
+                projectInfo.put("createdAt", group.getProject().getCreatedAt());
+                details.put("project", projectInfo);
+            }
             
             // Group members information
             List<Map<String, Object>> members = group.getStudents().stream()
@@ -519,54 +680,112 @@ public class StudentServiceImpl implements StudentService {
                     })
                     .toList();
             details.put("groupMembers", members);
-            
-            // Project information
-            Map<String, Object> projectInfo = new HashMap<>();
-            projectInfo.put("id", group.getProject().getId());
-            projectInfo.put("name", group.getProject().getName());
-            projectInfo.put("description", group.getProject().getDescription());
-            projectInfo.put("createdBy", projectCreator.getFullName());
-            projectInfo.put("createdAt", group.getProject().getCreatedAt());
-            details.put("project", projectInfo);
         }
         
-        // Additional repository statistics (mock for now)
-        Map<String, Object> stats = new HashMap<>();
-        stats.put("commits", 15);
-        stats.put("branches", 3);
-        stats.put("contributors", group != null ? group.getStudents().size() + 1 : 1);
-        stats.put("issues", 2);
-        stats.put("pullRequests", 1);
-        details.put("stats", stats);
-        
-        // Recent activity (mock)
-        List<Map<String, Object>> recentActivity = List.of(
-                Map.of("type", "commit", "message", "Initial project setup", "author", details.get("ownerName"), "date", LocalDateTime.now().minusDays(2)),
-                Map.of("type", "commit", "message", "Add README.md", "author", details.get("ownerName"), "date", LocalDateTime.now().minusDays(1))
-        );
-        details.put("recentActivity", recentActivity);
-        
-        // Branches information (mock)
-        List<Map<String, Object>> branches = List.of(
-                Map.of("name", "main", "isDefault", true, "lastCommit", "Initial commit"),
-                Map.of("name", "develop", "isDefault", false, "lastCommit", "Add new features"),
-                Map.of("name", "feature/auth", "isDefault", false, "lastCommit", "Implement authentication")
-        );
-        details.put("branches", branches);
-        
-        // Languages used (mock)
-        Map<String, Object> languages = Map.of(
-                "Java", 65,
-                "JavaScript", 20,
-                "HTML", 10,
-                "CSS", 5
-        );
-        details.put("languages", languages);
-        
-        log.info("Retrieved detailed repository information for repository: {}", repositoryId);
+        log.info("Successfully retrieved {} repository details for: {}/{}", 
+                isRealGitHubRepo ? "real" : "mock", owner, repoName);
         return details;
     }
-
+    
+    private Map<String, Object> createMockRepositoryDetails(Map<String, Object> repository, tn.esprithub.server.project.entity.Group group) {
+        log.info("Creating mock repository details for: {}", repository.get("name"));
+        
+        Map<String, Object> details = new HashMap<>();
+        
+        // Copy basic repository information
+        details.put("id", repository.get("id"));
+        details.put("name", repository.get("name"));
+        details.put("fullName", repository.get("fullName"));
+        details.put("description", repository.get("description"));
+        details.put("url", repository.get("url"));
+        details.put("cloneUrl", repository.get("cloneUrl"));
+        details.put("sshUrl", repository.get("sshUrl"));
+        details.put("isPrivate", repository.get("isPrivate"));
+        details.put("defaultBranch", repository.get("defaultBranch"));
+        details.put("createdAt", repository.get("createdAt"));
+        details.put("updatedAt", repository.get("updatedAt"));
+        details.put("isActive", repository.get("isActive"));
+        
+        // Create mock owner information
+        Map<String, Object> ownerInfo = new HashMap<>();
+        String ownerName = (String) repository.get("ownerName");
+        ownerInfo.put("login", ownerName != null ? ownerName.toLowerCase().replaceAll("\\s+", "") : "student-owner");
+        ownerInfo.put("name", ownerName != null ? ownerName : "Student Owner");
+        ownerInfo.put("avatarUrl", "https://github.com/identicons/" + (ownerName != null ? ownerName.toLowerCase().replaceAll("\\s+", "") : "student") + ".png");
+        ownerInfo.put("type", "User");
+        ownerInfo.put("htmlUrl", "https://github.com/" + (ownerName != null ? ownerName.toLowerCase().replaceAll("\\s+", "") : "student-owner"));
+        details.put("owner", ownerInfo);
+        
+        // Create mock repository statistics
+        Map<String, Object> stats = new HashMap<>();
+        stats.put("stars", 0);
+        stats.put("forks", 0);
+        stats.put("watchers", 1);
+        stats.put("issues", 0);
+        stats.put("commits", 5);
+        stats.put("branches", 1);
+        stats.put("contributors", group != null ? group.getStudents().size() : 1);
+        details.put("stats", stats);
+        
+        // Create mock recent activity
+        List<Map<String, Object>> recentActivity = new ArrayList<>();
+        Map<String, Object> activity = new HashMap<>();
+        activity.put("type", "commit");
+        activity.put("message", "Initial commit");
+        activity.put("author", "Team Lead");
+        activity.put("date", LocalDateTime.now().minusDays(1));
+        activity.put("sha", "abc123def456");
+        activity.put("url", repository.get("url") + "/commit/abc123def456");
+        recentActivity.add(activity);
+        details.put("recentActivity", recentActivity);
+        
+        // Create mock branches
+        List<Map<String, Object>> branches = new ArrayList<>();
+        Map<String, Object> mainBranch = new HashMap<>();
+        mainBranch.put("name", "main");
+        mainBranch.put("sha", "abc123def456");
+        mainBranch.put("isDefault", true);
+        mainBranch.put("isProtected", false);
+        mainBranch.put("lastCommit", "Initial commit");
+        branches.add(mainBranch);
+        details.put("branches", branches);
+        
+        // Create mock languages based on common student project languages
+        Map<String, Object> languages = new HashMap<>();
+        languages.put("Java", 60.5);
+        languages.put("JavaScript", 20.2);
+        languages.put("HTML", 12.8);
+        languages.put("CSS", 6.5);
+        details.put("languages", languages);
+        
+        // Create mock contributors from group members
+        List<Map<String, Object>> contributors = new ArrayList<>();
+        if (group != null && group.getStudents() != null) {
+            for (User member : group.getStudents()) {
+                Map<String, Object> contributorInfo = new HashMap<>();
+                String username = member.getGithubUsername() != null ? member.getGithubUsername() : member.getEmail().split("@")[0];
+                contributorInfo.put("login", username);
+                contributorInfo.put("name", member.getFullName());
+                contributorInfo.put("avatarUrl", "https://github.com/identicons/" + username + ".png");
+                contributorInfo.put("contributions", 5);
+                contributorInfo.put("htmlUrl", "https://github.com/" + username);
+                contributors.add(contributorInfo);
+            }
+        } else {
+            // Add a default contributor if no group members
+            Map<String, Object> contributorInfo = new HashMap<>();
+            contributorInfo.put("login", "student");
+            contributorInfo.put("name", "Student");
+            contributorInfo.put("avatarUrl", "https://github.com/identicons/student.png");
+            contributorInfo.put("contributions", 5);
+            contributorInfo.put("htmlUrl", "https://github.com/student");
+            contributors.add(contributorInfo);
+        }
+        details.put("contributors", contributors);
+        
+        log.info("Successfully created mock repository details for: {}", repository.get("name"));
+        return details;
+    }
     @Override
     public Map<String, Object> getAcademicProgress(String studentEmail) {
         User student = getStudentByEmail(studentEmail);
@@ -814,24 +1033,48 @@ public class StudentServiceImpl implements StudentService {
         return groupRepository.findGroupsByStudentId(student.getId()).size();
     }
 
-    private int getTotalProjectsCount(User student) { 
-        return 3; // Mock data
+    private int getTotalProjectsCount(User student) {
+        // Count all unique projects the student is involved in
+        List<tn.esprithub.server.project.entity.Group> studentGroups = groupRepository.findGroupsByStudentId(student.getId());
+        return (int) studentGroups.stream()
+                .filter(group -> group.getProject() != null)
+                .map(tn.esprithub.server.project.entity.Group::getProject)
+                .distinct()
+                .count();
+    }
+
+    private int getActiveProjectsCount(User student) {
+        // Count projects that are not yet completed (before deadline)
+        List<tn.esprithub.server.project.entity.Group> studentGroups = groupRepository.findGroupsByStudentId(student.getId());
+        return (int) studentGroups.stream()
+                .filter(group -> group.getProject() != null)
+                .map(tn.esprithub.server.project.entity.Group::getProject)
+                .distinct()
+                .filter(project -> project.getDeadline() == null || project.getDeadline().isAfter(LocalDateTime.now()))
+                .count();
     }
     
-    private int getActiveProjectsCount(User student) { 
-        return 2; // Mock data
+    private int getCompletedProjectsCount(User student) {
+        // Count projects that have passed their deadline
+        List<tn.esprithub.server.project.entity.Group> studentGroups = groupRepository.findGroupsByStudentId(student.getId());
+        return (int) studentGroups.stream()
+                .filter(group -> group.getProject() != null)
+                .map(tn.esprithub.server.project.entity.Group::getProject)
+                .distinct()
+                .filter(project -> project.getDeadline() != null && project.getDeadline().isBefore(LocalDateTime.now()))
+                .count();
     }
     
-    private int getCompletedProjectsCount(User student) { 
-        return 1; // Mock data
-    }
+    private static final int UNREAD_NOTIFICATIONS = 0;
+    private static final int SUBMISSIONS_THIS_MONTH = 0;
+    private static final String CURRENT_SEMESTER = "Fall 2024-2025";
     
     private int getUnreadNotificationsCount(User student) { 
-        return 0; 
+        return UNREAD_NOTIFICATIONS; 
     }
     
     private int getSubmissionsThisMonth(User student) { 
-        return 0; 
+        return SUBMISSIONS_THIS_MONTH; 
     }
     
     private double calculateCompletionRate(User student) {
@@ -843,7 +1086,7 @@ public class StudentServiceImpl implements StudentService {
     }
     
     private String getCurrentSemester() {
-        return "Fall 2024-2025";
+        return CURRENT_SEMESTER;
     }
 
     private List<StudentDashboardDto.RecentActivityDto> getRecentActivitiesForDashboard(User student) {
