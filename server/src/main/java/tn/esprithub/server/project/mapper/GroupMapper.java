@@ -16,6 +16,13 @@ public class GroupMapper {
         dto.setRepoCreated(Boolean.TRUE.equals(repoCreated));
         dto.setRepoUrl(repoUrl);
         dto.setRepoError(repoError);
+        
+        // Add repository information
+        if (group.getRepository() != null) {
+            dto.setRepositoryId(group.getRepository().getId());
+            dto.setRepositoryFullName(group.getRepository().getFullName());
+        }
+        
         return dto;
     }
 

@@ -101,31 +101,6 @@
       </li>
 
       <!-- Specialties -->
-      <li class="s-link" (click)="navigateToSpecialties()" 
-          [class.active]="router.url.includes('/specialties')">
-        <div class="s-icon-container">
-          <i class="fas fa-graduation-cap s-icon"></i>
-        </div>
-        <div class="s-link-text">Specialities</div>
-      </li>
-
-      <!-- Levels (only when not on /specialties) -->
-      <li class="s-link" *ngIf="showLevels && !isRootPath()" (click)="navigateToLevels()"
-          [class.active]="router.url.includes('/levels')">
-        <div class="s-icon-container">
-          <i class="fas fa-layer-group s-icon"></i>
-        </div>
-        <div class="s-link-text">Levels</div>
-      </li>
-
-      <!-- Classes (only when not on /levels or /specialties) -->
-      <li class="s-link" *ngIf="showClasses && !isRootPath()" (click)="navigateToClasses()" 
-          [class.active]="router.url.includes('/classes') || router.url.includes('/students')">
-        <div class="s-icon-container">
-          <i class="fas fa-users s-icon"></i>
-        </div>
-        <div class="s-link-text">Classes</div>
-      </li>
 
       <!-- Projects (teacher) -->
       <li class="s-link" [routerLink]="'/teacher/projects'" routerLinkActive="active">

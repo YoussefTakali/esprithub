@@ -13,13 +13,13 @@ import tn.esprithub.server.repository.dto.FileUploadDto;
 import tn.esprithub.server.repository.dto.RepositoryDto;
 import tn.esprithub.server.repository.dto.RepositoryStatsDto;
 import tn.esprithub.server.repository.service.RepositoryService;
+import tn.esprithub.server.repository.repository.RepositoryEntityRepository;
 import tn.esprithub.server.user.entity.User;
 import tn.esprithub.server.user.repository.UserRepository;
 
 import java.time.LocalDateTime;
 import java.time.ZonedDateTime;
 import java.util.*;
-import java.util.stream.Collectors;
 
 @Service
 @RequiredArgsConstructor
@@ -27,7 +27,10 @@ import java.util.stream.Collectors;
 public class RepositoryServiceImpl implements RepositoryService {
 
     private static final String GITHUB_API_BASE = "https://api.github.com";
+    private static final String REPOS_PATH = "/repos/";
+    private static final String PERMISSIONS_KEY = "permissions";
     private final UserRepository userRepository;
+    private final RepositoryEntityRepository repositoryEntityRepository;
     private final GithubService githubService;
     private final RestTemplate restTemplate = new RestTemplate();
     private final ObjectMapper objectMapper = new ObjectMapper();
@@ -397,5 +400,242 @@ public class RepositoryServiceImpl implements RepositoryService {
             log.warn("Failed to fetch collaborator count: {}", e.getMessage());
         }
         return 0;
+    }
+    
+    @Override
+    public void createBranch(String repoFullName, String branchName, String fromBranch, String teacherEmail) {
+        User teacher = getTeacherWithGitHubToken(teacherEmail);
+        
+        try {
+            // First, get the SHA of the source branch
+            String getBranchUrl = GITHUB_API_BASE + "/repos/" + repoFullName + "/git/ref/heads/" + fromBranch;
+            HttpHeaders headers = createHeaders(teacher.getGithubToken());
+            HttpEntity<String> getEntity = new HttpEntity<>(headers);
+            
+            ResponseEntity<String> getBranchResponse = restTemplate.exchange(getBranchUrl, HttpMethod.GET, getEntity, String.class);
+            JsonNode branchData = objectMapper.readTree(getBranchResponse.getBody());
+            String sha = branchData.get("object").get("sha").asText();
+            
+            // Create the new branch
+            String createBranchUrl = GITHUB_API_BASE + "/repos/" + repoFullName + "/git/refs";
+            Map<String, Object> createBranchData = Map.of(
+                "ref", "refs/heads/" + branchName,
+                "sha", sha
+            );
+            
+            HttpEntity<Map<String, Object>> createEntity = new HttpEntity<>(createBranchData, headers);
+            ResponseEntity<String> createResponse = restTemplate.exchange(createBranchUrl, HttpMethod.POST, createEntity, String.class);
+            
+            if (!createResponse.getStatusCode().is2xxSuccessful()) {
+                throw new BusinessException("Failed to create branch on GitHub");
+            }
+            
+            log.info("Successfully created branch {} from {} in repository {}", branchName, fromBranch, repoFullName);
+            
+        } catch (Exception e) {
+            log.error("Error creating branch {} in repository {}: {}", branchName, repoFullName, e.getMessage());
+            throw new BusinessException("Failed to create branch: " + e.getMessage());
+        }
+    }
+    
+    @Override
+    public void deleteBranch(String repoFullName, String branchName, String teacherEmail) {
+        User teacher = getTeacherWithGitHubToken(teacherEmail);
+        
+        try {
+            String url = GITHUB_API_BASE + "/repos/" + repoFullName + "/git/refs/heads/" + branchName;
+            HttpHeaders headers = createHeaders(teacher.getGithubToken());
+            HttpEntity<String> entity = new HttpEntity<>(headers);
+            
+            ResponseEntity<String> response = restTemplate.exchange(url, HttpMethod.DELETE, entity, String.class);
+            
+            if (!response.getStatusCode().is2xxSuccessful()) {
+                throw new BusinessException("Failed to delete branch on GitHub");
+            }
+            
+            log.info("Successfully deleted branch {} from repository {}", branchName, repoFullName);
+            
+        } catch (Exception e) {
+            log.error("Error deleting branch {} from repository {}: {}", branchName, repoFullName, e.getMessage());
+            throw new BusinessException("Failed to delete branch: " + e.getMessage());
+        }
+    }
+    
+    @Override
+    public List<Map<String, Object>> getCollaborators(String repoFullName, String teacherEmail) {
+        User teacher = getTeacherWithGitHubToken(teacherEmail);
+        
+        try {
+            String url = GITHUB_API_BASE + "/repos/" + repoFullName + "/collaborators";
+            HttpHeaders headers = createHeaders(teacher.getGithubToken());
+            HttpEntity<String> entity = new HttpEntity<>(headers);
+            
+            ResponseEntity<String> response = restTemplate.exchange(url, HttpMethod.GET, entity, String.class);
+            
+            if (response.getStatusCode().is2xxSuccessful()) {
+                JsonNode collaborators = objectMapper.readTree(response.getBody());
+                List<Map<String, Object>> collaboratorList = new ArrayList<>();
+                
+                for (JsonNode collaborator : collaborators) {
+                    Map<String, Object> collabData = Map.of(
+                        "username", collaborator.get("login").asText(),
+                        "avatar_url", collaborator.get("avatar_url").asText(),
+                        "type", collaborator.get("type").asText(),
+                        "permissions", collaborator.has("permissions") ? collaborator.get("permissions") : Map.of()
+                    );
+                    collaboratorList.add(collabData);
+                }
+                
+                return collaboratorList;
+            } else {
+                throw new BusinessException("Failed to fetch collaborators from GitHub");
+            }
+            
+        } catch (Exception e) {
+            log.error("Error fetching collaborators for repository {}: {}", repoFullName, e.getMessage());
+            throw new BusinessException("Failed to fetch collaborators: " + e.getMessage());
+        }
+    }
+    
+    @Override
+    public void addCollaborator(String repoFullName, String username, String permission, String teacherEmail) {
+        User teacher = getTeacherWithGitHubToken(teacherEmail);
+        
+        try {
+            String url = GITHUB_API_BASE + "/repos/" + repoFullName + "/collaborators/" + username;
+            HttpHeaders headers = createHeaders(teacher.getGithubToken());
+            Map<String, Object> requestData = Map.of("permission", permission);
+            HttpEntity<Map<String, Object>> entity = new HttpEntity<>(requestData, headers);
+            
+            ResponseEntity<String> response = restTemplate.exchange(url, HttpMethod.PUT, entity, String.class);
+            
+            if (!response.getStatusCode().is2xxSuccessful()) {
+                throw new BusinessException("Failed to add collaborator on GitHub");
+            }
+            
+            log.info("Successfully added collaborator {} to repository {}", username, repoFullName);
+            
+        } catch (Exception e) {
+            log.error("Error adding collaborator {} to repository {}: {}", username, repoFullName, e.getMessage());
+            throw new BusinessException("Failed to add collaborator: " + e.getMessage());
+        }
+    }
+    
+    @Override
+    public void removeCollaborator(String repoFullName, String username, String teacherEmail) {
+        User teacher = getTeacherWithGitHubToken(teacherEmail);
+        
+        try {
+            String url = GITHUB_API_BASE + "/repos/" + repoFullName + "/collaborators/" + username;
+            HttpHeaders headers = createHeaders(teacher.getGithubToken());
+            HttpEntity<String> entity = new HttpEntity<>(headers);
+            
+            ResponseEntity<String> response = restTemplate.exchange(url, HttpMethod.DELETE, entity, String.class);
+            
+            if (!response.getStatusCode().is2xxSuccessful()) {
+                throw new BusinessException("Failed to remove collaborator from GitHub");
+            }
+            
+            log.info("Successfully removed collaborator {} from repository {}", username, repoFullName);
+            
+        } catch (Exception e) {
+            log.error("Error removing collaborator {} from repository {}: {}", username, repoFullName, e.getMessage());
+            throw new BusinessException("Failed to remove collaborator: " + e.getMessage());
+        }
+    }
+    
+    @Override
+    public void updateRepository(String repoFullName, Map<String, Object> settings, String teacherEmail) {
+        User teacher = getTeacherWithGitHubToken(teacherEmail);
+        
+        try {
+            String url = GITHUB_API_BASE + "/repos/" + repoFullName;
+            HttpHeaders headers = createHeaders(teacher.getGithubToken());
+            HttpEntity<Map<String, Object>> entity = new HttpEntity<>(settings, headers);
+            
+            ResponseEntity<String> response = restTemplate.exchange(url, HttpMethod.PATCH, entity, String.class);
+            
+            if (!response.getStatusCode().is2xxSuccessful()) {
+                throw new BusinessException("Failed to update repository on GitHub");
+            }
+            
+            log.info("Successfully updated repository {} settings", repoFullName);
+            
+        } catch (Exception e) {
+            log.error("Error updating repository {}: {}", repoFullName, e.getMessage());
+            throw new BusinessException("Failed to update repository: " + e.getMessage());
+        }
+    }
+    
+    @Override
+    public void deleteRepository(String repoFullName, String teacherEmail) {
+        User teacher = getTeacherWithGitHubToken(teacherEmail);
+        
+        try {
+            // First, delete from GitHub
+            String url = GITHUB_API_BASE + "/repos/" + repoFullName;
+            HttpHeaders headers = createHeaders(teacher.getGithubToken());
+            HttpEntity<String> entity = new HttpEntity<>(headers);
+            
+            ResponseEntity<String> response = restTemplate.exchange(url, HttpMethod.DELETE, entity, String.class);
+            
+            if (!response.getStatusCode().is2xxSuccessful()) {
+                throw new BusinessException("Failed to delete repository on GitHub");
+            }
+            
+            // Then, remove from local database if it exists
+            Optional<tn.esprithub.server.repository.entity.Repository> existingRepo = 
+                repositoryEntityRepository.findByFullName(repoFullName);
+            
+            if (existingRepo.isPresent()) {
+                repositoryEntityRepository.delete(existingRepo.get());
+                log.info("Successfully deleted repository {} from database", repoFullName);
+            } else {
+                log.info("Repository {} was not found in local database, only deleted from GitHub", repoFullName);
+            }
+            
+            log.info("Successfully deleted repository {}", repoFullName);
+            
+        } catch (Exception e) {
+            log.error("Error deleting repository {}: {}", repoFullName, e.getMessage());
+            throw new BusinessException("Failed to delete repository: " + e.getMessage());
+        }
+    }
+
+    @Override
+    public List<Map<String, Object>> getCommits(String repoFullName, String branch, int page, String teacherEmail) {
+        User teacher = getTeacherWithGitHubToken(teacherEmail);
+        
+        try {
+            String url = GITHUB_API_BASE + "/repos/" + repoFullName + "/commits?sha=" + branch + "&per_page=30&page=" + page;
+            HttpHeaders headers = createHeaders(teacher.getGithubToken());
+            HttpEntity<String> entity = new HttpEntity<>(headers);
+            
+            ResponseEntity<String> response = restTemplate.exchange(url, HttpMethod.GET, entity, String.class);
+            
+            if (response.getStatusCode().is2xxSuccessful()) {
+                JsonNode commits = objectMapper.readTree(response.getBody());
+                List<Map<String, Object>> commitList = new ArrayList<>();
+                
+                for (JsonNode commit : commits) {
+                    Map<String, Object> commitData = Map.of(
+                        "sha", commit.get("sha").asText(),
+                        "message", commit.get("commit").get("message").asText(),
+                        "author", commit.get("commit").get("author").get("name").asText(),
+                        "date", commit.get("commit").get("author").get("date").asText(),
+                        "url", commit.get("html_url").asText()
+                    );
+                    commitList.add(commitData);
+                }
+                
+                return commitList;
+            } else {
+                throw new BusinessException("Failed to fetch commits from GitHub");
+            }
+            
+        } catch (Exception e) {
+            log.error("Error fetching commits for repository {}: {}", repoFullName, e.getMessage());
+            throw new BusinessException("Failed to fetch commits: " + e.getMessage());
+        }
     }
 }

@@ -1,378 +1,53 @@
-<div class="repositories-container">
-  <!-- Loading Spinner -->
-  <div *ngIf="loading" class="loading-spinner">
-    <mat-spinner></mat-spinner>
-    <p>Loading...</p>
+<div class="repositories-page">
+  <div class="repositories-header">
+    <h1 class="repositories-title">Your Repositories</h1>
+    <button class="add-repo-btn" mat-raised-button color="primary" (click)="addRepository()">
+      <mat-icon>add</mat-icon> New Repository
+    </button>
   </div>
-
-  <!-- Repository List Sidebar -->
-  <div class="sidebar" [class.hidden]="loading">
-    <div class="sidebar-header">
-      <h2>
-        <i class="fab fa-github"></i>
-        My Repositories
-      </h2>
-      <button mat-icon-button (click)="loadRepositories()" class="refresh-btn" matTooltip="Refresh repositories">
-        <mat-icon>refresh</mat-icon>
+  <div class="repositories-search">
+    <mat-form-field appearance="outline">
+      <mat-label>Search repositories</mat-label>
+      <input matInput placeholder="Type to search..." [(ngModel)]="searchTerm">
+      <button mat-icon-button matSuffix *ngIf="searchTerm" (click)="searchTerm = ''">
+        <mat-icon>close</mat-icon>
       </button>
-    </div>
-
-    <div class="repository-list" *ngIf="repositories.length > 0">
-      <button 
-        *ngFor="let repo of repositories" 
-        class="repository-item"
-        [class.selected]="selectedRepository?.fullName === repo.fullName"
-        (click)="selectRepository(repo)"
-        [attr.aria-label]="'Select repository ' + repo.name">
-        
-        <div class="repo-header">
-          <div class="repo-name">
-            <i class="fas fa-lock" *ngIf="repo.isPrivate" title="Private repository"></i>
-            <i class="fas fa-unlock" *ngIf="!repo.isPrivate" title="Public repository"></i>
-            {{ repo.name }}
-          </div>
-          <div class="repo-language" 
-               *ngIf="repo.language"
-               [style.background-color]="getLanguageColor(repo.language)">
-            {{ repo.language }}
-          </div>
-        </div>
-
-        <div class="repo-description" *ngIf="repo.description">
-          {{ repo.description }}
-        </div>
-
-        <div class="repo-stats">
-          <span class="stat">
-            <i class="fas fa-star" title="Stars"></i>
-            {{ repo.starCount }}
-          </span>
-          <span class="stat">
-            <i class="fas fa-code-branch" title="Forks"></i>
-            {{ repo.forkCount }}
-          </span>
-          <span class="stat">
-            <i class="fas fa-hdd" title="Repository size"></i>
-            {{ formatBytes(repo.size * 1024) }}
-          </span>
-        </div>
-
-        <div class="repo-updated">
-          Updated {{ formatDate(repo.updatedAt) }}
-        </div>
-      </button>
-    </div>
-
-    <div class="no-repositories" *ngIf="repositories.length === 0 && !loading">
-      <i class="fab fa-github"></i>
-      <h3>No repositories found</h3>
-      <p class="hint">Make sure your GitHub account is properly connected</p>
-      <div class="debug-info">
-        <p><strong>Troubleshooting tips:</strong></p>
-        <ul>
-          <li>Check that your GitHub token is valid and has the required permissions</li>
-          <li>Ensure you have at least one repository in your GitHub account</li>
-          <li>Try refreshing the page or reconnecting your GitHub account</li>
-        </ul>
-      </div>
-    </div>
+    </mat-form-field>
   </div>
-
-  <!-- Main Content -->
-  <div class="main-content" [class.hidden]="loading">
-    <div *ngIf="!selectedRepository" class="no-selection">
-      <i class="fab fa-github"></i>
-      <h3>Select a Repository</h3>
-      <p>Choose a repository from the sidebar to view details and manage files</p>
-    </div>
-
-    <div *ngIf="selectedRepository" class="repository-details">
-      <!-- Repository Header -->
-      <div class="repo-header-main">
-        <div class="repo-title">
-          <h2>
-            <i class="fas fa-lock" *ngIf="selectedRepository.isPrivate" title="Private repository"></i>
-            <i class="fas fa-unlock" *ngIf="!selectedRepository.isPrivate" title="Public repository"></i>
-            {{ selectedRepository.fullName }}
-          </h2>
-          <div class="repo-actions">
-            <button mat-raised-button color="primary" (click)="openRepository()" matTooltip="Open repository on GitHub">
-              <mat-icon>open_in_new</mat-icon>
-              View on GitHub
-            </button>
-          </div>
-        </div>
-
-        <div class="repo-meta">
-          <div class="meta-item" *ngIf="selectedRepository.description">
-            <strong>Description:</strong> {{ selectedRepository.description }}
-          </div>
-          <div class="meta-item">
-            <strong>Default Branch:</strong> {{ selectedRepository.defaultBranch }}
-          </div>
-          <div class="meta-item">
-            <strong>Clone URL:</strong> 
-            <code class="clone-url">{{ selectedRepository.cloneUrl }}</code>
-            <button mat-icon-button (click)="copyToClipboard(selectedRepository.cloneUrl)" matTooltip="Copy clone URL">
-              <mat-icon>content_copy</mat-icon>
-            </button>
-          </div>
-        </div>
+  <div *ngIf="loading" class="loading-state">
+    <mat-spinner diameter="40"></mat-spinner>
+    <p>Loading repositories...</p>
+  </div>
+  <div *ngIf="!loading && (repositories?.length || 0) === 0" class="empty-state">
+    <mat-icon>folder_open</mat-icon>
+    <h2>No repositories found</h2>
+    <p>Connect your GitHub account or create a new repository to get started.</p>
+  </div>
+  <div class="repositories-grid" *ngIf="!loading && (filteredRepositories?.length || 0) > 0">
+    <div class="repo-card" *ngFor="let repo of filteredRepositories">
+      <div class="repo-header">
+        <span class="repo-name">{{ repo.name }}</span>
+        <span class="repo-visibility" [class.private]="repo.isPrivate">
+          <mat-icon>{{ repo.isPrivate ? 'lock' : 'public' }}</mat-icon>
+          {{ repo.isPrivate ? 'Private' : 'Public' }}
+        </span>
       </div>
-
-      <!-- Tabs -->
-      <mat-tab-group [(selectedIndex)]="activeTabIndex" (selectedTabChange)="onTabChange($event)">
-        <!-- Overview Tab -->
-        <mat-tab label="Overview">
-          <div class="tab-content">
-            <div class="overview-grid">
-              <div class="overview-card">
-                <h4>Repository Info</h4>
-                <div class="info-grid">
-                  <div class="info-item">
-                    <span class="label">Created:</span>
-                    <span class="value">{{ formatDate(selectedRepository.createdAt) }}</span>
-                  </div>
-                  <div class="info-item">
-                    <span class="label">Last Updated:</span>
-                    <span class="value">{{ formatDate(selectedRepository.updatedAt) }}</span>
-                  </div>
-                  <div class="info-item">
-                    <span class="label">Size:</span>
-                    <span class="value">{{ formatBytes(selectedRepository.size * 1024) }}</span>
-                  </div>
-                  <div class="info-item">
-                    <span class="label">Language:</span>
-                    <span class="value" *ngIf="selectedRepository.language">{{ selectedRepository.language }}</span>
-                    <span class="value" *ngIf="!selectedRepository.language">Not specified</span>
-                  </div>
-                </div>
-              </div>
-
-              <div class="overview-card">
-                <h4>Quick Stats</h4>
-                <div class="stats-grid">
-                  <div class="stat-item">
-                    <i class="fas fa-star" title="Stars"></i>
-                    <span class="stat-value">{{ selectedRepository.starCount }}</span>
-                    <span class="stat-label">Stars</span>
-                  </div>
-                  <div class="stat-item">
-                    <i class="fas fa-code-branch" title="Forks"></i>
-                    <span class="stat-value">{{ selectedRepository.forkCount }}</span>
-                    <span class="stat-label">Forks</span>
-                  </div>
-                  <div class="stat-item">
-                    <i class="fas fa-exclamation-circle" title="Issues"></i>
-                    <span class="stat-value">-</span>
-                    <span class="stat-label">Issues</span>
-                  </div>
-                </div>
-              </div>
-            </div>
-
-            <div class="cli-commands">
-              <h4>CLI Commands</h4>
-              <div class="command-group">
-                <div class="command-item">
-                  <strong>Clone repository:</strong>
-                  <code>git clone {{ selectedRepository.cloneUrl }}</code>
-                </div>
-                <div class="command-item">
-                  <strong>Add remote origin:</strong>
-                  <code>git remote add origin {{ selectedRepository.cloneUrl }}</code>
-                </div>
-                <div class="command-item">
-                  <strong>Push to repository:</strong>
-                  <code>git push -u origin {{ selectedRepository.defaultBranch }}</code>
-                </div>
-              </div>
-            </div>
-          </div>
-        </mat-tab>
-
-        <!-- Files Tab -->
-        <mat-tab label="Files">
-          <div class="tab-content">
-            <div class="files-header">
-              <mat-form-field appearance="outline">
-                <mat-label>Branch</mat-label>
-                <mat-select [(value)]="selectedBranch" (selectionChange)="onBranchChange()">
-                  <mat-option *ngFor="let branch of repositoryBranches" [value]="branch">
-                    {{ branch }}
-                  </mat-option>
-                </mat-select>
-              </mat-form-field>
-              
-              <button mat-raised-button color="primary" (click)="loadRepositoryFiles()" matTooltip="Refresh files list">
-                <mat-icon>refresh</mat-icon>
-                Refresh Files
-              </button>
-            </div>
-
-            <div class="files-list" *ngIf="repositoryFiles.length > 0">
-              <div *ngFor="let file of repositoryFiles" class="file-item">
-                <div class="file-info">
-                  <i class="fas fa-file-alt" *ngIf="!file.includes('(dir)')" title="File"></i>
-                  <i class="fas fa-folder" *ngIf="file.includes('(dir)')" title="Directory"></i>
-                  <span class="file-name">{{ file }}</span>
-                </div>
-                <div class="file-actions" *ngIf="!file.includes('(dir)')">
-                  <button mat-icon-button color="warn" (click)="deleteFile(file)" matTooltip="Delete file">
-                    <mat-icon>delete</mat-icon>
-                  </button>
-                </div>
-              </div>
-            </div>
-
-            <div class="no-files" *ngIf="repositoryFiles.length === 0 && !loading">
-              <i class="fas fa-folder-open"></i>
-              <p>No files found in branch '{{ selectedBranch }}'</p>
-              <p class="hint">This branch might be empty or you may not have access to view its contents</p>
-              <div class="debug-info">
-                <p><strong>Try:</strong></p>
-                <ul>
-                  <li>Switching to a different branch ({{ selectedRepository?.defaultBranch }})</li>
-                  <li>Uploading files to this branch</li>
-                  <li>Checking repository permissions on GitHub</li>
-                </ul>
-              </div>
-            </div>
-          </div>
-        </mat-tab>
-
-        <!-- Upload Tab -->
-        <mat-tab label="Upload Files">
-          <div class="tab-content">
-            <div class="upload-section">
-              <div class="upload-config">
-                <mat-form-field appearance="outline">
-                  <mat-label>Target Branch</mat-label>
-                  <mat-select [(value)]="selectedBranch">
-                    <mat-option *ngFor="let branch of repositoryBranches" [value]="branch">
-                      {{ branch }}
-                    </mat-option>
-                  </mat-select>
-                </mat-form-field>
-
-                <mat-form-field appearance="outline">
-                  <mat-label>Upload Path (optional)</mat-label>
-                  <input matInput [(ngModel)]="uploadPath" placeholder="e.g., src/main/java">
-                  <mat-hint>Leave empty to upload to root directory</mat-hint>
-                </mat-form-field>
-
-                <mat-form-field appearance="outline">
-                  <mat-label>Commit Message</mat-label>
-                  <input matInput [(ngModel)]="commitMessage" placeholder="Add new files" required>
-                </mat-form-field>
-              </div>
-
-              <div class="file-upload-area"
-                   [class.drag-over]="dragOver"
-                   (dragover)="onDragOver($event)"
-                   (dragleave)="onDragLeave($event)"
-                   (drop)="onDrop($event)">
-                
-                <div class="upload-content">
-                  <i class="fas fa-cloud-upload-alt"></i>
-                  <h4>Drag & Drop Files Here</h4>
-                  <p>or</p>
-                  <input type="file" #fileInput multiple (change)="onFileSelect($event)" style="display: none">
-                  <button mat-raised-button color="primary" (click)="fileInput.click()" matTooltip="Select files to upload">
-                    <mat-icon>attach_file</mat-icon>
-                    Choose Files
-                  </button>
-                </div>
-
-                <div class="selected-files" *ngIf="selectedFiles && selectedFiles.length > 0">
-                  <h5><i class="fas fa-list"></i> Selected Files:</h5>
-                  <div *ngFor="let file of getSelectedFilesArray()" class="selected-file">
-                    <i class="fas fa-file-alt"></i>
-                    <span>{{ file.name }}</span>
-                    <span class="file-size">({{ formatBytes(file.size) }})</span>
-                  </div>
-                </div>
-              </div>
-
-              <div class="upload-actions">
-                <button mat-raised-button 
-                        color="primary" 
-                        (click)="uploadFiles()"
-                        [disabled]="!selectedFiles || selectedFiles.length === 0 || !commitMessage.trim()"
-                        matTooltip="Upload selected files to repository">
-                  <mat-icon>cloud_upload</mat-icon>
-                  Upload Files
-                </button>
-                
-                <button mat-button (click)="selectedFiles = null; commitMessage = ''; uploadPath = ''" matTooltip="Clear selection">
-                  <mat-icon>clear</mat-icon>
-                  Clear
-                </button>
-              </div>
-            </div>
-          </div>
-        </mat-tab>
-
-        <!-- Statistics Tab -->
-        <mat-tab label="Statistics">
-          <div class="tab-content">
-            <div *ngIf="!repositoryStats" class="stats-loading">
-              <button mat-raised-button color="primary" (click)="loadRepositoryStats()" matTooltip="Load repository statistics">
-                <mat-icon>analytics</mat-icon>
-                Load Statistics
-              </button>
-            </div>
-
-            <div *ngIf="repositoryStats" class="stats-content">
-              <div class="stats-overview">
-                <div class="stat-card">
-                  <h4>{{ repositoryStats.totalCommits }}</h4>
-                  <p>Total Commits</p>
-                </div>
-                <div class="stat-card">
-                  <h4>{{ repositoryStats.totalBranches }}</h4>
-                  <p>Branches</p>
-                </div>
-                <div class="stat-card">
-                  <h4>{{ repositoryStats.totalCollaborators }}</h4>
-                  <p>Collaborators</p>
-                </div>
-                <div class="stat-card">
-                  <h4>{{ formatBytes(repositoryStats.totalSize) }}</h4>
-                  <p>Repository Size</p>
-                </div>
-              </div>
-
-              <div class="language-stats" *ngIf="repositoryStats.languageStats && getObjectKeys(repositoryStats.languageStats).length > 0">
-                <h4><i class="fas fa-code"></i> Language Breakdown</h4>
-                <div class="language-list">
-                  <div *ngFor="let lang of getObjectKeys(repositoryStats.languageStats)" class="language-item">
-                    <div class="language-color" [style.background-color]="getLanguageColor(lang)"></div>
-                    <span class="language-name">{{ lang }}</span>
-                    <span class="language-bytes">{{ formatBytes(repositoryStats.languageStats[lang]) }}</span>
-                  </div>
-                </div>
-              </div>
-
-              <div class="recent-commits" *ngIf="repositoryStats.recentCommits && repositoryStats.recentCommits.length > 0">
-                <h4><i class="fas fa-history"></i> Recent Commits</h4>
-                <div class="commits-list">
-                  <div *ngFor="let commit of repositoryStats.recentCommits" class="commit-item">
-                    <div class="commit-message">{{ commit.message }}</div>
-                    <div class="commit-meta">
-                      <span class="commit-author"><i class="fas fa-user"></i> {{ commit.author }}</span>
-                      <span class="commit-date"><i class="fas fa-calendar"></i> {{ formatDate(commit.date) }}</span>
-                      <a [href]="commit.url" target="_blank" class="commit-link" matTooltip="View commit on GitHub">
-                        <mat-icon>open_in_new</mat-icon>
-                      </a>
-                    </div>
-                  </div>
-                </div>
-              </div>
-            </div>
-          </div>
-        </mat-tab>
-      </mat-tab-group>
+      <div class="repo-description">{{ repo.description || 'No description' }}</div>
+      <div class="repo-meta">
+        <span class="repo-language" *ngIf="repo.language">
+          <span class="lang-dot" [style.backgroundColor]="getLanguageColor(repo.language)"></span>
+          {{ repo.language }}
+        </span>
+        <span class="repo-size">{{ (repo.size || 0) | number }} KB</span>
+      </div>
+      <div class="repo-actions">
+        <button mat-stroked-button color="primary" (click)="navigateToRepository(repo)">
+          <mat-icon>folder</mat-icon> View
+        </button>
+        <a [href]="repo.url" target="_blank" mat-icon-button matTooltip="Open on GitHub">
+          <mat-icon>open_in_new</mat-icon>
+        </a>
+      </div>
     </div>
   </div>
 </div>

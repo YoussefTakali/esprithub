@@ -13,6 +13,7 @@ public interface GroupService {
     Group createGroup(GroupCreateDto dto, Authentication authentication);
     Group updateGroup(UUID id, GroupUpdateDto dto);
     void deleteGroup(UUID id);
+    void deleteGroup(UUID id, boolean deleteRepository);
     Group getGroupById(UUID id);
     List<Group> getAllGroups();
     List<Group> getGroupsByProjectId(UUID projectId);

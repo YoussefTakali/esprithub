@@ -22,6 +22,7 @@ import tn.esprithub.server.project.dto.GroupCreateDto;
 import tn.esprithub.server.project.dto.GroupUpdateDto;
 import tn.esprithub.server.integration.github.GithubService;
 import tn.esprithub.server.user.entity.User;
+import tn.esprithub.server.repository.service.RepositoryEntityService;
 
 @Service
 public class GroupServiceImpl implements GroupService {
@@ -31,13 +32,15 @@ public class GroupServiceImpl implements GroupService {
     private final ProjectRepository projectRepository;
     private final UserRepository userRepository;
     private final GithubService githubService;
+    private final RepositoryEntityService repositoryEntityService;
 
-    public GroupServiceImpl(GroupRepository groupRepository, ClasseRepository classeRepository, ProjectRepository projectRepository, UserRepository userRepository, GithubService githubService) {
+    public GroupServiceImpl(GroupRepository groupRepository, ClasseRepository classeRepository, ProjectRepository projectRepository, UserRepository userRepository, GithubService githubService, RepositoryEntityService repositoryEntityService) {
         this.groupRepository = groupRepository;
         this.classeRepository = classeRepository;
         this.projectRepository = projectRepository;
         this.userRepository = userRepository;
         this.githubService = githubService;
+        this.repositoryEntityService = repositoryEntityService;
     }
 
     @Override
@@ -107,51 +110,48 @@ public class GroupServiceImpl implements GroupService {
         boolean repoCreated = false;
         String repoUrl = null;
         String repoError = null;
+        tn.esprithub.server.repository.entity.Repository repository = null;
+        
         try {
+            // Compose repo name: projectName-className-groupName
+            String repoName = managedProject.getName() + "-" + managedClasse.getNom() + "-" + group.getName();
             String teacherToken = teacher.getGithubToken();
-            
-            // Test the GitHub token first
-            if (!githubService.testGitHubToken(teacherToken)) {
-                repoError = "Invalid GitHub token or insufficient permissions. Please ensure your GitHub token has 'repo' scope.";
-                logger.error("GitHub token validation failed for teacher: {}", teacher.getEmail());
-            } else {
-                // Compose repo name: projectName-className-groupName (sanitize for GitHub)
-                String repoName = (managedProject.getName() + "-" + managedClasse.getNom() + "-" + group.getName())
-                    .replaceAll("[^a-zA-Z0-9-_.]", "-")  // Replace invalid characters
-                    .replaceAll("-+", "-")  // Collapse multiple dashes
-                    .toLowerCase();
+            String repoFullName = githubService.createRepositoryForUser(repoName, teacherToken);
+            if (repoFullName != null && !repoFullName.isBlank()) {
+                logger.info("GitHub repository created successfully: {}", repoFullName);
+                repoCreated = true;
+                repoUrl = "https://github.com/" + repoFullName;
                 
-                String repoFullName = githubService.createRepositoryForUser(repoName, teacherToken);
-                if (repoFullName != null && !repoFullName.isBlank()) {
-                    logger.info("GitHub repository created successfully: {}", repoFullName);
-                    repoCreated = true;
-                    repoUrl = "https://github.com/" + repoFullName;
-                    
-                    // Invite students to the repository and create branches for them
-                    for (var student : managedStudents) {
-                        String studentIdentifier = student.getFirstName() + " " + student.getLastName() + " (" + student.getEmail() + ")";
-                        
-                        // Try to invite by GitHub username first (if available)
-                        if (student.getGithubUsername() != null && !student.getGithubUsername().isBlank()) {
-                            logger.info("Inviting student '{}' with GitHub username '{}' to repository '{}'", 
-                                       studentIdentifier, student.getGithubUsername(), repoFullName);
-                            githubService.inviteUserToRepo(repoFullName, student.getGithubUsername(), teacherToken);
-                        } else {
-                            // Fallback to email invitation
-                            logger.info("Inviting student '{}' by email '{}' to repository '{}' (no GitHub username available)", 
-                                       studentIdentifier, student.getEmail(), repoFullName);
-                            githubService.inviteUserByEmailToRepo(repoFullName, student.getEmail(), teacherToken);
-                        }
-                        
-                        // Create a branch for each student
-                        String branchName = student.getFirstName() + "-" + student.getLastName();
-                        logger.info("Creating branch '{}' for student '{}' in repository '{}'", branchName, studentIdentifier, repoFullName);
-                        githubService.createBranch(repoFullName, branchName, teacherToken);
+                // Create repository entity in database
+                repository = tn.esprithub.server.repository.entity.Repository.builder()
+                        .name(repoName)
+                        .fullName(repoFullName)
+                        .description("Repository for group project: " + repoName)
+                        .url(repoUrl)
+                        .isPrivate(true)
+                        .defaultBranch("main")
+                        .cloneUrl("https://github.com/" + repoFullName + ".git")
+                        .sshUrl("git@github.com:" + repoFullName + ".git")
+                        .owner(teacher)
+                        .isActive(true)
+                        .build();
+                
+                repository = repositoryEntityService.createRepository(repository);
+                
+                // Associate repository with group
+                savedGroup.setRepository(repository);
+                savedGroup = groupRepository.save(savedGroup);
+                
+                // Invite students to the repository and create branches for them
+                for (var student : managedStudents) {
+                    if (student.getGithubUsername() != null && !student.getGithubUsername().isBlank()) {
+                        githubService.inviteUserToRepo(repoFullName, student.getGithubUsername(), teacherToken);
+                        githubService.createBranch(repoFullName, student.getFirstName() + student.getLastName(), teacherToken);
                     }
-                } else {
-                    logger.warn("GitHub repository creation returned empty repo name for group: {}", savedGroup.getName());
-                    repoError = "GitHub repository creation returned empty repo name.";
                 }
+            } else {
+                logger.warn("GitHub repository creation returned empty repo name for group: {}", savedGroup.getName());
+                repoError = "GitHub repository creation returned empty repo name.";
             }
         } catch (Exception e) {
             logger.error("GitHub integration failed for group {}: {}", savedGroup.getName(), e.getMessage());
@@ -199,7 +199,37 @@ public class GroupServiceImpl implements GroupService {
 
     @Override
     public void deleteGroup(UUID id) {
+        deleteGroup(id, false);
+    }
+
+    @Override
+    public void deleteGroup(UUID id, boolean deleteRepository) {
+        logger.info("Deleting group with ID: {}, deleteRepository: {}", id, deleteRepository);
+        
+        // First, find the group with its repository
+        Group group = groupRepository.findById(id)
+                .orElseThrow(() -> new IllegalArgumentException("Group not found with ID: " + id));
+        
+        tn.esprithub.server.repository.entity.Repository repository = group.getRepository();
+        
+        // Delete the group first
         groupRepository.deleteById(id);
+        
+        // If repository exists and deleteRepository is true, delete it
+        if (repository != null && deleteRepository) {
+            try {
+                repositoryEntityService.deleteRepository(repository.getId(), true);
+                logger.info("Repository deleted successfully for group: {}", group.getName());
+            } catch (Exception e) {
+                logger.error("Failed to delete repository for group {}: {}", group.getName(), e.getMessage());
+                // Don't throw exception here as group is already deleted
+            }
+        } else if (repository != null) {
+            // Just unlink the repository from the group (repository remains orphaned)
+            logger.info("Repository kept but unlinked from group: {}", group.getName());
+        }
+        
+        logger.info("Group deleted successfully: {}", group.getName());
     }
 
     @Override

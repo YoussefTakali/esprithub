@@ -10,6 +10,7 @@ import { MatButtonModule } from '@angular/material/button';
 import { MatProgressBarModule } from '@angular/material/progress-bar';
 import { MatIconModule } from '@angular/material/icon';
 import { MatTabsModule } from '@angular/material/tabs';
+import { MatRadioModule } from '@angular/material/radio';
 import { MatProgressSpinnerModule } from '@angular/material/progress-spinner';
 import { MatSnackBarModule } from '@angular/material/snack-bar';
 import { MatCardModule } from '@angular/material/card';
@@ -18,6 +19,7 @@ import { TeacherDashboardComponent } from './components/dashboard/dashboard.comp
 import { TeacherTasksComponent } from './components/tasks/tasks.component';
 import { TeacherProjectsComponent } from './components/projects/projects.component';
 import { RepositoriesComponent } from './components/repositories/repositories.component';
+import { RepositoryDetailComponent } from './components/repository-detail/repository-detail.component';
 import { CreateGroupDialogComponent } from './components/groups/create-group-dialog.component';
 import { EditTaskDialogModule } from './components/tasks/edit-task-dialog.module';
 
@@ -26,6 +28,7 @@ const routes: Routes = [
   { path: 'tasks', component: TeacherTasksComponent },
   { path: 'projects', component: TeacherProjectsComponent },
   { path: 'repositories', component: RepositoriesComponent },
+  { path: 'repositories/:owner/:name', component: RepositoryDetailComponent },
   { path: '', redirectTo: 'dashboard', pathMatch: 'full' },
   { path: '**', redirectTo: 'dashboard' }
 ];
@@ -36,6 +39,7 @@ const routes: Routes = [
     TeacherTasksComponent,
     TeacherProjectsComponent,
     RepositoriesComponent,
+    RepositoryDetailComponent,
     CreateGroupDialogComponent
   ],
   imports: [
@@ -55,6 +59,7 @@ const routes: Routes = [
     MatSnackBarModule,
     MatCardModule,
     MatTooltipModule,
+    MatRadioModule,
     EditTaskDialogModule
   ]
 })

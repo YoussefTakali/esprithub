@@ -7,4 +7,6 @@ export interface Group {
   repoCreated?: boolean;
   repoUrl?: string;
   repoError?: string;
+  repositoryId?: string;
+  repositoryFullName?: string;
 }

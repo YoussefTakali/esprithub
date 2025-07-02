@@ -1,0 +1,326 @@
+<div class="repo-header">
+  <!-- Return Button -->
+  <button class="return-button" (click)="goBack()" title="Back to Repository List">
+    <i class="fas fa-arrow-left"></i>
+    Back
+  </button>
+  
+  <!-- Test Button for Snackbar -->
+  <button class="test-button" (click)="testSnackbar()" title="Test Snackbar" style="background: #007bff; color: white; padding: 8px 14px; border: none; border-radius: 6px; margin-left: 10px; cursor: pointer;">
+    Test Snackbar
+  </button>
+  <div class="repo-tabs">
+    <a 
+      class="tab-link"
+      [class.active]="activeTab === 'code'"
+      (click)="switchTab('code')">
+      <i class="fas fa-code"></i>
+      Code
+    </a>
+    <a 
+      class="tab-link"
+      [class.active]="activeTab === 'settings'"
+      (click)="switchTab('settings')">
+      <i class="fas fa-cog"></i>
+      Settings
+    </a>
+  </div>
+</div>
+
+<!-- Settings Layout -->
+<div class="settings-layout" *ngIf="activeTab === 'settings'">
+  <!-- Sidebar -->
+  <aside class="settings-sidebar">
+    <ul>
+      <li><button type="button" [class.active]="settingsTab === 'general'" (click)="setSettingsTab('general')">General</button></li>
+      <li><button type="button" [class.active]="settingsTab === 'collaborators'" (click)="setSettingsTab('collaborators')">Collaborators</button></li>
+      <li><button type="button" [class.active]="settingsTab === 'branches'" (click)="setSettingsTab('branches')">Branches</button></li>
+      <li><button type="button" [class.active]="settingsTab === 'commits'" (click)="setSettingsTab('commits')">Commits</button></li>
+      <li><button type="button" [class.active]="settingsTab === 'delete'" (click)="setSettingsTab('delete')">Delete</button></li>
+    </ul>
+  </aside>
+
+  <!-- Main Content -->
+  <section class="settings-content">
+    <!-- General Tab -->
+    <div *ngIf="settingsTab === 'general'" class="general-settings-block">
+      <h2>General Settings</h2>
+      <div class="repo-form">
+        <div class="owner-repo-row">
+          <div class="owner-box">
+            <span class="username">{{ repoOwner }}</span>
+          </div>
+          <span class="slash">/</span>
+          <input
+            class="repo-name-input"
+            [(ngModel)]="repoName"
+            placeholder="Repository name"
+            readonly
+          />
+        </div>
+        <div class="helper-text">Great repository names are short and memorable.</div>
+        
+        <input
+          class="desc-input"
+          [(ngModel)]="repositoryDescription"
+          placeholder="Description (optional)"
+        />
+        
+        <div class="settings-actions">
+          <button class="save-btn" (click)="updateRepositorySettings()">Save changes</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- Collaborators Tab -->
+    <div *ngIf="settingsTab === 'collaborators'">
+      <h2>Collaborators</h2>
+      <div class="collaborators-content">
+        <div class="collaborators-header">
+          <h3>Manage access</h3>
+          <button class="add-collaborator-btn" (click)="showAddCollab = !showAddCollab">
+            <i class="fas fa-user-plus"></i>
+            Add collaborator
+          </button>
+        </div>
+
+        <div *ngIf="showAddCollab" class="add-collab-form">
+          <div class="user-search-container">
+            <input
+              type="text"
+              [(ngModel)]="collaborator"
+              (input)="onCollaboratorInputChange()"
+              (blur)="hideUserSuggestions()"
+              placeholder="Search by username, full name or email"
+              class="collab-input"
+            />
+            <div class="user-suggestions" *ngIf="showUserSuggestions && userSuggestions.length > 0">
+              <div class="suggestion-item" 
+                   *ngFor="let user of userSuggestions"
+                   (click)="selectUser(user)">
+                <div class="suggestion-content">
+                  <div class="user-name">{{ user.fullName }}</div>
+                  <div class="user-email">{{ user.email }}</div>
+                  <div class="user-github" *ngIf="user.githubUsername">
+                    <i class="fab fa-github"></i> {{ user.githubUsername }}
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+          <button class="add-button" (click)="addCollaborator()">Add collaborator</button>
+          <button class="cancel-btn" (click)="showAddCollab = false">Cancel</button>
+        </div>
+
+        <div class="collaborators-list">
+          <div class="collaborator-item" *ngFor="let collaborator of (repository?.collaborators || [])">
+            <div class="collaborator-info">
+              <img src="https://github.com/identicons/{{ collaborator }}.png" class="collaborator-avatar" alt="Collaborator">
+              <span class="collaborator-name">{{ collaborator }}</span>
+            </div>
+            <button class="delete-btn" (click)="removeCollaborator(collaborator)">Remove</button>
+          </div>
+        </div>
+
+        <div *ngIf="!repository?.collaborators?.length" class="empty-collab-message">
+          No collaborators yet. Add some to start collaborating!
+        </div>
+      </div>
+    </div>
+
+    <!-- Branches Tab -->
+    <div class="sidebar-section" *ngIf="settingsTab === 'branches'">
+      <!-- Header + Create -->
+      <div class="branches-header">
+        <h3>Branches</h3>
+        <button class="create-branch-btn" (click)="toggleCreateBranch()">New branch</button>
+      </div>
+
+      <!-- Create Branch Form -->
+      <div *ngIf="showCreateBranchInput" class="create-branch-form">
+        <input
+          class="branch-input"
+          [(ngModel)]="newBranchName"
+          placeholder="Branch name"
+        />
+        <button (click)="createBranch()" class="confirm-btn">Create</button>
+        <button (click)="toggleCreateBranch()" class="cancel-btn">Cancel</button>
+      </div>
+
+      <!-- Search Bar -->
+      <input
+        type="text"
+        class="branch-search"
+        placeholder="Search branches..."
+        [(ngModel)]="branchSearch"
+      />
+
+      <!-- Default Branch Section -->
+      <h4>Default</h4>
+      <div class="branch-card">
+        <div class="branch-row">
+          <div class="branch-left">
+            <span class="branch-name">{{ selectedBranch }}</span>
+            <span class="default-badge">default</span>
+          </div>
+        </div>
+      </div>
+
+      <!-- Your Branches Section -->
+      <h4>Your branches</h4>
+      <div *ngFor="let branch of filteredBranches()" class="branch-card">
+        <div class="branch-row">
+          <div class="branch-left">
+            <span class="branch-name">{{ branch }}</span>
+          </div>
+          <div class="branch-right" *ngIf="branch !== selectedBranch">
+            <button class="delete-btn" (click)="deleteBranch(branch)">
+              <i class="fas fa-trash"></i>
+            </button>
+          </div>
+        </div>
+      </div>
+
+      <!-- Feedback Messages -->
+      <div *ngIf="branchSuccessMessage" class="success-msg">
+        <i class="fas fa-check"></i>
+        {{ branchSuccessMessage }}
+      </div>
+      <div *ngIf="branchErrorMessage" class="error-msg">
+        <i class="fas fa-exclamation-triangle"></i>
+        {{ branchErrorMessage }}
+      </div>
+    </div>
+
+    <!-- Commits Tab -->
+    <div class="sidebar-section" *ngIf="settingsTab === 'commits'">
+      <h3>Recent Commits</h3>
+      <div *ngIf="loading" class="loading-state">
+        <p>Loading commits...</p>
+      </div>
+      <ul class="commit-list" *ngIf="!loading && repositoryStats?.recentCommits?.length">
+        <li *ngFor="let commit of (repositoryStats?.recentCommits || [])">
+          <img src="https://github.com/identicons/{{ commit.author }}.png" alt="Author" width="20" height="20" />
+          <div>
+            <strong>{{ commit.message }}</strong>
+            <div>{{ commit.author }} • {{ formatDate(commit.date) }}</div>
+          </div>
+        </li>
+      </ul>
+      <div *ngIf="!loading && (!repositoryStats?.recentCommits?.length)" class="empty-state">
+        <p>No commits found.</p>
+      </div>
+    </div>
+
+    <!-- Delete Tab -->
+    <div class="delete-rep" *ngIf="settingsTab === 'delete'">
+      <h2>Delete Repository</h2>
+      <p class="danger-text">
+        Once you delete a repository, there is no going back. Please be certain.
+      </p>
+      <div class="delete-form">
+        <label for="delete-input">
+          Please type <strong>{{ repoName }}</strong> to confirm:
+        </label>
+        <input
+          id="delete-input"
+          type="text"
+          [(ngModel)]="deleteInput"
+          placeholder="Repository name"
+        />
+        <button 
+          class="danger"
+          [disabled]="deleteInput !== repoName"
+          (click)="confirmDelete()">
+          Delete this repository
+        </button>
+      </div>
+    </div>
+  </section>
+</div>
+
+<!-- Code Tab Content -->
+<div *ngIf="activeTab === 'code'" class="code-content">
+  <!-- Branch Info Bar -->
+  <div class="branch-info">
+    <div class="branch-selector">
+      <div class="branch-dropdown">
+        <button class="branch-btn" (click)="toggleBranchDropdown()">
+          <i class="fas fa-code-branch"></i>
+          {{ selectedBranch }}
+          <i class="fas fa-chevron-down"></i>
+        </button>
+        <div class="dropdown-menu" *ngIf="showBranchDropdown">
+          <div class="dropdown-header">Switch branches/tags</div>
+          <div class="dropdown-item" 
+               *ngFor="let branch of repositoryBranches"
+               [class.active]="branch === selectedBranch"
+               (click)="switchBranch(branch)">
+            <i class="fas fa-code-branch"></i>
+            {{ branch }}
+            <i class="fas fa-check" *ngIf="branch === selectedBranch"></i>
+          </div>
+        </div>
+      </div>
+    </div>
+    <div class="commit-info">
+      <div class="latest-commit">
+        <img src="https://github.com/identicons/{{ repoOwner }}.png" class="author-avatar" alt="Author">
+        <span class="commit-author">{{ repoOwner }}</span>
+        <span class="commit-message">Initial commit</span>
+        <span class="commit-hash">#abc123</span>
+        <span class="commit-time">2 hours ago</span>
+      </div>
+    </div>
+  </div>
+
+  <!-- File Browser -->
+  <div class="file-browser">
+    <table class="file-table">
+      <thead>
+        <tr>
+          <th class="file-name-header">Name</th>
+          <th class="commit-message-header">Last commit message</th>
+          <th class="commit-date-header">Last commit date</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr class="file-row" *ngFor="let file of repositoryFiles">
+          <td class="file-name-cell">
+            <div class="file-name-container">
+              <i class="fas fa-file"></i>
+              <a href="#" class="file-name">{{ file }}</a>
+            </div>
+          </td>
+          <td class="commit-message-cell">Initial commit</td>
+          <td class="commit-date-cell">2 hours ago</td>
+        </tr>
+      </tbody>
+    </table>
+
+    <!-- Empty State -->
+    <div *ngIf="!repositoryFiles?.length" class="empty-repo">
+      <div class="empty-content">
+        <i class="fas fa-folder-open fa-3x"></i>
+        <h3>This repository is empty</h3>
+        <p>Get started by creating a new file or uploading an existing file.</p>
+        <button class="create-file-btn">
+          <i class="fas fa-plus"></i>
+          Create new file
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <!-- README Section -->
+  <div class="readme-section" *ngIf="repository?.description">
+    <div class="readme-header">
+      <i class="fas fa-book"></i>
+      README.md
+    </div>
+    <div class="readme-content">
+      <h1>{{ repoName }}</h1>
+      <p>{{ repository?.description }}</p>
+    </div>
+  </div>
+</div>

@@ -92,8 +92,9 @@ export class TeacherDataService {
     return this.http.put<any>(`http://localhost:8090/api/groups/${groupId}`, group);
   }
 
-  deleteGroup(groupId: string) {
-    return this.http.delete<any>(`http://localhost:8090/api/groups/${groupId}`);
+  deleteGroup(groupId: string, deleteRepository: boolean = false) {
+    const params = deleteRepository ? '?deleteRepository=true' : '';
+    return this.http.delete<any>(`http://localhost:8090/api/groups/${groupId}${params}`);
   }
 
   getGroupsByProject(projectId: string) {

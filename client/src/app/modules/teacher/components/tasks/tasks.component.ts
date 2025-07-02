@@ -35,6 +35,9 @@ export class TeacherTasksComponent implements OnInit {
   groupToRemoveMember: any = null;
   memberToRemove: any = null;
 
+  // Group deletion options
+  deleteRepositoryWithGroup = false;
+
   // For group creation
   createGroupProject: any = null;
   createGroupClassId: string | null = null;
@@ -431,17 +434,23 @@ export class TeacherTasksComponent implements OnInit {
   // Remove group modal logic
   confirmRemoveGroup(group: any) {
     this.groupToDelete = group;
+    this.deleteRepositoryWithGroup = false; // Reset checkbox state
     this.showRemoveGroupModal = true;
   }
   closeRemoveGroupModal() {
     this.showRemoveGroupModal = false;
+    this.deleteRepositoryWithGroup = false; // Reset checkbox state when closing
+    this.groupToDelete = null;
   }
   removeGroupSubmit() {
     if (!this.groupToDelete) return;
-    this.teacherData.deleteGroup(this.groupToDelete.id).subscribe({
+    this.teacherData.deleteGroup(this.groupToDelete.id, this.deleteRepositoryWithGroup).subscribe({
       next: () => {
         this.refreshTree();
-        this.snackbar.showSuccess('Group removed successfully!');
+        const repoMessage = this.deleteRepositoryWithGroup ? 
+          'Group and associated repository removed successfully!' : 
+          'Group removed successfully! Repository remains available.';
+        this.snackbar.showSuccess(repoMessage);
         this.closeRemoveGroupModal();
       },
       error: () => this.snackbar.showError('Failed to remove group.')

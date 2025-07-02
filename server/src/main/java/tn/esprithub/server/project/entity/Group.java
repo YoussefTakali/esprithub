@@ -47,6 +47,11 @@ public class Group extends BaseEntity {
     @ManyToMany(mappedBy = "assignedToGroups")
     private List<Task> tasks;
 
+    // Repository associated with this group (optional)
+    @OneToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "repository_id", foreignKey = @ForeignKey(name = "fk_group_repository"))
+    private tn.esprithub.server.repository.entity.Repository repository;
+
     @Transient
     private boolean repoCreated;
     @Transient

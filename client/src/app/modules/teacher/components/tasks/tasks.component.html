@@ -223,6 +223,23 @@
   <div class="modal-content" (click)="$event.stopPropagation()" (keydown.escape)="closeRemoveGroupModal()">
     <h3 style="color:#e74c3c">Confirm Delete</h3>
     <div style="margin-bottom: 16px;">Are you sure you want to delete the group <b>{{ groupToDelete?.name }}</b>?</div>
+    
+    <!-- Repository deletion option -->
+    <div class="repository-deletion-option">
+      <label>
+        <input 
+          type="checkbox" 
+          [(ngModel)]="deleteRepositoryWithGroup">
+        <span>
+          Also delete the associated GitHub repository
+        </span>
+      </label>
+      <div class="repository-deletion-info">
+        <i class="fas fa-info-circle"></i>
+        <span>If unchecked, the repository will remain available but will not be linked to any group.</span>
+      </div>
+    </div>
+    
     <div class="modal-actions">
       <button class="create-btn-red" (click)="removeGroupSubmit()">Delete</button>
       <button class="cancel-btn" (click)="closeRemoveGroupModal()">Cancel</button>

@@ -53,6 +53,9 @@ public class SecurityConfig {
                         )
                 )
                 .authorizeHttpRequests(auth -> auth
+                        // Allow all OPTIONS requests (CORS preflight) - must be first
+                        .requestMatchers(HttpMethod.OPTIONS, "/**").permitAll()
+                        
                         // Public endpoints (no authentication required)
                         .requestMatchers(
                                 "/api/v1/auth/login", "/api/v1/auth/refresh",
@@ -61,9 +64,6 @@ public class SecurityConfig {
                                 "/api/v1/github/auth-url",
                                 "/error"
                         ).permitAll()
-                        
-                        // Allow all OPTIONS requests (CORS preflight)
-                        .requestMatchers(HttpMethod.OPTIONS, "/**").permitAll()
 
                         // GitHub and other auth endpoints (require authentication)
                         .requestMatchers("/api/v1/auth/**", "/api/v1/github/**").authenticated()
@@ -74,11 +74,16 @@ public class SecurityConfig {
                         // Chief only endpoints
                         .requestMatchers(CHIEF_ENDPOINTS).hasAnyRole(ROLE_ADMIN, ROLE_CHIEF)
 
-                        // Teacher endpoints
+                        // Teacher endpoints including repository endpoints
                         .requestMatchers("/api/teacher/**").hasAnyRole(ROLE_ADMIN, ROLE_CHIEF, ROLE_TEACHER)
                         .requestMatchers("/api/projects/**").hasAnyRole(ROLE_ADMIN, ROLE_CHIEF, ROLE_TEACHER)
                         .requestMatchers("/api/groups/**").hasAnyRole(ROLE_ADMIN, ROLE_CHIEF, ROLE_TEACHER)
                         .requestMatchers("/api/tasks/**").hasAnyRole(ROLE_ADMIN, ROLE_CHIEF, ROLE_TEACHER)
+                        .requestMatchers(HttpMethod.GET, "/api/repositories/**").hasAnyRole(ROLE_ADMIN, ROLE_CHIEF, ROLE_TEACHER)
+                        .requestMatchers(HttpMethod.POST, "/api/repositories/**").hasAnyRole(ROLE_ADMIN, ROLE_CHIEF, ROLE_TEACHER)
+                        .requestMatchers(HttpMethod.PUT, "/api/repositories/**").hasAnyRole(ROLE_ADMIN, ROLE_CHIEF, ROLE_TEACHER)
+                        .requestMatchers(HttpMethod.PATCH, "/api/repositories/**").hasAnyRole(ROLE_ADMIN, ROLE_CHIEF, ROLE_TEACHER)
+                        .requestMatchers(HttpMethod.DELETE, "/api/repositories/**").hasAnyRole(ROLE_ADMIN, ROLE_CHIEF, ROLE_TEACHER)
                         // Allow teachers to fetch users for collaborators
                         .requestMatchers(HttpMethod.GET, "/api/v1/users/**").hasAnyRole(ROLE_ADMIN, ROLE_CHIEF, ROLE_TEACHER)
 
@@ -114,11 +119,24 @@ public class SecurityConfig {
     @Bean
     public CorsConfigurationSource corsConfigurationSource() {
         CorsConfiguration configuration = new CorsConfiguration();
+        
+        // Allow specific origins
         configuration.setAllowedOriginPatterns(Arrays.asList(corsProperties.getAllowedOrigins().split(",")));
-        configuration.setAllowedMethods(Arrays.asList(corsProperties.getAllowedMethods().split(",")));
-        configuration.setAllowedHeaders(Arrays.asList(corsProperties.getAllowedHeaders().split(",")));
+        
+        // Allow all common HTTP methods including OPTIONS
+        configuration.setAllowedMethods(Arrays.asList("GET", "POST", "PUT", "DELETE", "OPTIONS", "PATCH"));
+        
+        // Allow all headers
+        configuration.setAllowedHeaders(Arrays.asList("*"));
+        
+        // Allow credentials
         configuration.setAllowCredentials(corsProperties.isAllowCredentials());
+        
+        // Set max age for preflight requests
         configuration.setMaxAge(3600L);
+        
+        // Expose common headers
+        configuration.setExposedHeaders(Arrays.asList("Authorization", "Content-Type"));
 
         UrlBasedCorsConfigurationSource source = new UrlBasedCorsConfigurationSource();
         source.registerCorsConfiguration("/**", configuration);

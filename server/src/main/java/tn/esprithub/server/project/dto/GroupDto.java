@@ -14,4 +14,6 @@ public class GroupDto {
     private boolean repoCreated;
     private String repoUrl;
     private String repoError;
+    private UUID repositoryId;
+    private String repositoryFullName;
 }
