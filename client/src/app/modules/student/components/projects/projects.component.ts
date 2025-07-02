@@ -78,4 +78,20 @@ export class StudentProjectsComponent implements OnInit {
   refresh(): void {
     this.loadProjects();
   }
+
+  viewProjectDetails(projectId: string): void {
+    this.studentService.getProjectDetails(projectId).subscribe({
+      next: (project) => {
+        console.log('Project details:', project);
+        const groupNames = project.groups.map(g => g.name).join(', ');
+        const taskCount = project.tasks.length;
+        const collaboratorNames = project.collaborators.map(c => `${c.firstName} ${c.lastName}`).join(', ');
+        alert(`Project: ${project.name}\nDescription: ${project.description}\nGroups: ${groupNames}\nTasks: ${taskCount}\nCollaborators: ${collaboratorNames}\nDeadline: ${this.formatDate(project.deadline)}`);
+      },
+      error: (error) => {
+        console.error('Error loading project details:', error);
+        alert('Failed to load project details');
+      }
+    });
+  }
 }

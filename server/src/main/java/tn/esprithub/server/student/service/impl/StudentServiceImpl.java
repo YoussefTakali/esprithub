@@ -6,11 +6,12 @@ import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageImpl;
 import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
+import org.springframework.util.StringUtils;
 import tn.esprithub.server.common.exception.BusinessException;
 import tn.esprithub.server.project.entity.Task;
-import tn.esprithub.server.project.entity.Group;
-import tn.esprithub.server.project.entity.Project;
 import tn.esprithub.server.project.enums.TaskStatus;
+import tn.esprithub.server.project.repository.TaskRepository;
+import tn.esprithub.server.project.repository.GroupRepository;
 import tn.esprithub.server.student.dto.StudentDashboardDto;
 import tn.esprithub.server.student.dto.StudentTaskDto;
 import tn.esprithub.server.student.dto.StudentGroupDto;
@@ -30,7 +31,8 @@ import java.util.stream.Collectors;
 public class StudentServiceImpl implements StudentService {
 
     private final UserRepository userRepository;
-    // Note: You'll need to inject the appropriate repositories for tasks, groups, projects, etc.
+    private final TaskRepository taskRepository;
+    private final GroupRepository groupRepository;
 
     @Override
     public StudentDashboardDto getStudentDashboard(String studentEmail) {
@@ -240,10 +242,36 @@ public class StudentServiceImpl implements StudentService {
 
     @Override
     public List<Map<String, Object>> getWeeklySchedule(String studentEmail) {
-        User student = getStudentByEmail(studentEmail);
+        getStudentByEmail(studentEmail); // Validate student exists
         
-        // TODO: Implement weekly schedule retrieval
-        return new ArrayList<>();
+        // Create a mock weekly schedule for now
+        List<Map<String, Object>> schedule = new ArrayList<>();
+        
+        // Days of the week
+        String[] days = {"Monday", "Tuesday", "Wednesday", "Thursday", "Friday"};
+        String[] times = {"08:00", "10:00", "14:00", "16:00"};
+        String[] subjects = {"Programming", "Mathematics", "Physics", "Database Design"};
+        String[] teachers = {"Dr. Smith", "Prof. Johnson", "Dr. Brown", "Prof. Davis"};
+        String[] rooms = {"A101", "B205", "C301", "A102"};
+        String[] types = {"COURSE", "TD", "TP", "COURSE"};
+        
+        // Generate schedule items
+        for (int i = 0; i < days.length; i++) {
+            for (int j = 0; j < Math.min(2, times.length); j++) {
+                int subjectIndex = (i * 2 + j) % subjects.length;
+                Map<String, Object> scheduleItem = new HashMap<>();
+                scheduleItem.put("id", UUID.randomUUID().toString());
+                scheduleItem.put("day", days[i]);
+                scheduleItem.put("time", times[j]);
+                scheduleItem.put("subject", subjects[subjectIndex]);
+                scheduleItem.put("teacher", teachers[subjectIndex]);
+                scheduleItem.put("room", rooms[subjectIndex]);
+                scheduleItem.put("type", types[subjectIndex]);
+                schedule.add(scheduleItem);
+            }
+        }
+        
+        return schedule;
     }
 
     @Override
@@ -261,21 +289,151 @@ public class StudentServiceImpl implements StudentService {
     }
 
     private List<StudentTaskDto> getTasksForStudent(User student, String status, String search) {
-        // TODO: Implement actual task retrieval logic
-        // This would involve querying tasks assigned individually, to groups, or to class
-        return new ArrayList<>();
+        // Get all tasks for the student from different sources
+        List<Task> allTasks = getAllTasksForStudent(student);
+        
+        // Filter by status if provided
+        if (StringUtils.hasText(status)) {
+            TaskStatus taskStatus = TaskStatus.valueOf(status.toUpperCase());
+            allTasks = allTasks.stream()
+                    .filter(task -> task.getStatus() == taskStatus)
+                    .collect(Collectors.toList());
+        }
+        
+        // Filter by search term if provided
+        if (StringUtils.hasText(search)) {
+            String searchLower = search.toLowerCase();
+            allTasks = allTasks.stream()
+                    .filter(task -> task.getTitle().toLowerCase().contains(searchLower) ||
+                                  (task.getDescription() != null && task.getDescription().toLowerCase().contains(searchLower)))
+                    .collect(Collectors.toList());
+        }
+        
+        // Convert to DTOs
+        return allTasks.stream()
+                .map(this::convertToStudentTaskDto)
+                .collect(Collectors.toList());
+    }
+    
+    private StudentTaskDto convertToStudentTaskDto(Task task) {
+        // Determine assignment type for frontend compatibility
+        String frontendType = "INDIVIDUAL";
+        if (task.getType() == tn.esprithub.server.project.enums.TaskAssignmentType.GROUP) {
+            frontendType = "GROUP";
+        } else if (task.getType() == tn.esprithub.server.project.enums.TaskAssignmentType.CLASSE || 
+                   task.getType() == tn.esprithub.server.project.enums.TaskAssignmentType.PROJECT) {
+            frontendType = "CLASS";
+        }
+        
+        return StudentTaskDto.builder()
+                .id(task.getId())
+                .title(task.getTitle())
+                .description(task.getDescription())
+                .assignmentType(task.getType())
+                .type(frontendType) // Frontend-compatible type
+                .status(task.getStatus())
+                .dueDate(task.getDueDate())
+                .isGraded(task.isGraded())
+                .isVisible(task.isVisible())
+                .isOverdue(task.getDueDate() != null && task.getDueDate().isBefore(LocalDateTime.now()))
+                .assignedTo(frontendType)
+                .projectName(task.getProjects() != null && !task.getProjects().isEmpty() ? 
+                    task.getProjects().get(0).getName() : null)
+                .projectId(task.getProjects() != null && !task.getProjects().isEmpty() ? 
+                    task.getProjects().get(0).getId() : null)
+                .daysLeft(task.getDueDate() != null ? 
+                    (int) ChronoUnit.DAYS.between(LocalDateTime.now(), task.getDueDate()) : 0)
+                .urgencyLevel(calculateUrgencyLevel(task))
+                .canSubmit(task.getStatus() != TaskStatus.COMPLETED)
+                .createdAt(task.getCreatedAt())
+                .updatedAt(task.getUpdatedAt())
+                .build();
+    }
+    
+    private String calculateUrgencyLevel(Task task) {
+        if (task.getDueDate() == null) return "LOW";
+        
+        long daysUntilDue = ChronoUnit.DAYS.between(LocalDateTime.now(), task.getDueDate());
+        if (daysUntilDue < 0) return "HIGH"; // Overdue
+        if (daysUntilDue <= 2) return "HIGH";
+        if (daysUntilDue <= 7) return "MEDIUM";
+        return "LOW";
     }
 
-    // Mock implementations for dashboard stats
-    private int getTotalTasksCount(User student) { return 15; }
-    private int getPendingTasksCount(User student) { return 5; }
-    private int getCompletedTasksCount(User student) { return 8; }
-    private int getOverdueTasksCount(User student) { return 2; }
-    private int getTotalProjectsCount(User student) { return 3; }
-    private int getActiveProjectsCount(User student) { return 2; }
-    private int getCompletedProjectsCount(User student) { return 1; }
-    private int getTotalGroupsCount(User student) { return 2; }
-    private int getActiveGroupsCount(User student) { return 2; }
+    // Dashboard stats implementations using real data
+    private int getTotalTasksCount(User student) { 
+        return getAllTasksForStudent(student).size();
+    }
+    
+    private int getPendingTasksCount(User student) { 
+        return (int) getAllTasksForStudent(student).stream()
+                .filter(task -> task.getStatus() == TaskStatus.PUBLISHED || task.getStatus() == TaskStatus.IN_PROGRESS)
+                .count();
+    }
+    
+    private int getCompletedTasksCount(User student) { 
+        return (int) getAllTasksForStudent(student).stream()
+                .filter(task -> task.getStatus() == TaskStatus.COMPLETED)
+                .count();
+    }
+    
+    private int getOverdueTasksCount(User student) { 
+        return (int) getAllTasksForStudent(student).stream()
+                .filter(task -> task.getDueDate() != null && 
+                               task.getDueDate().isBefore(LocalDateTime.now()) &&
+                               task.getStatus() != TaskStatus.COMPLETED)
+                .count();
+    }
+    
+    // Helper method to get all tasks for a student
+    private List<Task> getAllTasksForStudent(User student) {
+        List<Task> allTasks = new ArrayList<>();
+        
+        // 1. Tasks assigned directly to the student
+        List<Task> directTasks = taskRepository.findByAssignedToStudents_Id(student.getId());
+        allTasks.addAll(directTasks);
+        
+        // 2. Tasks assigned to groups that the student is a member of
+        List<Task> groupTasks = taskRepository.findTasksAssignedToStudentGroups(student.getId());
+        allTasks.addAll(groupTasks);
+        
+        // 3. Tasks assigned to the student's class
+        if (student.getClasse() != null) {
+            List<Task> classTasks = taskRepository.findByAssignedToClasses_Id(student.getClasse().getId());
+            allTasks.addAll(classTasks);
+        }
+        
+        // Remove duplicates and filter visible tasks
+        return allTasks.stream()
+                .distinct()
+                .filter(Task::isVisible)
+                .collect(Collectors.toList());
+    }
+    
+    // Project stats - using mock data for now since we don't have project assignments
+    private int getTotalProjectsCount(User student) { 
+        // TODO: Implement when project assignments are available
+        return 3; 
+    }
+    
+    private int getActiveProjectsCount(User student) { 
+        // TODO: Implement when project assignments are available
+        return 2; 
+    }
+    
+    private int getCompletedProjectsCount(User student) { 
+        // TODO: Implement when project assignments are available
+        return 1; 
+    }
+    
+    private int getTotalGroupsCount(User student) { 
+        return groupRepository.findGroupsByStudentId(student.getId()).size();
+    }
+    
+    private int getActiveGroupsCount(User student) { 
+        // For now, consider all groups as active - you can add logic to filter inactive groups
+        return groupRepository.findGroupsByStudentId(student.getId()).size();
+    }
     private int getUnreadNotificationsCount(User student) { return 3; }
     private int getSubmissionsThisMonth(User student) { return 5; }
     
@@ -307,7 +465,12 @@ public class StudentServiceImpl implements StudentService {
 
     private Map<String, Integer> getTaskStatusCounts(User student) {
         Map<String, Integer> counts = new HashMap<>();
-        counts.put("PENDING", getPendingTasksCount(student));
+        List<Task> allTasks = getAllTasksForStudent(student);
+        
+        counts.put("PUBLISHED", (int) allTasks.stream()
+                .filter(task -> task.getStatus() == TaskStatus.PUBLISHED).count());
+        counts.put("IN_PROGRESS", (int) allTasks.stream()
+                .filter(task -> task.getStatus() == TaskStatus.IN_PROGRESS).count());
         counts.put("COMPLETED", getCompletedTasksCount(student));
         counts.put("OVERDUE", getOverdueTasksCount(student));
         return counts;

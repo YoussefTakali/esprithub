@@ -1,6 +1,7 @@
 import { Injectable } from '@angular/core';
 import { HttpClient } from '@angular/common/http';
 import { Observable } from 'rxjs';
+import { map } from 'rxjs/operators';
 
 export interface StudentDashboard {
   activeTasks: number;
@@ -54,6 +55,14 @@ export interface StudentTask {
   updatedAt: Date;
 }
 
+export interface TasksResponse {
+  content: StudentTask[];
+  totalElements: number;
+  totalPages: number;
+  size: number;
+  number: number;
+}
+
 export interface StudentGroup {
   id: string;
   name: string;
@@ -98,7 +107,6 @@ export interface StudentProject {
   tasks: StudentTask[];
   classes: ProjectClass[];
   createdAt: Date;
-  updatedAt: Date;
 }
 
 export interface Collaborator {
@@ -106,43 +114,60 @@ export interface Collaborator {
   firstName: string;
   lastName: string;
   email: string;
+  role: string;
 }
 
 export interface ProjectClass {
   id: string;
   name: string;
-  description: string;
-  capacity: number;
-  code: string;
+  niveau: string;
 }
 
 export interface StudentSubmission {
   id: string;
   taskId: string;
   taskTitle: string;
-  submittedAt: Date;
-  status: string;
+  studentId: string;
+  submissionDate: Date;
+  status: 'DRAFT' | 'SUBMITTED' | 'GRADED';
   grade?: number;
   feedback?: string;
   files: SubmissionFile[];
+  createdAt: Date;
+  updatedAt: Date;
 }
 
 export interface SubmissionFile {
   id: string;
-  name: string;
-  url: string;
-  size: number;
-  type: string;
+  fileName: string;
+  fileSize: number;
+  fileType: string;
+  uploadDate: Date;
+  downloadUrl: string;
 }
 
 export interface StudentSchedule {
+  weeklySchedule: ScheduleItem[];
+  upcomingEvents: ScheduleEvent[];
+  deadlines: TaskDeadline[];
+}
+
+export interface ScheduleItem {
+  id: string;
+  day: string;
+  time: string;
+  subject: string;
+  teacher: string;
+  room: string;
+  type: 'COURSE' | 'TD' | 'TP';
+}
+
+export interface ScheduleEvent {
   id: string;
   title: string;
-  description?: string;
-  startTime: Date;
-  endTime: Date;
-  type: 'task' | 'project' | 'deadline' | 'event';
-  relatedId?: string;
+  date: Date;
+  time: string;
+  type: string;
   location?: string;
 }
 
@@ -150,86 +175,73 @@ export interface StudentSchedule {
   providedIn: 'root'
 })
 export class StudentService {
-  private readonly apiUrl = 'http://localhost:8090/api/student';
+  private readonly apiUrl = '/api/student';
 
   constructor(private readonly http: HttpClient) {}
 
-  // Dashboard
   getDashboard(): Observable<StudentDashboard> {
     return this.http.get<StudentDashboard>(`${this.apiUrl}/dashboard`);
   }
 
-  // Tasks
   getTasks(): Observable<StudentTask[]> {
-    return this.http.get<StudentTask[]>(`${this.apiUrl}/tasks`);
+    return this.http.get<TasksResponse>(`${this.apiUrl}/tasks`).pipe(
+      map(response => response.content)
+    );
   }
 
-  getTaskById(id: string): Observable<StudentTask> {
-    return this.http.get<StudentTask>(`${this.apiUrl}/tasks/${id}`);
+  getTaskDetails(taskId: string): Observable<StudentTask> {
+    return this.http.get<StudentTask>(`${this.apiUrl}/tasks/${taskId}`);
   }
 
   updateTaskStatus(taskId: string, status: string): Observable<void> {
     return this.http.put<void>(`${this.apiUrl}/tasks/${taskId}/status`, { status });
   }
 
-  // Groups
+  submitTask(taskId: string, submission: any): Observable<void> {
+    return this.http.post<void>(`${this.apiUrl}/tasks/${taskId}/submit`, submission);
+  }
+
   getGroups(): Observable<StudentGroup[]> {
     return this.http.get<StudentGroup[]>(`${this.apiUrl}/groups`);
   }
 
-  getGroupById(id: string): Observable<StudentGroup> {
-    return this.http.get<StudentGroup>(`${this.apiUrl}/groups/${id}`);
+  getGroupDetails(groupId: string): Observable<StudentGroup> {
+    return this.http.get<StudentGroup>(`${this.apiUrl}/groups/${groupId}`);
   }
 
-  // Projects
   getProjects(): Observable<StudentProject[]> {
     return this.http.get<StudentProject[]>(`${this.apiUrl}/projects`);
   }
 
-  getProjectById(id: string): Observable<StudentProject> {
-    return this.http.get<StudentProject>(`${this.apiUrl}/projects/${id}`);
+  getProjectDetails(projectId: string): Observable<StudentProject> {
+    return this.http.get<StudentProject>(`${this.apiUrl}/projects/${projectId}`);
   }
 
-  // Submissions
   getSubmissions(): Observable<StudentSubmission[]> {
-    return this.http.get<StudentSubmission[]>(`${this.apiUrl}/submissions`);
+    return this.http.get<{ content: StudentSubmission[] }>(`${this.apiUrl}/submissions`).pipe(
+      map(response => response.content || [])
+    );
   }
 
-  submitTask(taskId: string, files: File[]): Observable<StudentSubmission> {
-    const formData = new FormData();
-    files.forEach(file => formData.append('files', file));
-    return this.http.post<StudentSubmission>(`${this.apiUrl}/tasks/${taskId}/submit`, formData);
-  }
-
-  // Repositories
   getRepositories(): Observable<Repository[]> {
-    return this.http.get<Repository[]>(`${this.apiUrl}/repositories`);
+    return this.http.get<any[]>(`${this.apiUrl}/repositories`).pipe(
+      map(response => response || [])
+    );
   }
 
-  getRepositoryById(id: string): Observable<Repository> {
-    return this.http.get<Repository>(`${this.apiUrl}/repositories/${id}`);
+  getSchedule(): Observable<StudentSchedule> {
+    return this.http.get<StudentSchedule>(`${this.apiUrl}/schedule`);
   }
 
-  // Notifications
-  getNotifications(): Observable<Notification[]> {
-    return this.http.get<Notification[]>(`${this.apiUrl}/notifications`);
-  }
-
-  markNotificationAsRead(id: string): Observable<void> {
-    return this.http.put<void>(`${this.apiUrl}/notifications/${id}/read`, {});
-  }
-
-  // Schedule
-  getSchedule(): Observable<StudentSchedule[]> {
-    return this.http.get<StudentSchedule[]>(`${this.apiUrl}/schedule`);
-  }
-
-  // Profile
-  getProfile(): Observable<any> {
+  getProfile(): Observable<any> { 
     return this.http.get<any>(`${this.apiUrl}/profile`);
   }
 
-  updateProfile(profile: any): Observable<any> {
-    return this.http.put<any>(`${this.apiUrl}/profile`, profile);
+  updateProfile(profileData: any): Observable<any> {
+    return this.http.put<any>(`${this.apiUrl}/profile`, profileData);
+  }
+
+  markNotificationAsRead(notificationId: string): Observable<void> {
+    return this.http.put<void>(`${this.apiUrl}/notifications/${notificationId}/read`, {});
   }
 }

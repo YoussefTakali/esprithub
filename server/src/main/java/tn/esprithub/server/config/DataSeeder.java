@@ -52,15 +52,15 @@ public class DataSeeder implements CommandLineRunner {
     }
 
     private void ensureAichaExists() {
-        String aichaEmail = "aicha.benromdhane@esprit.tn";
-        if (!userRepository.existsByEmail(aichaEmail)) {
+        String aichaEmail = "rima.ezzar@esprit.tn";
+        if (!userRepository.existsByEmail("rima.ezzar@esprit.tn")) {
             log.info("Creating chief user: {}", aichaEmail);
             User aicha = User.builder()
-                    .email(aichaEmail)
-                    .password(passwordEncoder.encode("aicha123"))
-                    .firstName("Aicha")
-                    .lastName("Ben Romdhane")
-                    .role(UserRole.CHIEF)
+                    .email("rima.ezzar@esprit.tn")
+                    .password(passwordEncoder.encode("riiima123"))
+                    .firstName("Rima")
+                    .lastName("Ezzar")
+                    .role(UserRole.STUDENT)
                     .isActive(true)
                     .isEmailVerified(true)
                     .build();
@@ -77,11 +77,11 @@ public class DataSeeder implements CommandLineRunner {
         List<User> users = List.of(
                 // Admin user
                 User.builder()
-                        .email("admin@esprit.tn")
-                        .password(passwordEncoder.encode("admin123"))
-                        .firstName("Admin")
-                        .lastName("System")
-                        .role(UserRole.ADMIN)
+                        .email("rima.ezzar@esprit.tn")
+                        .password(passwordEncoder.encode("rima123"))
+                        .firstName("Rima")
+                        .lastName("Ezzar")
+                        .role(UserRole.STUDENT)
                         .isActive(true)
                         .isEmailVerified(true)
                         .build(),

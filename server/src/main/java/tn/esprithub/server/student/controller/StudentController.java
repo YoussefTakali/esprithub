@@ -178,4 +178,17 @@ public class StudentController {
         List<Map<String, Object>> repositories = studentService.getAccessibleRepositories(authentication.getName());
         return ResponseEntity.ok(repositories);
     }
+
+    // Get student's weekly schedule
+    @GetMapping("/schedule")
+    public ResponseEntity<Map<String, Object>> getSchedule(Authentication authentication) {
+        log.info("Fetching schedule for student: {}", authentication.getName());
+        List<Map<String, Object>> weeklySchedule = studentService.getWeeklySchedule(authentication.getName());
+        Map<String, Object> scheduleResponse = Map.of(
+            "weeklySchedule", weeklySchedule,
+            "upcomingEvents", studentService.getUpcomingDeadlines(authentication.getName(), 7),
+            "deadlines", studentService.getUpcomingDeadlines(authentication.getName(), 14)
+        );
+        return ResponseEntity.ok(scheduleResponse);
+    }
 }

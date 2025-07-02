@@ -36,6 +36,7 @@ import { StudentGroupsComponent } from './components/groups/groups.component';
 import { StudentSubmissionsComponent } from './components/submissions/submissions.component';
 import { StudentRepositoriesComponent } from './components/repositories/repositories.component';
 import { StudentScheduleComponent } from './components/schedule/schedule.component';
+import { StudentService } from './services/student.service';
 
 const routes: Routes = [
   { path: 'dashboard', component: StudentDashboardComponent },
@@ -89,6 +90,9 @@ const routes: Routes = [
     MatSortModule,
     MatDatepickerModule,
     MatNativeDateModule
+  ],
+  providers: [
+    StudentService
   ],
   exports: [
     StudentDashboardComponent,

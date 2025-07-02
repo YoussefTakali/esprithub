@@ -7,7 +7,7 @@ import { StudentService, StudentSchedule } from '../../services/student.service'
   styleUrls: ['./schedule.component.css']
 })
 export class StudentScheduleComponent implements OnInit {
-  schedule: StudentSchedule[] = [];
+  schedule: StudentSchedule | null = null;
   loading = true;
   error: string | null = null;
 
@@ -21,7 +21,7 @@ export class StudentScheduleComponent implements OnInit {
     this.loading = true;
     this.error = null;
     
-    this.studentService.getSchedule().subscribe({
+    this.studentService.getSchedule().subscribe({ 
       next: (schedule) => {
         this.schedule = schedule;
         this.loading = false;

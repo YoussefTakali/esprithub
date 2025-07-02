@@ -118,7 +118,7 @@
             <span>Due: {{ formatDate(project.deadline) }}</span>
           </div>
           <div class="project-actions">
-            <button class="action-btn view-btn" routerLink="/student/projects/{{ project.id }}">
+            <button class="action-btn view-btn" (click)="viewProjectDetails(project.id)">
               <i class="fas fa-eye"></i>
               View Details
             </button>

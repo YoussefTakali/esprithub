@@ -21,6 +21,7 @@ public class StudentTaskDto {
     private String title;
     private String description;
     private TaskAssignmentType assignmentType; // INDIVIDUAL, GROUP, CLASS
+    private String type; // Frontend-compatible type: INDIVIDUAL, GROUP, CLASS
     private TaskStatus status;
     private LocalDateTime dueDate;
     private boolean isGraded;

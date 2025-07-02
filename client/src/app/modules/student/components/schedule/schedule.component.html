@@ -26,17 +26,17 @@
   </div>
 
   <div *ngIf="!loading && !error" class="schedule-content">
-    <div *ngIf="schedule.length === 0" class="empty-state">
+    <div *ngIf="!schedule || (schedule.weeklySchedule.length === 0 && schedule.upcomingEvents.length === 0)" class="empty-state">
       <i class="fas fa-calendar-alt"></i>
       <h3>No schedule items found</h3>
       <p>You don't have any upcoming items in your schedule.</p>
     </div>
 
-    <div *ngIf="schedule.length > 0" class="schedule-timeline">
-      <div *ngFor="let item of schedule" class="schedule-item">
+    <div *ngIf="schedule && (schedule.weeklySchedule.length > 0 || schedule.upcomingEvents.length > 0)" class="schedule-timeline">
+      <div *ngFor="let item of schedule.weeklySchedule" class="schedule-item">
         <div class="schedule-date">
-          <div class="date-month">{{ formatDate(item.startTime).split(' ')[0] }}</div>
-          <div class="date-day">{{ formatDate(item.startTime).split(' ')[1] }}</div>
+          <div class="date-month">{{ item.day }}</div>
+          <div class="date-day">{{ item.time }}</div>
         </div>
 
         <div class="schedule-connector" [style.background-color]="getTypeColor(item.type)"></div>
@@ -48,28 +48,17 @@
               <span>{{ item.type.toUpperCase() }}</span>
             </div>
             <div class="schedule-time">
-              {{ formatDate(item.startTime) }}
-              <ng-container *ngIf="item.endTime">
-                - {{ formatDate(item.endTime) }}
-              </ng-container>
+              {{ item.time }}
             </div>
           </div>
 
           <div class="schedule-content">
-            <h3>{{ item.title }}</h3>
-            <p *ngIf="item.description">{{ item.description }}</p>
-            
-            <div *ngIf="item.location" class="schedule-location">
+            <h3>{{ item.subject }}</h3>
+            <p *ngIf="item.teacher">Teacher: {{ item.teacher }}</p>
+            <div *ngIf="item.room" class="schedule-location">
               <i class="fas fa-map-marker-alt"></i>
-              <span>{{ item.location }}</span>
+              <span>{{ item.room }}</span>
             </div>
-          </div>
-
-          <div class="schedule-actions">
-            <button *ngIf="item.relatedId" class="action-btn view-btn" routerLink="/student/{{ item.type }}s/{{ item.relatedId }}">
-              <i class="fas fa-eye"></i>
-              View Details
-            </button>
           </div>
         </div>
       </div>

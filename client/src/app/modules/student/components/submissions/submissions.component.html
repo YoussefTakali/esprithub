@@ -45,7 +45,7 @@
           <div class="submission-meta">
             <div class="meta-item">
               <i class="fas fa-calendar"></i>
-              <span>Submitted: {{ formatDate(submission.submittedAt) }}</span>
+              <span>Submitted: {{ formatDate(submission.submissionDate) }}</span>
             </div>
             <div *ngIf="submission.grade" class="meta-item grade">
               <i class="fas fa-star"></i>
@@ -63,8 +63,8 @@
             <div class="files-list">
               <div *ngFor="let file of submission.files" class="file-item">
                 <i class="fas fa-file"></i>
-                <span>{{ file.name }}</span>
-                <small>({{ (file.size / 1024) | number:'1.0-1' }} KB)</small>
+                <span>{{ file.fileName }}</span>
+                <small>({{ (file.fileSize / 1024) | number:'1.0-1' }} KB)</small>
               </div>
             </div>
           </div>

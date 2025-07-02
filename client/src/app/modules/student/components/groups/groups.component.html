@@ -77,7 +77,7 @@
             <span>Created: {{ formatDate(group.createdAt) }}</span>
           </div>
           <div class="group-actions">
-            <button class="action-btn view-btn" routerLink="/student/groups/{{ group.id }}">
+            <button class="action-btn view-btn" (click)="viewGroupDetails(group.id)">
               <i class="fas fa-eye"></i>
               View
             </button>

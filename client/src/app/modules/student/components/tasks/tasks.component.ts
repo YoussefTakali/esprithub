@@ -28,11 +28,14 @@ export class StudentTasksComponent implements OnInit {
     this.loading = true;
     this.error = null;
     
+    console.log('Loading tasks...');
     this.studentService.getTasks().subscribe({
       next: (tasks) => {
+        console.log('Tasks received:', tasks);
         this.tasks = tasks;
         this.applyFilters();
         this.loading = false;
+        console.log('Filtered tasks:', this.filteredTasks);
       },
       error: (error) => {
         console.error('Error loading tasks:', error);
@@ -166,6 +169,20 @@ export class StudentTasksComponent implements OnInit {
 
   refresh(): void {
     this.loadTasks();
+  }
+
+  viewTaskDetails(taskId: string): void {
+    this.studentService.getTaskDetails(taskId).subscribe({
+      next: (task) => {
+        console.log('Task details:', task);
+        // For now, just log the details. Later we can add a modal or detailed view
+        alert(`Task: ${task.title}\nDescription: ${task.description}\nStatus: ${task.status}\nDue: ${this.formatDate(task.dueDate)}`);
+      },
+      error: (error) => {
+        console.error('Error loading task details:', error);
+        alert('Failed to load task details');
+      }
+    });
   }
 
   // Template helper methods
