@@ -54,8 +54,16 @@
               <span>{{ repo.defaultBranch }}</span>
             </div>
             <div class="meta-item">
-              <i class="fas fa-link"></i>
-              <span>{{ repo.fullName }}</span>
+              <i class="fas fa-users"></i>
+              <span>{{ repo.groupName }}</span>
+            </div>
+            <div class="meta-item" *ngIf="repo.projectName">
+              <i class="fas fa-project-diagram"></i>
+              <span>{{ repo.projectName }}</span>
+            </div>
+            <div class="meta-item">
+              <i class="fas fa-user"></i>
+              <span>Owner: {{ repo.ownerName }}</span>
             </div>
           </div>
         </div>
@@ -66,10 +74,20 @@
               <i class="fab fa-github"></i>
               View on GitHub
             </a>
-            <button class="action-btn clone-btn" (click)="copyToClipboard(repo.cloneUrl)">
+            <button class="action-btn clone-btn" (click)="copyToClipboard(repo.cloneUrl)" title="Copy HTTPS clone URL">
               <i class="fas fa-copy"></i>
-              Clone URL
+              Clone (HTTPS)
             </button>
+            <button class="action-btn clone-btn" (click)="copyToClipboard(repo.sshUrl)" title="Copy SSH clone URL" *ngIf="repo.sshUrl">
+              <i class="fas fa-key"></i>
+              Clone (SSH)
+            </button>
+          </div>
+          <div class="repo-access">
+            <span class="access-badge" [class.member]="repo.accessLevel === 'MEMBER'">
+              <i class="fas fa-shield-alt"></i>
+              {{ repo.accessLevel }}
+            </span>
           </div>
         </div>
       </div>

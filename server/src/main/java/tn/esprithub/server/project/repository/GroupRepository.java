@@ -17,4 +17,8 @@ public interface GroupRepository extends JpaRepository<Group, UUID> {
     // Find groups that a student is a member of
     @Query("SELECT g FROM Group g JOIN g.students s WHERE s.id = :studentId")
     List<Group> findGroupsByStudentId(@Param("studentId") UUID studentId);
+    
+    // Find groups with repositories that a student is a member of
+    @Query("SELECT g FROM Group g LEFT JOIN FETCH g.repository JOIN g.students s WHERE s.id = :studentId")
+    List<Group> findGroupsWithRepositoriesByStudentId(@Param("studentId") UUID studentId);
 }

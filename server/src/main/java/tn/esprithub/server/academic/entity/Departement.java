@@ -23,7 +23,7 @@ import java.util.List;
 @Entity
 @Table(name = "departements")
 @Data
-@EqualsAndHashCode(callSuper = true)
+@EqualsAndHashCode(callSuper = false, onlyExplicitlyIncluded = true)
 @SuperBuilder
 @NoArgsConstructor
 @AllArgsConstructor

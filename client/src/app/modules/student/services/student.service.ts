@@ -93,6 +93,18 @@ export interface Repository {
   cloneUrl: string;
   sshUrl: string;
   isActive: boolean;
+  createdAt: Date;
+  updatedAt: Date;
+  ownerName: string;
+  // Group information
+  groupId: string;
+  groupName: string;
+  projectId?: string;
+  projectName?: string;
+  // Access information
+  accessLevel: string;
+  canPush: boolean;
+  canPull: boolean;
 }
 
 export interface StudentProject {

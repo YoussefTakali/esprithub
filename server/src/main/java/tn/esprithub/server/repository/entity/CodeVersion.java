@@ -30,7 +30,7 @@ public class CodeVersion extends BaseEntity {
     @Column(nullable = false, length = 500)
     private String filePath;
     
-    @Column(columnDefinition = "LONGTEXT")
+    @Column(columnDefinition = "TEXT")
     private String fileContent;
     
     @Column(name = "file_size")

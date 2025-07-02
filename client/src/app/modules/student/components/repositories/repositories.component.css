@@ -194,8 +194,13 @@
 }
 
 .repository-footer {
-  padding: 16px 20px;
-  border-top: 1px solid #f8f9fa;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 16px;
+  border-top: 1px solid #e9ecef;
+  background: #f8f9fa;
+  border-radius: 0 0 12px 12px;
 }
 
 .repo-actions {
@@ -203,20 +208,40 @@
   gap: 12px;
 }
 
+.repo-access {
+  display: flex;
+  align-items: center;
+}
+
+.access-badge {
+  padding: 6px 12px;
+  border-radius: 20px;
+  font-size: 12px;
+  font-weight: 600;
+  text-transform: uppercase;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.access-badge.member {
+  background: #d4e6f1;
+  color: #1f4e79;
+}
+
 .action-btn {
-  padding: 10px 16px;
+  padding: 8px 14px;
   border: none;
   border-radius: 6px;
-  font-size: 14px;
+  font-size: 13px;
   font-weight: 500;
   cursor: pointer;
   display: flex;
   align-items: center;
-  gap: 8px;
+  gap: 6px;
   text-decoration: none;
   transition: all 0.2s ease;
-  flex: 1;
-  justify-content: center;
+  white-space: nowrap;
 }
 
 .view-btn {
