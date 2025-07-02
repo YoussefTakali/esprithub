@@ -378,6 +378,20 @@
   gap: 0.2rem;
   box-sizing: border-box;
 }
+.sidebar button {
+  border: none;
+  background: none;
+  cursor: pointer;
+}
+
+.sidebar button:focus {
+  outline: none;
+}
+
+.sidebar .tree-icon i,
+.sidebar .add-icon i,
+.sidebar .remove-icon i {
+  pointer-events: none; }
 .status-dropdown div {
   padding: 12px 22px;
   cursor: pointer;

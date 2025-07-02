@@ -74,6 +74,19 @@ public class RepositoryController {
         return ResponseEntity.ok(users);
     }
 
+    @PostMapping
+    public ResponseEntity<RepositoryDto> createRepository(
+            @RequestBody Map<String, Object> repositoryData,
+            Authentication authentication) {
+        String name = (String) repositoryData.get("name");
+        String description = (String) repositoryData.get("description");
+        Boolean isPrivate = (Boolean) repositoryData.getOrDefault("isPrivate", true);
+        
+        log.info("Creating repository: {} by teacher: {}", name, authentication.getName());
+        RepositoryDto repository = repositoryService.createRepository(name, description, isPrivate, authentication.getName());
+        return ResponseEntity.ok(repository);
+    }
+
     @GetMapping("/{owner}/{repo}/stats")
     public ResponseEntity<RepositoryStatsDto> getRepositoryStats(
             @PathVariable String owner,

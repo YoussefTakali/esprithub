@@ -1,0 +1,75 @@
+<div class="student-submissions">
+  <div class="submissions-header">
+    <div class="header-content">
+      <h1>My Submissions</h1>
+      <p>Track your assignment submissions and grades</p>
+    </div>
+    <button class="refresh-btn" (click)="refresh()" [disabled]="loading">
+      <i class="fas fa-sync-alt" [class.spinning]="loading"></i>
+      Refresh
+    </button>
+  </div>
+
+  <div *ngIf="loading" class="loading-container">
+    <div class="loading-spinner">
+      <i class="fas fa-spinner fa-spin"></i>
+      <p>Loading your submissions...</p>
+    </div>
+  </div>
+
+  <div *ngIf="error" class="error-container">
+    <div class="error-message">
+      <i class="fas fa-exclamation-triangle"></i>
+      <p>{{ error }}</p>
+      <button class="retry-btn" (click)="loadSubmissions()">Try Again</button>
+    </div>
+  </div>
+
+  <div *ngIf="!loading && !error" class="submissions-content">
+    <div *ngIf="submissions.length === 0" class="empty-state">
+      <i class="fas fa-file-upload"></i>
+      <h3>No submissions found</h3>
+      <p>You haven't made any submissions yet.</p>
+    </div>
+
+    <div *ngIf="submissions.length > 0" class="submissions-grid">
+      <div *ngFor="let submission of submissions" class="submission-card">
+        <div class="submission-header">
+          <h3>{{ submission.taskTitle }}</h3>
+          <div class="submission-status" [style.background-color]="getStatusColor(submission.status)">
+            {{ submission.status }}
+          </div>
+        </div>
+
+        <div class="submission-content">
+          <div class="submission-meta">
+            <div class="meta-item">
+              <i class="fas fa-calendar"></i>
+              <span>Submitted: {{ formatDate(submission.submittedAt) }}</span>
+            </div>
+            <div *ngIf="submission.grade" class="meta-item grade">
+              <i class="fas fa-star"></i>
+              <span>Grade: {{ submission.grade }}%</span>
+            </div>
+          </div>
+
+          <div *ngIf="submission.feedback" class="feedback-section">
+            <h4>Feedback:</h4>
+            <p>{{ submission.feedback }}</p>
+          </div>
+
+          <div *ngIf="submission.files.length > 0" class="files-section">
+            <h4>Submitted Files:</h4>
+            <div class="files-list">
+              <div *ngFor="let file of submission.files" class="file-item">
+                <i class="fas fa-file"></i>
+                <span>{{ file.name }}</span>
+                <small>({{ (file.size / 1024) | number:'1.0-1' }} KB)</small>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>

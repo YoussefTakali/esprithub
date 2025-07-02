@@ -159,4 +159,13 @@ export class RepositoryService {
   deleteRepository(repoFullName: string): Observable<any> {
     return this.http.delete(`${this.apiUrl}/${repoFullName}`);
   }
+
+  // Create repository
+  createRepository(name: string, description: string, isPrivate: boolean = true): Observable<Repository> {
+    return this.http.post<Repository>(this.apiUrl, {
+      name: name,
+      description: description,
+      isPrivate: isPrivate
+    });
+  }
 }

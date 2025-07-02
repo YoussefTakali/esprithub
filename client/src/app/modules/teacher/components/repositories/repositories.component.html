@@ -2,7 +2,7 @@
   <div class="repositories-header">
     <h1 class="repositories-title">Your Repositories</h1>
     <button class="add-repo-btn" mat-raised-button color="primary" (click)="addRepository()">
-      <mat-icon>add</mat-icon> New Repository
+      <i class="fas fa-plus"></i> New Repository
     </button>
   </div>
   <div class="repositories-search">
@@ -10,7 +10,7 @@
       <mat-label>Search repositories</mat-label>
       <input matInput placeholder="Type to search..." [(ngModel)]="searchTerm">
       <button mat-icon-button matSuffix *ngIf="searchTerm" (click)="searchTerm = ''">
-        <mat-icon>close</mat-icon>
+        <i class="fas fa-times"></i>
       </button>
     </mat-form-field>
   </div>
@@ -19,7 +19,7 @@
     <p>Loading repositories...</p>
   </div>
   <div *ngIf="!loading && (repositories?.length || 0) === 0" class="empty-state">
-    <mat-icon>folder_open</mat-icon>
+    <i class="fas fa-folder-open"></i>
     <h2>No repositories found</h2>
     <p>Connect your GitHub account or create a new repository to get started.</p>
   </div>
@@ -28,7 +28,7 @@
       <div class="repo-header">
         <span class="repo-name">{{ repo.name }}</span>
         <span class="repo-visibility" [class.private]="repo.isPrivate">
-          <mat-icon>{{ repo.isPrivate ? 'lock' : 'public' }}</mat-icon>
+          <i class="fas {{ repo.isPrivate ? 'fa-lock' : 'fa-globe' }}"></i>
           {{ repo.isPrivate ? 'Private' : 'Public' }}
         </span>
       </div>
@@ -42,10 +42,10 @@
       </div>
       <div class="repo-actions">
         <button mat-stroked-button color="primary" (click)="navigateToRepository(repo)">
-          <mat-icon>folder</mat-icon> View
+          <i class="fas fa-folder"></i> View
         </button>
         <a [href]="repo.url" target="_blank" mat-icon-button matTooltip="Open on GitHub">
-          <mat-icon>open_in_new</mat-icon>
+          <i class="fab fa-github"></i>
         </a>
       </div>
     </div>

@@ -1,0 +1,130 @@
+@startuml EspritHub Entity Relationships
+
+!theme plain
+skinparam {
+  ClassBackgroundColor #ffffff
+  ClassBorderColor #2c3e50
+  ClassHeaderBackgroundColor #3498db
+  ClassHeaderFontColor #ffffff
+  ArrowColor #e74c3c
+  ArrowFontSize 11
+  ClassFontSize 11
+  PackageFontSize 13
+  PackageBackgroundColor #ecf0f1
+  PackageBorderColor #95a5a6
+  NoteBorderColor #f39c12
+  NoteBackgroundColor #fef9e7
+}
+
+' Core entities with key attributes only
+class User {
+  +email: String
+  +role: UserRole
+  +firstName: String
+  +lastName: String
+  +githubToken: String
+}
+
+class Departement {
+  +nom: String
+  +specialite: Specialites
+  +typeFormation: TypeFormation
+}
+
+class Niveau {
+  +nom: String
+  +annee: Integer
+}
+
+class Classe {
+  +nom: String
+  +capacite: Integer
+}
+
+class Project {
+  +name: String
+  +description: String
+  +deadline: LocalDateTime
+}
+
+class Group {
+  +name: String
+}
+
+class Task {
+  +title: String
+  +type: TaskAssignmentType
+  +status: TaskStatus
+}
+
+class Repository {
+  +name: String
+  +fullName: String
+  +isPrivate: Boolean
+}
+
+class CodeVersion {
+  +commitSha: String
+  +filePath: String
+  +commitMessage: String
+}
+
+' Key relationship labels with cardinalities
+Departement ||--|| User : "1 chief"
+Departement ||--o{ User : "N teachers"
+Departement ||--o{ Niveau : "N levels"
+
+Niveau ||--o{ Classe : "N classes"
+
+Classe ||--o{ User : "N students"
+User }o--o{ Classe : "teaches N classes"
+
+User ||--o{ Project : "creates N projects"
+Project }o--o{ Classe : "assigned to N classes"
+Project ||--o{ Group : "contains N groups"
+
+Group }o--|| Classe : "belongs to 1 class"
+Group }o--o{ User : "has N students"
+Group ||--o| Repository : "may have 1 repo"
+
+User ||--o{ Repository : "owns N repositories"
+Repository ||--o{ CodeVersion : "has N versions"
+CodeVersion }o--|| User : "authored by 1 user"
+
+Task }o--o{ Project : "assigned to N projects"
+Task }o--o{ Group : "assigned to N groups"
+Task }o--o{ User : "assigned to N students"
+Task }o--o{ Classe : "assigned to N classes"
+
+' Notes explaining key concepts
+note top of User
+  **4 Roles:**
+  • ADMIN - System administrator
+  • CHIEF - Department chief
+  • TEACHER - Course instructor
+  • STUDENT - Enrolled student
+end note
+
+note bottom of Repository
+  **GitHub Integration:**
+  • Synchronized with GitHub API
+  • Contains real repository data
+  • Tracks all file versions
+end note
+
+note right of Task
+  **3 Assignment Types:**
+  • INDIVIDUAL - to specific students
+  • GROUP - to specific groups
+  • CLASS - to entire classes
+end note
+
+note left of CodeVersion
+  **Version Control:**
+  • Every commit tracked
+  • Full file content stored
+  • Change statistics maintained
+  • Supports code analytics
+end note
+
+@enduml

@@ -1,0 +1,136 @@
+<div class="student-projects">
+  <!-- Header -->
+  <div class="projects-header">
+    <div class="header-content">
+      <h1>My Projects</h1>
+      <p>Collaborate on projects and track progress</p>
+    </div>
+    <button class="refresh-btn" (click)="refresh()" [disabled]="loading">
+      <i class="fas fa-sync-alt" [class.spinning]="loading"></i>
+      Refresh
+    </button>
+  </div>
+
+  <!-- Search -->
+  <div class="search-section">
+    <div class="search-box">
+      <i class="fas fa-search"></i>
+      <input type="text" 
+             placeholder="Search projects..." 
+             [(ngModel)]="searchTerm" 
+             (input)="onSearchChange()">
+    </div>
+  </div>
+
+  <!-- Loading State -->
+  <div *ngIf="loading" class="loading-container">
+    <div class="loading-spinner">
+      <i class="fas fa-spinner fa-spin"></i>
+      <p>Loading your projects...</p>
+    </div>
+  </div>
+
+  <!-- Error State -->
+  <div *ngIf="error" class="error-container">
+    <div class="error-message">
+      <i class="fas fa-exclamation-triangle"></i>
+      <p>{{ error }}</p>
+      <button class="retry-btn" (click)="loadProjects()">Try Again</button>
+    </div>
+  </div>
+
+  <!-- Projects Content -->
+  <div *ngIf="!loading && !error" class="projects-content">
+    
+    <!-- Empty State -->
+    <div *ngIf="filteredProjects.length === 0" class="empty-state">
+      <i class="fas fa-folder-open"></i>
+      <h3>No projects found</h3>
+      <p>You haven't been assigned to any projects yet.</p>
+    </div>
+
+    <!-- Projects Grid -->
+    <div *ngIf="filteredProjects.length > 0" class="projects-grid">
+      <div *ngFor="let project of filteredProjects" class="project-card" [class.overdue]="isOverdue(project.deadline)">
+        
+        <!-- Project Header -->
+        <div class="project-header">
+          <h3>{{ project.name }}</h3>
+          <div class="project-status" [class.overdue]="isOverdue(project.deadline)">
+            <i class="fas fa-clock"></i>
+            <ng-container *ngIf="!isOverdue(project.deadline)">
+              {{ getDaysUntilDeadline(project.deadline) }} days left
+            </ng-container>
+            <ng-container *ngIf="isOverdue(project.deadline)">
+              Overdue
+            </ng-container>
+          </div>
+        </div>
+
+        <!-- Project Content -->
+        <div class="project-content">
+          <p class="project-description">{{ project.description }}</p>
+          
+          <!-- Project Stats -->
+          <div class="project-stats">
+            <div class="stat-item">
+              <i class="fas fa-users"></i>
+              <span>{{ project.groups.length }} Groups</span>
+            </div>
+            <div class="stat-item">
+              <i class="fas fa-tasks"></i>
+              <span>{{ project.tasks.length }} Tasks</span>
+            </div>
+            <div class="stat-item">
+              <i class="fas fa-graduation-cap"></i>
+              <span>{{ project.classes.length }} Classes</span>
+            </div>
+          </div>
+
+          <!-- Collaborators -->
+          <div *ngIf="project.collaborators.length > 0" class="collaborators">
+            <h4>Collaborators:</h4>
+            <div class="collaborator-list">
+              <div *ngFor="let collaborator of project.collaborators" class="collaborator">
+                <i class="fas fa-user"></i>
+                <span>{{ collaborator.firstName }} {{ collaborator.lastName }}</span>
+              </div>
+            </div>
+          </div>
+
+          <!-- Groups -->
+          <div *ngIf="project.groups.length > 0" class="project-groups">
+            <h4>My Groups:</h4>
+            <div class="group-list">
+              <div *ngFor="let group of project.groups" class="group-item">
+                <i class="fas fa-users"></i>
+                <span>{{ group.name }}</span>
+                <small>({{ group.members.length }} members)</small>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Project Footer -->
+        <div class="project-footer">
+          <div class="deadline-info">
+            <i class="fas fa-calendar"></i>
+            <span>Due: {{ formatDate(project.deadline) }}</span>
+          </div>
+          <div class="project-actions">
+            <button class="action-btn view-btn" routerLink="/student/projects/{{ project.id }}">
+              <i class="fas fa-eye"></i>
+              View Details
+            </button>
+          </div>
+        </div>
+
+        <!-- Creator info -->
+        <div class="creator-info">
+          <i class="fas fa-user-tie"></i>
+          <span>Created by {{ project.createdByName }}</span>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>

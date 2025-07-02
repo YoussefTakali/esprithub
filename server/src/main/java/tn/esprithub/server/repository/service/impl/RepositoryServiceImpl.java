@@ -638,4 +638,76 @@ public class RepositoryServiceImpl implements RepositoryService {
             throw new BusinessException("Failed to fetch commits: " + e.getMessage());
         }
     }
+
+    @Override
+    public RepositoryDto createRepository(String repositoryName, String description, boolean isPrivate, String teacherEmail) {
+        User teacher = getTeacherWithGitHubToken(teacherEmail);
+        
+        try {
+            // Create repository payload
+            Map<String, Object> repoPayload = new HashMap<>();
+            repoPayload.put("name", repositoryName);
+            repoPayload.put("description", description != null ? description : "");
+            repoPayload.put("private", isPrivate);
+            repoPayload.put("auto_init", true); // Initialize with README
+            repoPayload.put("has_issues", true);
+            repoPayload.put("has_wiki", true);
+            repoPayload.put("has_downloads", true);
+            
+            String url = GITHUB_API_BASE + "/user/repos";
+            HttpHeaders headers = createHeaders(teacher.getGithubToken());
+            headers.setContentType(MediaType.APPLICATION_JSON);
+            HttpEntity<Map<String, Object>> entity = new HttpEntity<>(repoPayload, headers);
+            
+            ResponseEntity<String> response = restTemplate.exchange(url, HttpMethod.POST, entity, String.class);
+            
+            if (response.getStatusCode().is2xxSuccessful()) {
+                JsonNode repoNode = objectMapper.readTree(response.getBody());
+                
+                // Save repository to database
+                tn.esprithub.server.repository.entity.Repository repoEntity = new tn.esprithub.server.repository.entity.Repository();
+                repoEntity.setName(repositoryName);
+                repoEntity.setFullName(repoNode.get("full_name").asText());
+                repoEntity.setDescription(description);
+                repoEntity.setUrl(repoNode.get("html_url").asText());
+                repoEntity.setIsPrivate(isPrivate);
+                repoEntity.setDefaultBranch(repoNode.get("default_branch").asText());
+                repoEntity.setCloneUrl(repoNode.get("clone_url").asText());
+                repoEntity.setSshUrl(repoNode.get("ssh_url").asText());
+                repoEntity.setOwner(teacher);
+                
+                repositoryEntityRepository.save(repoEntity);
+                
+                // Convert to DTO and return
+                return RepositoryDto.builder()
+                    .name(repositoryName)
+                    .fullName(repoNode.get("full_name").asText())
+                    .description(description)
+                    .url(repoNode.get("html_url").asText())
+                    .isPrivate(isPrivate)
+                    .createdAt(parseGitHubDate(repoNode.get("created_at").asText()))
+                    .updatedAt(parseGitHubDate(repoNode.get("updated_at").asText()))
+                    .defaultBranch(repoNode.get("default_branch").asText())
+                    .starCount(repoNode.get("stargazers_count").asInt())
+                    .forkCount(repoNode.get("forks_count").asInt())
+                    .language(repoNode.has("language") && !repoNode.get("language").isNull() ? 
+                        repoNode.get("language").asText() : "")
+                    .size(repoNode.get("size").asLong())
+                    .collaborators(new ArrayList<>())
+                    .branches(List.of(repoNode.get("default_branch").asText()))
+                    .hasIssues(repoNode.get("has_issues").asBoolean())
+                    .hasWiki(repoNode.get("has_wiki").asBoolean())
+                    .cloneUrl(repoNode.get("clone_url").asText())
+                    .sshUrl(repoNode.get("ssh_url").asText())
+                    .build();
+                
+            } else {
+                throw new BusinessException("Failed to create repository on GitHub");
+            }
+            
+        } catch (Exception e) {
+            log.error("Error creating repository {}: {}", repositoryName, e.getMessage());
+            throw new BusinessException("Failed to create repository: " + e.getMessage());
+        }
+    }
 }

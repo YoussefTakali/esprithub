@@ -1,0 +1,230 @@
+<div class="student-dashboard">
+  <!-- Header -->
+  <div class="dashboard-header">
+    <div class="header-content">
+      <h1>Student Dashboard</h1>
+      <p>Welcome back! Here's an overview of your academic progress.</p>
+    </div>
+    <button class="refresh-btn" (click)="refresh()" [disabled]="loading">
+      <i class="fas fa-sync-alt" [class.spinning]="loading"></i>
+      Refresh
+    </button>
+  </div>
+
+  <!-- Loading State -->
+  <div *ngIf="loading" class="loading-container">
+    <div class="loading-spinner">
+      <i class="fas fa-spinner fa-spin"></i>
+      <p>Loading your dashboard...</p>
+    </div>
+  </div>
+
+  <!-- Error State -->
+  <div *ngIf="error" class="error-container">
+    <div class="error-message">
+      <i class="fas fa-exclamation-triangle"></i>
+      <p>{{ error }}</p>
+      <button class="retry-btn" (click)="loadDashboard()">Try Again</button>
+    </div>
+  </div>
+
+  <!-- Dashboard Content -->
+  <div *ngIf="!loading && !error && dashboard" class="dashboard-content">
+    
+    <!-- Stats Cards -->
+    <div class="stats-grid">
+      <div class="stat-card tasks-stat">
+        <div class="stat-icon">
+          <i class="fas fa-tasks"></i>
+        </div>
+        <div class="stat-content">
+          <h3>{{ dashboard.activeTasks }}</h3>
+          <p>Active Tasks</p>
+          <small>{{ dashboard.completedTasks }} completed</small>
+        </div>
+      </div>
+
+      <div class="stat-card projects-stat">
+        <div class="stat-icon">
+          <i class="fas fa-folder-open"></i>
+        </div>
+        <div class="stat-content">
+          <h3>{{ dashboard.totalProjects }}</h3>
+          <p>Projects</p>
+          <small>In progress</small>
+        </div>
+      </div>
+
+      <div class="stat-card groups-stat">
+        <div class="stat-icon">
+          <i class="fas fa-users"></i>
+        </div>
+        <div class="stat-content">
+          <h3>{{ dashboard.totalGroups }}</h3>
+          <p>Groups</p>
+          <small>Active memberships</small>
+        </div>
+      </div>
+
+      <div class="stat-card progress-stat">
+        <div class="stat-icon">
+          <i class="fas fa-chart-line"></i>
+        </div>
+        <div class="stat-content">
+          <h3>{{ dashboard.progressStats.tasksCompletionRate }}%</h3>
+          <p>Completion Rate</p>
+          <small>Tasks completed on time</small>
+        </div>
+      </div>
+    </div>
+
+    <!-- Main Content Grid -->
+    <div class="main-grid">
+      
+      <!-- Upcoming Deadlines -->
+      <div class="dashboard-card deadlines-card">
+        <div class="card-header">
+          <h2>
+            <i class="fas fa-clock"></i>
+            Upcoming Deadlines
+          </h2>
+        </div>
+        <div class="card-content">
+          <div *ngIf="dashboard.upcomingDeadlines.length === 0" class="empty-state">
+            <i class="fas fa-calendar-check"></i>
+            <p>No upcoming deadlines</p>
+          </div>
+          <div *ngFor="let deadline of dashboard.upcomingDeadlines" class="deadline-item">
+            <div class="deadline-priority" [style.background-color]="getPriorityColor(deadline.priority)"></div>
+            <div class="deadline-content">
+              <h4>{{ deadline.title }}</h4>
+              <p class="deadline-type">{{ deadline.type }}</p>
+              <div class="deadline-meta">
+                <span class="deadline-date">
+                  <i class="fas fa-calendar"></i>
+                  {{ formatDate(deadline.dueDate) }}
+                </span>
+                <span class="deadline-days" [class.urgent]="getDaysUntilDeadline(deadline.dueDate) <= 2">
+                  {{ getDaysUntilDeadline(deadline.dueDate) }} days left
+                </span>
+              </div>
+            </div>
+            <div class="deadline-status">
+              <span class="status-badge" [class]="'status-' + deadline.status.toLowerCase()">
+                {{ deadline.status }}
+              </span>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Recent Notifications -->
+      <div class="dashboard-card notifications-card">
+        <div class="card-header">
+          <h2>
+            <i class="fas fa-bell"></i>
+            Recent Notifications
+          </h2>
+        </div>
+        <div class="card-content">
+          <div *ngIf="dashboard.recentNotifications.length === 0" class="empty-state">
+            <i class="fas fa-bell-slash"></i>
+            <p>No recent notifications</p>
+          </div>
+          <button *ngFor="let notification of dashboard.recentNotifications" 
+               class="notification-item" 
+               [class.unread]="!notification.read"
+               (click)="markNotificationAsRead(notification.id)">
+            <div class="notification-icon" [style.color]="getNotificationColor(notification.type)">
+              <i [class]="getNotificationIcon(notification.type)"></i>
+            </div>
+            <div class="notification-content">
+              <p>{{ notification.message }}</p>
+              <small>{{ formatDate(notification.createdAt) }}</small>
+            </div>
+            <div *ngIf="!notification.read" class="unread-indicator"></div>
+          </button>
+        </div>
+      </div>
+
+      <!-- Progress Overview -->
+      <div class="dashboard-card progress-card">
+        <div class="card-header">
+          <h2>
+            <i class="fas fa-chart-pie"></i>
+            Progress Overview
+          </h2>
+        </div>
+        <div class="card-content">
+          <div class="progress-item">
+            <div class="progress-label">
+              <span>Task Completion</span>
+              <span class="progress-value">{{ dashboard.progressStats.tasksCompletionRate }}%</span>
+            </div>
+            <div class="progress-bar">
+              <div class="progress-fill" [style.width.%]="dashboard.progressStats.tasksCompletionRate"></div>
+            </div>
+          </div>
+
+          <div class="progress-item">
+            <div class="progress-label">
+              <span>On-Time Submissions</span>
+              <span class="progress-value">{{ dashboard.progressStats.submissionsOnTime }}%</span>
+            </div>
+            <div class="progress-bar">
+              <div class="progress-fill" [style.width.%]="dashboard.progressStats.submissionsOnTime"></div>
+            </div>
+          </div>
+
+          <div class="progress-item">
+            <div class="progress-label">
+              <span>Group Participation</span>
+              <span class="progress-value">{{ dashboard.progressStats.groupParticipation }}%</span>
+            </div>
+            <div class="progress-bar">
+              <div class="progress-fill" [style.width.%]="dashboard.progressStats.groupParticipation"></div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Quick Actions -->
+      <div class="dashboard-card actions-card">
+        <div class="card-header">
+          <h2>
+            <i class="fas fa-bolt"></i>
+            Quick Actions
+          </h2>
+        </div>
+        <div class="card-content">
+          <div class="action-buttons">
+            <button class="action-btn" routerLink="/student/tasks">
+              <i class="fas fa-tasks"></i>
+              <span>View Tasks</span>
+            </button>
+            <button class="action-btn" routerLink="/student/projects">
+              <i class="fas fa-folder-open"></i>
+              <span>My Projects</span>
+            </button>
+            <button class="action-btn" routerLink="/student/groups">
+              <i class="fas fa-users"></i>
+              <span>My Groups</span>
+            </button>
+            <button class="action-btn" routerLink="/student/submissions">
+              <i class="fas fa-file-upload"></i>
+              <span>Submissions</span>
+            </button>
+            <button class="action-btn" routerLink="/student/repositories">
+              <i class="fab fa-github"></i>
+              <span>Repositories</span>
+            </button>
+            <button class="action-btn" routerLink="/student/schedule">
+              <i class="fas fa-calendar-alt"></i>
+              <span>Schedule</span>
+            </button>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>

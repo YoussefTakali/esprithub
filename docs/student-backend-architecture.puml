@@ -1,0 +1,613 @@
+@startuml Student Backend Architecture
+
+!theme plain
+skinparam {
+  ClassBackgroundColor #ffffff
+  ClassBorderColor #6c757d
+  ClassHeaderBackgroundColor #f8f9fa
+  ArrowColor #495057
+  ArrowFontSize 10
+  ClassFontSize 11
+  PackageFontSize 13
+  PackageBackgroundColor #fff3cd
+  PackageBorderColor #ffc107
+}
+
+package "Student API Layer" #ffebee {
+  
+  class StudentController {
+    -studentService: StudentService
+    --
+    @GetMapping("/dashboard")
+    +getDashboard(Authentication): ResponseEntity<StudentDashboardDto>
+    
+    @GetMapping("/tasks")
+    +getTasks(Authentication): ResponseEntity<List<StudentTaskDto>>
+    
+    @GetMapping("/tasks/{id}")
+    +getTaskById(String, Authentication): ResponseEntity<StudentTaskDto>
+    
+    @PutMapping("/tasks/{id}/status")
+    +updateTaskStatus(String, Map, Authentication): ResponseEntity<Void>
+    
+    @GetMapping("/groups")
+    +getGroups(Authentication): ResponseEntity<List<StudentGroupDto>>
+    
+    @GetMapping("/groups/{id}")
+    +getGroupById(String, Authentication): ResponseEntity<StudentGroupDto>
+    
+    @GetMapping("/projects")
+    +getProjects(Authentication): ResponseEntity<List<StudentProjectDto>>
+    
+    @GetMapping("/projects/{id}")
+    +getProjectById(String, Authentication): ResponseEntity<StudentProjectDto>
+    
+    @GetMapping("/submissions")
+    +getSubmissions(Authentication): ResponseEntity<List<StudentSubmission>>
+    
+    @PostMapping("/tasks/{id}/submit")
+    +submitTask(String, MultipartFile[], Authentication): ResponseEntity<StudentSubmission>
+    
+    @GetMapping("/repositories")
+    +getRepositories(Authentication): ResponseEntity<List<Repository>>
+    
+    @GetMapping("/repositories/{id}")
+    +getRepositoryById(String, Authentication): ResponseEntity<Repository>
+    
+    @GetMapping("/notifications")
+    +getNotifications(Authentication): ResponseEntity<List<Notification>>
+    
+    @PutMapping("/notifications/{id}/read")
+    +markNotificationAsRead(String, Authentication): ResponseEntity<Void>
+    
+    @GetMapping("/schedule")
+    +getSchedule(Authentication): ResponseEntity<List<StudentSchedule>>
+    
+    @GetMapping("/profile")
+    +getProfile(Authentication): ResponseEntity<User>
+    
+    @PutMapping("/profile")
+    +updateProfile(User, Authentication): ResponseEntity<User>
+  }
+}
+
+package "Service Layer" #e8f5e8 {
+  
+  interface StudentService {
+    +getDashboard(UUID studentId): StudentDashboardDto
+    +getTasks(UUID studentId): List<StudentTaskDto>
+    +getTaskById(UUID taskId, UUID studentId): StudentTaskDto
+    +updateTaskStatus(UUID taskId, String status, UUID studentId): void
+    +getGroups(UUID studentId): List<StudentGroupDto>
+    +getGroupById(UUID groupId, UUID studentId): StudentGroupDto
+    +getProjects(UUID studentId): List<StudentProjectDto>
+    +getProjectById(UUID projectId, UUID studentId): StudentProjectDto
+    +getSubmissions(UUID studentId): List<StudentSubmission>
+    +submitTask(UUID taskId, List<MultipartFile> files, UUID studentId): StudentSubmission
+    +getRepositories(UUID studentId): List<Repository>
+    +getRepositoryById(UUID repositoryId, UUID studentId): Repository
+    +getNotifications(UUID studentId): List<Notification>
+    +markNotificationAsRead(UUID notificationId, UUID studentId): void
+    +getSchedule(UUID studentId): List<StudentSchedule>
+    +getProfile(UUID studentId): User
+    +updateProfile(User user, UUID studentId): User
+  }
+  
+  class StudentServiceImpl {
+    -taskRepository: TaskRepository
+    -groupRepository: GroupRepository
+    -projectRepository: ProjectRepository
+    -submissionRepository: SubmissionRepository
+    -repositoryRepository: RepositoryRepository
+    -userRepository: UserRepository
+    -classeRepository: ClasseRepository
+    -notificationRepository: NotificationRepository
+    -fileStorageService: FileStorageService
+    --
+    +getDashboard(UUID): StudentDashboardDto
+    +getTasks(UUID): List<StudentTaskDto>
+    +getTaskById(UUID, UUID): StudentTaskDto
+    +updateTaskStatus(UUID, String, UUID): void
+    +getGroups(UUID): List<StudentGroupDto>
+    +getGroupById(UUID, UUID): StudentGroupDto
+    +getProjects(UUID): List<StudentProjectDto>
+    +getProjectById(UUID, UUID): StudentProjectDto
+    +getSubmissions(UUID): List<StudentSubmission>
+    +submitTask(UUID, List<MultipartFile>, UUID): StudentSubmission
+    +getRepositories(UUID): List<Repository>
+    +getRepositoryById(UUID, UUID): Repository
+    +getNotifications(UUID): List<Notification>
+    +markNotificationAsRead(UUID, UUID): void
+    +getSchedule(UUID): List<StudentSchedule>
+    +getProfile(UUID): User
+    +updateProfile(User, UUID): User
+    --
+    -buildDashboardStats(User): StudentDashboardDto
+    -getUpcomingDeadlines(User): List<TaskDeadlineDto>
+    -getRecentNotifications(User): List<NotificationDto>
+    -calculateProgressStats(User): ProgressStatsDto
+    -mapToTaskDto(Task): StudentTaskDto
+    -mapToGroupDto(Group): StudentGroupDto
+    -mapToProjectDto(Project): StudentProjectDto
+    -validateStudentAccess(UUID, UUID): void
+  }
+}
+
+package "DTO Layer" #f3e5f5 {
+  
+  class StudentDashboardDto {
+    +activeTasks: Integer
+    +completedTasks: Integer
+    +totalGroups: Integer
+    +totalProjects: Integer
+    +upcomingDeadlines: List<TaskDeadlineDto>
+    +recentNotifications: List<NotificationDto>
+    +progressStats: ProgressStatsDto
+  }
+  
+  class StudentTaskDto {
+    +id: UUID
+    +title: String
+    +description: String
+    +type: TaskAssignmentType
+    +dueDate: LocalDateTime
+    +status: TaskStatus
+    +isGraded: Boolean
+    +isVisible: Boolean
+    +projectId: UUID
+    +projectName: String
+    +groupId: UUID
+    +groupName: String
+    +classId: UUID
+    +className: String
+    +createdAt: LocalDateTime
+    +updatedAt: LocalDateTime
+  }
+  
+  class StudentGroupDto {
+    +id: UUID
+    +name: String
+    +projectId: UUID
+    +projectName: String
+    +classId: UUID
+    +className: String
+    +members: List<GroupMemberDto>
+    +repository: RepositoryDto
+    +createdAt: LocalDateTime
+    
+    class GroupMemberDto {
+      +id: UUID
+      +firstName: String
+      +lastName: String
+      +email: String
+    }
+    
+    class RepositoryDto {
+      +id: UUID
+      +name: String
+      +fullName: String
+      +description: String
+      +url: String
+      +isPrivate: Boolean
+      +defaultBranch: String
+      +cloneUrl: String
+      +sshUrl: String
+      +isActive: Boolean
+    }
+  }
+  
+  class StudentProjectDto {
+    +id: UUID
+    +name: String
+    +description: String
+    +deadline: LocalDateTime
+    +createdBy: UUID
+    +createdByName: String
+    +collaborators: List<CollaboratorDto>
+    +groups: List<GroupSummaryDto>
+    +tasks: List<TaskSummaryDto>
+    +classes: List<ClassSummaryDto>
+    +createdAt: LocalDateTime
+    +updatedAt: LocalDateTime
+    
+    class CollaboratorDto {
+      +id: UUID
+      +firstName: String
+      +lastName: String
+      +email: String
+    }
+    
+    class GroupSummaryDto {
+      +id: UUID
+      +name: String
+      +memberCount: Integer
+    }
+    
+    class TaskSummaryDto {
+      +id: UUID
+      +title: String
+      +type: TaskAssignmentType
+      +dueDate: LocalDateTime
+      +status: TaskStatus
+    }
+    
+    class ClassSummaryDto {
+      +id: UUID
+      +name: String
+      +description: String
+      +code: String
+    }
+  }
+  
+  class TaskDeadlineDto {
+    +id: UUID
+    +title: String
+    +dueDate: LocalDateTime
+    +type: TaskAssignmentType
+    +priority: String
+    +status: TaskStatus
+  }
+  
+  class NotificationDto {
+    +id: UUID
+    +message: String
+    +type: String
+    +createdAt: LocalDateTime
+    +read: Boolean
+  }
+  
+  class ProgressStatsDto {
+    +tasksCompletionRate: Double
+    +submissionsOnTime: Double
+    +groupParticipation: Double
+  }
+}
+
+package "Entity Layer" #e0f2f1 {
+  
+  package "Project Management" #fff8e1 {
+    class Task {
+      +id: UUID
+      +title: String
+      +description: String
+      +type: TaskAssignmentType
+      +dueDate: LocalDateTime
+      +status: TaskStatus
+      +graded: Boolean
+      +isVisible: Boolean
+      +project: Project
+      +groups: List<Group>
+      +assignedStudents: List<User>
+      +assignedClasses: List<Classe>
+      +submissions: List<Submission>
+      +createdAt: LocalDateTime
+      +updatedAt: LocalDateTime
+    }
+    
+    class Project {
+      +id: UUID
+      +name: String
+      +description: String
+      +deadline: LocalDateTime
+      +createdBy: User
+      +collaborators: List<User>
+      +groups: List<Group>
+      +tasks: List<Task>
+      +classes: List<Classe>
+      +createdAt: LocalDateTime
+      +updatedAt: LocalDateTime
+    }
+    
+    class Group {
+      +id: UUID
+      +name: String
+      +project: Project
+      +classe: Classe
+      +members: List<User>
+      +tasks: List<Task>
+      +repository: Repository
+      +submissions: List<Submission>
+      +createdAt: LocalDateTime
+      +updatedAt: LocalDateTime
+    }
+    
+    class Submission {
+      +id: UUID
+      +task: Task
+      +student: User
+      +group: Group
+      +submittedAt: LocalDateTime
+      +status: SubmissionStatus
+      +grade: Double
+      +maxGrade: Double
+      +feedback: String
+      +gradedAt: LocalDateTime
+      +gradedBy: User
+      +isLate: Boolean
+      +attemptNumber: Integer
+      +files: List<SubmissionFile>
+      +notes: String
+      +createdAt: LocalDateTime
+      +updatedAt: LocalDateTime
+      --
+      +isGraded(): boolean
+      +isPassing(): boolean
+      +getGradePercentage(): double
+      +addFile(SubmissionFile): void
+      +removeFile(SubmissionFile): void
+    }
+    
+    class SubmissionFile {
+      +id: UUID
+      +submission: Submission
+      +fileName: String
+      +originalName: String
+      +filePath: String
+      +fileSize: Long
+      +contentType: String
+      +fileUrl: String
+      +isActive: Boolean
+      +createdAt: LocalDateTime
+      +updatedAt: LocalDateTime
+      --
+      +getFileExtension(): String
+      +getDisplaySize(): String
+    }
+  }
+  
+  package "Repository Management" #f1f8e9 {
+    class Repository {
+      +id: UUID
+      +name: String
+      +fullName: String
+      +description: String
+      +url: String
+      +isPrivate: Boolean
+      +defaultBranch: String
+      +cloneUrl: String
+      +sshUrl: String
+      +isActive: Boolean
+      +owner: User
+      +groups: List<Group>
+      +codeVersions: List<CodeVersion>
+      +createdAt: LocalDateTime
+      +updatedAt: LocalDateTime
+    }
+    
+    class CodeVersion {
+      +id: UUID
+      +repository: Repository
+      +commitSha: String
+      +commitMessage: String
+      +filePath: String
+      +fileContent: String
+      +fileSize: Long
+      +lineCount: Integer
+      +language: String
+      +branchName: String
+      +isBinary: Boolean
+      +encoding: String
+      +mimeType: String
+      +linesAdded: Integer
+      +linesDeleted: Integer
+      +linesModified: Integer
+      +tags: String
+      +status: VersionStatus
+      +author: User
+      +parentVersion: CodeVersion
+      +createdAt: LocalDateTime
+      +updatedAt: LocalDateTime
+    }
+  }
+  
+  package "Academic Structure" #e8f5e8 {
+    class User {
+      +id: UUID
+      +email: String
+      +password: String
+      +firstName: String
+      +lastName: String
+      +role: UserRole
+      +githubToken: String
+      +githubUsername: String
+      +isActive: Boolean
+      +isEmailVerified: Boolean
+      +lastLogin: LocalDateTime
+      +classe: Classe
+      +groups: List<Group>
+      +tasks: List<Task>
+      +submissions: List<Submission>
+      +ownedRepositories: List<Repository>
+      +createdAt: LocalDateTime
+      +updatedAt: LocalDateTime
+      --
+      +getFullName(): String
+      +isStudent(): boolean
+      +getAuthorities(): Collection<GrantedAuthority>
+    }
+    
+    class Classe {
+      +id: UUID
+      +nom: String
+      +description: String
+      +capacite: Integer
+      +code: String
+      +isActive: Boolean
+      +niveau: Niveau
+      +students: List<User>
+      +teachers: List<User>
+      +groups: List<Group>
+      +projects: List<Project>
+      +tasks: List<Task>
+      +createdAt: LocalDateTime
+      +updatedAt: LocalDateTime
+    }
+    
+    class Niveau {
+      +id: UUID
+      +nom: String
+      +description: String
+      +annee: Integer
+      +code: String
+      +isActive: Boolean
+      +departement: Departement
+      +classes: List<Classe>
+      +courses: List<Course>
+      +courseAssignments: List<CourseAssignment>
+      +createdAt: LocalDateTime
+      +updatedAt: LocalDateTime
+    }
+    
+    class Departement {
+      +id: UUID
+      +nom: String
+      +description: String
+      +specialite: Specialites
+      +typeFormation: TypeFormation
+      +code: String
+      +isActive: Boolean
+      +chief: User
+      +teachers: List<User>
+      +niveaux: List<Niveau>
+      +createdAt: LocalDateTime
+      +updatedAt: LocalDateTime
+    }
+  }
+}
+
+package "Enums" #f0f4c3 {
+  enum TaskAssignmentType {
+    INDIVIDUAL
+    GROUP
+    CLASS
+  }
+  
+  enum TaskStatus {
+    DRAFT
+    PENDING
+    IN_PROGRESS
+    COMPLETED
+    PUBLISHED
+    CLOSED
+  }
+  
+  enum SubmissionStatus {
+    DRAFT
+    SUBMITTED
+    GRADED
+    RETURNED
+    RESUBMITTED
+  }
+  
+  enum UserRole {
+    ADMIN
+    CHIEF
+    TEACHER
+    STUDENT
+  }
+  
+  enum VersionStatus {
+    ACTIVE
+    ARCHIVED
+    DELETED
+  }
+  
+  enum Specialites {
+    INFORMATIQUE
+    GENIE_CIVIL
+    GENIE_MECANIQUE
+    TELECOMMUNICATIONS
+    GENIE_INDUSTRIEL
+  }
+  
+  enum TypeFormation {
+    LICENCE
+    MASTER
+    INGENIEUR
+    DOCTORAT
+  }
+}
+
+package "Security Configuration" #ede7f6 {
+  class SecurityConfig {
+    +filterChain(HttpSecurity): SecurityFilterChain
+    +corsConfigurationSource(): CorsConfigurationSource
+    +passwordEncoder(): BCryptPasswordEncoder
+    +authenticationManager(): AuthenticationManager
+  }
+  
+  note bottom of SecurityConfig : "/api/student/** requires ROLE_STUDENT\nCORS enabled for localhost:4200\nJWT token authentication"
+}
+
+' Service Layer Relationships
+StudentController --> StudentService : uses
+StudentServiceImpl --|> StudentService : implements
+
+' DTO Relationships
+StudentController --> StudentDashboardDto : returns
+StudentController --> StudentTaskDto : returns
+StudentController --> StudentGroupDto : returns
+StudentController --> StudentProjectDto : returns
+
+StudentDashboardDto --> TaskDeadlineDto : contains
+StudentDashboardDto --> NotificationDto : contains
+StudentDashboardDto --> ProgressStatsDto : contains
+
+StudentGroupDto --> GroupMemberDto : contains
+StudentGroupDto --> RepositoryDto : contains
+
+StudentProjectDto --> CollaboratorDto : contains
+StudentProjectDto --> GroupSummaryDto : contains
+StudentProjectDto --> TaskSummaryDto : contains
+StudentProjectDto --> ClassSummaryDto : contains
+
+' Entity Relationships
+Task ||--o{ Submission : "has submissions"
+User ||--o{ Submission : "creates"
+Group ||--o{ Submission : "group submissions"
+Submission ||--o{ SubmissionFile : "contains files"
+
+User }o--|| Classe : "belongs to"
+User }o--o{ Group : "member of"
+Group }o--|| Project : "belongs to"
+Group }o--|| Classe : "from class"
+Group ||--o| Repository : "has repository"
+
+Task }o--o{ Group : "assigned to groups"
+Task }o--o{ User : "assigned to students"
+Task }o--|| Project : "belongs to project"
+
+Repository }o--|| User : "owned by"
+Repository ||--o{ CodeVersion : "contains versions"
+
+Classe }o--|| Niveau : "belongs to level"
+Niveau }o--|| Departement : "belongs to department"
+
+' Enum Relationships
+Task --> TaskAssignmentType : uses
+Task --> TaskStatus : uses
+Submission --> SubmissionStatus : uses
+User --> UserRole : uses
+CodeVersion --> VersionStatus : uses
+Departement --> Specialites : uses
+Departement --> TypeFormation : uses
+
+' Service Dependencies
+StudentServiceImpl --> TaskRepository : uses
+StudentServiceImpl --> GroupRepository : uses
+StudentServiceImpl --> ProjectRepository : uses
+StudentServiceImpl --> SubmissionRepository : uses
+StudentServiceImpl --> RepositoryRepository : uses
+StudentServiceImpl --> UserRepository : uses
+
+note top of StudentController : "@RestController\n@RequestMapping('/api/student')\n@PreAuthorize('hasRole('STUDENT')')\nAuthentication required for all endpoints"
+
+note top of StudentServiceImpl : "Business logic implementation\nData mapping and validation\nStudent access control\nMock implementations for demo"
+
+note right of Submission : "NEW ENTITY\nTracks student task submissions\nSupports file uploads\nGrade and feedback management\nLate submission detection"
+
+note right of SubmissionFile : "NEW ENTITY\nFile metadata storage\nSupports multiple file types\nFile size and URL management\nSoft delete capability"
+
+note bottom of SecurityConfig : "Spring Security Configuration\nRole-based access control\nCORS for Angular frontend\nJWT authentication"
+
+@enduml

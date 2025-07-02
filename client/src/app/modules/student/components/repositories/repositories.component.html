@@ -1,0 +1,78 @@
+<div class="student-repositories">
+  <div class="repositories-header">
+    <div class="header-content">
+      <h1>My Repositories</h1>
+      <p>Access your project repositories</p>
+    </div>
+    <button class="refresh-btn" (click)="refresh()" [disabled]="loading">
+      <i class="fas fa-sync-alt" [class.spinning]="loading"></i>
+      Refresh
+    </button>
+  </div>
+
+  <div *ngIf="loading" class="loading-container">
+    <div class="loading-spinner">
+      <i class="fas fa-spinner fa-spin"></i>
+      <p>Loading your repositories...</p>
+    </div>
+  </div>
+
+  <div *ngIf="error" class="error-container">
+    <div class="error-message">
+      <i class="fas fa-exclamation-triangle"></i>
+      <p>{{ error }}</p>
+      <button class="retry-btn" (click)="loadRepositories()">Try Again</button>
+    </div>
+  </div>
+
+  <div *ngIf="!loading && !error" class="repositories-content">
+    <div *ngIf="repositories.length === 0" class="empty-state">
+      <i class="fab fa-github"></i>
+      <h3>No repositories found</h3>
+      <p>You don't have access to any repositories yet.</p>
+    </div>
+
+    <div *ngIf="repositories.length > 0" class="repositories-grid">
+      <div *ngFor="let repo of repositories" class="repository-card">
+        <div class="repository-header">
+          <div class="repo-name">
+            <i class="fab fa-github"></i>
+            <h3>{{ repo.name }}</h3>
+          </div>
+          <div class="repo-privacy">
+            <i [class]="repo.isPrivate ? 'fas fa-lock' : 'fas fa-globe'"></i>
+            <span>{{ repo.isPrivate ? 'Private' : 'Public' }}</span>
+          </div>
+        </div>
+
+        <div class="repository-content">
+          <p class="repo-description">{{ repo.description || 'No description available' }}</p>
+          
+          <div class="repo-meta">
+            <div class="meta-item">
+              <i class="fas fa-code-branch"></i>
+              <span>{{ repo.defaultBranch }}</span>
+            </div>
+            <div class="meta-item">
+              <i class="fas fa-link"></i>
+              <span>{{ repo.fullName }}</span>
+            </div>
+          </div>
+        </div>
+
+        <div class="repository-footer">
+          <div class="repo-actions">
+            <a [href]="repo.url" target="_blank" class="action-btn view-btn">
+              <i class="fab fa-github"></i>
+              View on GitHub
+            </a>
+            <button class="action-btn clone-btn" (click)="copyToClipboard(repo.cloneUrl)">
+              <i class="fas fa-copy"></i>
+              Clone URL
+            </button>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>

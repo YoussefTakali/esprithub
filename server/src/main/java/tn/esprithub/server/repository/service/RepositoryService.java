@@ -37,4 +37,6 @@ public interface RepositoryService {
     void updateRepository(String repoFullName, Map<String, Object> settings, String teacherEmail);
     
     void deleteRepository(String repoFullName, String teacherEmail);
+    
+    RepositoryDto createRepository(String repositoryName, String description, boolean isPrivate, String teacherEmail);
 }

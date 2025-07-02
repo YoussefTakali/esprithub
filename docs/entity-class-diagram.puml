@@ -1,0 +1,281 @@
+@startuml EspritHub Entity Class Diagram
+
+!theme plain
+skinparam {
+  ClassBackgroundColor #f8f9fa
+  ClassBorderColor #6c757d
+  ClassHeaderBackgroundColor #e9ecef
+  ArrowColor #495057
+  ArrowFontSize 12
+  ClassFontSize 12
+  PackageFontSize 14
+  PackageBackgroundColor #fff3cd
+  PackageBorderColor #ffc107
+}
+
+package "Common" #fff3cd {
+  abstract class BaseEntity {
+    #UUID id
+    #LocalDateTime createdAt
+    #LocalDateTime updatedAt
+  }
+  
+  enum UserRole {
+    ADMIN
+    CHIEF
+    TEACHER
+    STUDENT
+  }
+}
+
+package "User Management" #e1f5fe {
+  class User {
+    -String email
+    -String password
+    -String firstName
+    -String lastName
+    -UserRole role
+    -String githubToken
+    -String githubUsername
+    -Boolean isActive
+    -Boolean isEmailVerified
+    -LocalDateTime lastLogin
+    --
+    +Collection<? extends GrantedAuthority> getAuthorities()
+    +String getUsername()
+    +boolean isAccountNonExpired()
+    +boolean isAccountNonLocked()
+    +boolean isCredentialsNonExpired()
+    +boolean isEnabled()
+    +String getFullName()
+    +boolean isAdmin()
+    +boolean isChief()
+    +boolean isTeacher()
+    +boolean isStudent()
+    +boolean canManageUsers()
+  }
+}
+
+package "Academic Structure" #e8f5e8 {
+  enum Specialites {
+    INFORMATIQUE
+    GENIE_CIVIL
+    GENIE_MECANIQUE
+    TELECOMMUNICATIONS
+    GENIE_INDUSTRIEL
+  }
+  
+  enum TypeFormation {
+    LICENCE
+    MASTER
+    INGENIEUR
+    DOCTORAT
+  }
+  
+  class Departement {
+    -String nom
+    -String description
+    -Specialites specialite
+    -TypeFormation typeFormation
+    -String code
+    -Boolean isActive
+    --
+    -generateCode()
+    -generateDepartmentCode()
+  }
+  
+  class Niveau {
+    -String nom
+    -String description
+    -Integer annee
+    -String code
+    -Boolean isActive
+    --
+    -generateCode()
+    -generateNiveauCode()
+  }
+  
+  class Classe {
+    -String nom
+    -String description
+    -Integer capacite
+    -String code
+    -Boolean isActive
+    --
+    -generateCode()
+    -generateClasseCode()
+    -extractClasseSuffix()
+  }
+  
+  class Course {
+    -String name
+    -String description
+  }
+  
+  class CourseAssignment {
+  }
+}
+
+package "Project Management" #fff0f5 {
+  enum TaskStatus {
+    DRAFT
+    PENDING
+    IN_PROGRESS
+    COMPLETED
+    PUBLISHED
+    CLOSED
+  }
+  
+  enum TaskAssignmentType {
+    INDIVIDUAL
+    GROUP
+    CLASS
+  }
+  
+  class Project {
+    -String name
+    -String description
+    -LocalDateTime deadline
+  }
+  
+  class Group {
+    -String name
+    -boolean repoCreated <<transient>>
+    -String repoUrl <<transient>>
+    -String repoError <<transient>>
+  }
+  
+  class Task {
+    -String title
+    -String description
+    -TaskAssignmentType type
+    -LocalDateTime dueDate
+    -TaskStatus status
+    -boolean graded
+    -boolean isVisible
+  }
+  
+  class Submission {
+    ' Empty entity
+  }
+}
+
+package "Repository Management" #f0f8ff {
+  class Repository {
+    -String name
+    -String fullName
+    -String description
+    -String url
+    -Boolean isPrivate
+    -String defaultBranch
+    -String cloneUrl
+    -String sshUrl
+    -Boolean isActive
+  }
+  
+  class CodeVersion {
+    -String commitSha
+    -String commitMessage
+    -String filePath
+    -String fileContent
+    -Long fileSize
+    -Integer lineCount
+    -String language
+    -String branchName
+    -Boolean isBinary
+    -String encoding
+    -String mimeType
+    -Integer linesAdded
+    -Integer linesDeleted
+    -Integer linesModified
+    -String tags
+    -VersionStatus status
+  }
+  
+  enum VersionStatus {
+    ACTIVE
+    ARCHIVED
+    DELETED
+  }
+}
+
+' Inheritance relationships
+BaseEntity <|-- User
+BaseEntity <|-- Departement
+BaseEntity <|-- Niveau
+BaseEntity <|-- Classe
+BaseEntity <|-- Course
+BaseEntity <|-- CourseAssignment
+BaseEntity <|-- Project
+BaseEntity <|-- Group
+BaseEntity <|-- Task
+BaseEntity <|-- Submission
+BaseEntity <|-- Repository
+BaseEntity <|-- CodeVersion
+
+' User role relationship
+User }-- UserRole
+
+' Academic structure relationships
+Departement ||--o{ Niveau : "contains"
+Niveau ||--o{ Classe : "contains"
+Niveau ||--o{ Course : "offers"
+Niveau ||--o{ CourseAssignment : "has assignments"
+
+' Department and user relationships
+Departement ||--|| User : "chief >"
+Departement ||--o{ User : "teachers >"
+User }o--|| Classe : "< students belong to"
+User }o--o{ Classe : "< teachers teach"
+
+' Course assignment relationships
+CourseAssignment }o--|| Course : "for course >"
+CourseAssignment }o--|| Niveau : "at level >"
+CourseAssignment }o--|| User : "taught by >"
+
+' Project relationships
+Project }o--|| User : "< created by"
+Project }o--o{ Classe : "< assigned to"
+Project }o--o{ User : "< collaborators"
+Project ||--o{ Group : "contains >"
+Project }o--o{ Task : "< includes"
+
+' Group relationships
+Group }o--|| Project : "< belongs to"
+Group }o--|| Classe : "< from class"
+Group }o--o{ User : "< students"
+Group }o--o{ Task : "< assigned"
+Group ||--o| Repository : "has repository >"
+
+' Task relationships
+Task }o--o{ Group : "< assigned to groups"
+Task }o--o{ User : "< assigned to students"
+Task }o--o{ Classe : "< assigned to classes"
+
+' Repository relationships
+Repository }o--|| User : "< owned by"
+Repository ||--o{ CodeVersion : "contains versions >"
+
+' Code version relationships
+CodeVersion }o--|| Repository : "< belongs to"
+CodeVersion }o--|| User : "< authored by"
+CodeVersion }o--o| CodeVersion : "< parent version"
+CodeVersion }-- VersionStatus
+
+' Enum relationships
+Departement }-- Specialites
+Departement }-- TypeFormation
+Task }-- TaskStatus
+Task }-- TaskAssignmentType
+
+note top of User : Implements UserDetails\nfor Spring Security
+
+note top of BaseEntity : Abstract class with\ncommon audit fields\n(id, createdAt, updatedAt)
+
+note right of Repository : Linked to GitHub\nrepositories via API
+
+note right of CodeVersion : Stores complete\nfile history and\ncode analytics
+
+note bottom of Group : Can have optional\nGitHub repository\nfor collaboration
+
+@enduml

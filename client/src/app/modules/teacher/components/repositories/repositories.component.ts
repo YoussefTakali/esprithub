@@ -2,6 +2,7 @@ import { Component, OnInit } from '@angular/core';
 import { Router } from '@angular/router';
 import { Repository, RepositoryService, RepositoryStats } from '../../services/repository.service';
 import { MatSnackBar } from '@angular/material/snack-bar';
+import { MatDialog } from '@angular/material/dialog';
 
 @Component({
   selector: 'app-repositories',
@@ -34,7 +35,8 @@ export class RepositoriesComponent implements OnInit {
   constructor(
     private readonly repositoryService: RepositoryService,
     private readonly snackBar: MatSnackBar,
-    private router: Router
+    private readonly router: Router,
+    private readonly dialog: MatDialog
   ) {}
 
   ngOnInit(): void {
@@ -78,9 +80,50 @@ export class RepositoriesComponent implements OnInit {
     );
   }
 
-  // Add repo action placeholder
+  // Add repo action
   addRepository(): void {
-    this.snackBar.open('Repository creation is not implemented yet.', 'Close', { duration: 3000 });
+    const name = prompt('Enter repository name:');
+    if (!name || name.trim() === '') {
+      this.snackBar.open('Repository name is required', 'Close', { 
+        duration: 3000,
+        panelClass: ['snackbar-error'],
+        horizontalPosition: 'center',
+        verticalPosition: 'bottom'
+      });
+      return;
+    }
+
+    const description = prompt('Enter repository description (optional):') || '';
+    const isPrivateResponse = confirm('Should this repository be private? Click OK for private, Cancel for public.');
+
+    this.repositoryService.createRepository(name.trim(), description.trim(), isPrivateResponse).subscribe({
+      next: (newRepo) => {
+        this.repositories.unshift(newRepo);
+        this.snackBar.open(`Repository "${name}" created successfully!`, 'Close', { 
+          duration: 5000,
+          panelClass: ['snackbar-success'],
+          horizontalPosition: 'center',
+          verticalPosition: 'bottom'
+        });
+      },
+      error: (error) => {
+        console.error('Error creating repository:', error);
+        let errorMessage = 'Failed to create repository';
+        if (error.error?.error) {
+          errorMessage = error.error.error;
+        } else if (error.status === 401) {
+          errorMessage = 'Authentication failed. Please login again.';
+        } else if (error.status === 403) {
+          errorMessage = 'You do not have permission to create repositories.';
+        }
+        this.snackBar.open(errorMessage, 'Close', { 
+          duration: 5000,
+          panelClass: ['snackbar-error'],
+          horizontalPosition: 'center',
+          verticalPosition: 'bottom'
+        });
+      }
+    });
   }
 
   loadRepositories(): void {

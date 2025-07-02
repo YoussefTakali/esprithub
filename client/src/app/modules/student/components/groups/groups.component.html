@@ -1,0 +1,89 @@
+<div class="student-groups">
+  <div class="groups-header">
+    <div class="header-content">
+      <h1>My Groups</h1>
+      <p>Collaborate with your team members</p>
+    </div>
+    <button class="refresh-btn" (click)="refresh()" [disabled]="loading">
+      <i class="fas fa-sync-alt" [class.spinning]="loading"></i>
+      Refresh
+    </button>
+  </div>
+
+  <div class="search-section">
+    <div class="search-box">
+      <i class="fas fa-search"></i>
+      <input type="text" placeholder="Search groups..." [(ngModel)]="searchTerm" (input)="onSearchChange()">
+    </div>
+  </div>
+
+  <div *ngIf="loading" class="loading-container">
+    <div class="loading-spinner">
+      <i class="fas fa-spinner fa-spin"></i>
+      <p>Loading your groups...</p>
+    </div>
+  </div>
+
+  <div *ngIf="error" class="error-container">
+    <div class="error-message">
+      <i class="fas fa-exclamation-triangle"></i>
+      <p>{{ error }}</p>
+      <button class="retry-btn" (click)="loadGroups()">Try Again</button>
+    </div>
+  </div>
+
+  <div *ngIf="!loading && !error" class="groups-content">
+    <div *ngIf="filteredGroups.length === 0" class="empty-state">
+      <i class="fas fa-users"></i>
+      <h3>No groups found</h3>
+      <p>You haven't been assigned to any groups yet.</p>
+    </div>
+
+    <div *ngIf="filteredGroups.length > 0" class="groups-grid">
+      <div *ngFor="let group of filteredGroups" class="group-card">
+        <div class="group-header">
+          <h3>{{ group.name }}</h3>
+          <div class="group-meta">
+            <span class="project-name">{{ group.projectName }}</span>
+            <span class="class-name">{{ group.className }}</span>
+          </div>
+        </div>
+
+        <div class="group-content">
+          <div class="members-section">
+            <h4><i class="fas fa-users"></i> Members ({{ group.members.length }})</h4>
+            <div class="members-list">
+              <div *ngFor="let member of group.members" class="member-item">
+                <i class="fas fa-user"></i>
+                <span>{{ member.firstName }} {{ member.lastName }}</span>
+              </div>
+            </div>
+          </div>
+
+          <div *ngIf="group.repository" class="repository-section">
+            <h4><i class="fab fa-github"></i> Repository</h4>
+            <div class="repo-info">
+              <a [href]="group.repository.url" target="_blank" class="repo-link">
+                <i class="fab fa-github"></i>
+                {{ group.repository.name }}
+              </a>
+            </div>
+          </div>
+        </div>
+
+        <div class="group-footer">
+          <div class="created-date">
+            <i class="fas fa-calendar"></i>
+            <span>Created: {{ formatDate(group.createdAt) }}</span>
+          </div>
+          <div class="group-actions">
+            <button class="action-btn view-btn" routerLink="/student/groups/{{ group.id }}">
+              <i class="fas fa-eye"></i>
+              View
+            </button>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>

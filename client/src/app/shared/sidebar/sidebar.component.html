@@ -137,23 +137,60 @@
 
     <!-- Links for STUDENT -->
     <ng-container *ngIf="userRole === 'student' || userRole === 'STUDENT'">
-      <li class="s-link" [routerLink]="'/home'" routerLinkActive="active">
+      <!-- Student Dashboard -->
+      <li class="s-link" [routerLink]="'/student/dashboard'" routerLinkActive="active">
         <div class="s-icon-container">
-          <i class="fas fa-home s-icon"></i>
+          <i class="fas fa-tachometer-alt s-icon"></i>
         </div>
-        <div class="s-link-text">Home</div>
+        <div class="s-link-text">Dashboard</div>
       </li>
-      <li class="s-link" [routerLink]="'/tasks-list'" routerLinkActive="active">
+
+      <!-- My Tasks/Assignments -->
+      <li class="s-link" [routerLink]="'/student/tasks'" routerLinkActive="active">
         <div class="s-icon-container">
           <i class="fas fa-tasks s-icon"></i>
         </div>
-        <div class="s-link-text">My Assignments</div>
+        <div class="s-link-text">My Tasks</div>
       </li>
-      <li class="s-link" [routerLink]="'/repo-selector'" routerLinkActive="active">
+
+      <!-- My Projects -->
+      <li class="s-link" [routerLink]="'/student/projects'" routerLinkActive="active">
         <div class="s-icon-container">
-          <i class="fas fa-code-branch s-icon"></i>
+          <i class="fas fa-folder-open s-icon"></i>
         </div>
-        <div class="s-link-text">Go to Repo</div>
+        <div class="s-link-text">My Projects</div>
+      </li>
+
+      <!-- My Groups -->
+      <li class="s-link" [routerLink]="'/student/groups'" routerLinkActive="active">
+        <div class="s-icon-container">
+          <i class="fas fa-users s-icon"></i>
+        </div>
+        <div class="s-link-text">My Groups</div>
+      </li>
+
+      <!-- Submissions -->
+      <li class="s-link" [routerLink]="'/student/submissions'" routerLinkActive="active">
+        <div class="s-icon-container">
+          <i class="fas fa-file-upload s-icon"></i>
+        </div>
+        <div class="s-link-text">Submissions</div>
+      </li>
+
+      <!-- Repositories -->
+      <li class="s-link" [routerLink]="'/student/repositories'" routerLinkActive="active">
+        <div class="s-icon-container">
+          <i class="fab fa-github s-icon"></i>
+        </div>
+        <div class="s-link-text">Repositories</div>
+      </li>
+
+      <!-- Schedule -->
+      <li class="s-link" [routerLink]="'/student/schedule'" routerLinkActive="active">
+        <div class="s-icon-container">
+          <i class="fas fa-calendar-alt s-icon"></i>
+        </div>
+        <div class="s-link-text">Schedule</div>
       </li>
     </ng-container>
   </ul>

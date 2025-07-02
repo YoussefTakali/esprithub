@@ -87,6 +87,9 @@ public class SecurityConfig {
                         // Allow teachers to fetch users for collaborators
                         .requestMatchers(HttpMethod.GET, "/api/v1/users/**").hasAnyRole(ROLE_ADMIN, ROLE_CHIEF, ROLE_TEACHER)
 
+                        // Student endpoints
+                        .requestMatchers("/api/student/**").hasAnyRole(ROLE_ADMIN, ROLE_CHIEF, ROLE_TEACHER, ROLE_STUDENT)
+
                         // All other requests require authentication
                         .anyRequest().authenticated()
                 )
