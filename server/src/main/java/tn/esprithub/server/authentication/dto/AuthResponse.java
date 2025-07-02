@@ -32,6 +32,7 @@ public class AuthResponse {
         private String lastName;
         private UserRole role;
         private String githubUsername;
+        private String githubName;
         private Boolean hasGithubToken;
         private LocalDateTime lastLogin;
     }

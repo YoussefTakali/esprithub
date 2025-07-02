@@ -241,6 +241,10 @@ export class StudentService {
     );
   }
 
+  getRepositoryDetails(repositoryId: string): Observable<any> {
+    return this.http.get<any>(`${this.apiUrl}/repositories/${repositoryId}/details`);
+  }
+
   getSchedule(): Observable<StudentSchedule> {
     return this.http.get<StudentSchedule>(`${this.apiUrl}/schedule`);
   }

@@ -26,6 +26,7 @@ public class UserSummaryMapper {
                 .role(user.getRole())
                 .isActive(user.getIsActive())
                 .githubUsername(user.getGithubUsername())
+                .githubName(user.getGithubName())
                 .build();
     }
 

@@ -27,6 +27,7 @@ public class UserMapper {
                 .lastName(user.getLastName())
                 .role(user.getRole())
                 .githubUsername(user.getGithubUsername())
+                .githubName(user.getGithubName())
                 .isActive(user.getIsActive())
                 .isEmailVerified(user.getIsEmailVerified())
                 .lastLogin(user.getLastLogin())

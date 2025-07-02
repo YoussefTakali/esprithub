@@ -141,6 +141,11 @@ public class AuthenticationServiceImpl implements IAuthenticationService {
             // Update user with GitHub information
             user.setGithubToken(githubToken);
             user.setGithubUsername(githubUsername);
+            // Store GitHub display name if available
+            String githubName = (String) githubUser.get("name");
+            if (githubName != null && !githubName.trim().isEmpty()) {
+                user.setGithubName(githubName);
+            }
             userRepository.save(user);
 
             // Generate new tokens

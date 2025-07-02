@@ -20,9 +20,11 @@ import tn.esprithub.server.student.service.StudentService;
 import tn.esprithub.server.user.entity.User;
 import tn.esprithub.server.user.repository.UserRepository;
 
+import java.time.DayOfWeek;
 import java.time.LocalDateTime;
 import java.time.temporal.ChronoUnit;
 import java.util.*;
+import java.util.Comparator;
 import java.util.stream.Collectors;
 
 @Service
@@ -367,7 +369,7 @@ public class StudentServiceImpl implements StudentService {
                 // Try to find a repository that contains the group name
                 // This is a temporary workaround for the broken linking
                 Map<String, Object> mockRepo = new HashMap<>();
-                mockRepo.put("id", UUID.randomUUID().toString());
+                mockRepo.put("id", group.getId().toString()); // Use group ID as consistent repository ID
                 mockRepo.put("name", "Nora-Matthews-Harper-Hebert-" + group.getName());
                 mockRepo.put("fullName", "aichabnr001/Nora-Matthews-Harper-Hebert-" + group.getName());
                 mockRepo.put("description", "Repository for group project: Nora Matthews-Harper Hebert-" + group.getName());
@@ -379,7 +381,22 @@ public class StudentServiceImpl implements StudentService {
                 mockRepo.put("isActive", true);
                 mockRepo.put("createdAt", LocalDateTime.now());
                 mockRepo.put("updatedAt", LocalDateTime.now());
-                mockRepo.put("ownerName", "GitHub Owner");
+                // Get the project creator (teacher) to determine the actual repository owner
+                User projectCreator = group.getProject() != null ? group.getProject().getCreatedBy() : null;
+                String ownerName = "Unknown Owner";
+                
+                if (projectCreator != null) {
+                    // Try to get GitHub name first, fall back to full name, then username
+                    if (projectCreator.getGithubName() != null && !projectCreator.getGithubName().trim().isEmpty()) {
+                        ownerName = projectCreator.getGithubName();
+                    } else if (projectCreator.getFirstName() != null && projectCreator.getLastName() != null) {
+                        ownerName = projectCreator.getFirstName() + " " + projectCreator.getLastName();
+                    } else if (projectCreator.getGithubUsername() != null && !projectCreator.getGithubUsername().trim().isEmpty()) {
+                        ownerName = projectCreator.getGithubUsername();
+                    }
+                }
+                
+                mockRepo.put("ownerName", ownerName);
                 
                 // Add group information
                 mockRepo.put("groupId", group.getId());
@@ -402,55 +419,266 @@ public class StudentServiceImpl implements StudentService {
     }
 
     @Override
+    public Map<String, Object> getRepositoryDetails(String repositoryId, String studentEmail) {
+        User student = getStudentByEmail(studentEmail);
+        log.info("Getting repository details for repository: {} by student: {}", repositoryId, studentEmail);
+        
+        // First, check if the student has access to this repository
+        List<Map<String, Object>> accessibleRepos = getAccessibleRepositories(studentEmail);
+        log.info("Found {} accessible repositories for student {}", accessibleRepos.size(), studentEmail);
+        
+        // Log all repository IDs for debugging
+        for (Map<String, Object> repo : accessibleRepos) {
+            log.info("Available repository ID: {}, name: {}", repo.get("id"), repo.get("name"));
+        }
+        
+        Map<String, Object> repository = accessibleRepos.stream()
+                .filter(repo -> repositoryId.equals(repo.get("id")))
+                .findFirst()
+                .orElseGet(() -> {
+                    log.warn("Repository with ID {} not found in accessible repositories for student {}. Attempting to find by group ID.", repositoryId, studentEmail);
+                    
+                    // Try to find a group with this ID and create a mock repository
+                    List<tn.esprithub.server.project.entity.Group> allGroups = groupRepository.findGroupsByStudentId(student.getId());
+                    for (tn.esprithub.server.project.entity.Group group : allGroups) {
+                        if (repositoryId.equals(group.getId().toString())) {
+                            log.info("Found matching group {} for repository ID {}", group.getName(), repositoryId);
+                            
+                            Map<String, Object> mockRepo = new HashMap<>();
+                            mockRepo.put("id", group.getId().toString());
+                            mockRepo.put("name", "Nora-Matthews-Harper-Hebert-" + group.getName());
+                            mockRepo.put("fullName", "aichabnr001/Nora-Matthews-Harper-Hebert-" + group.getName());
+                            mockRepo.put("description", "Repository for group project: " + group.getName());
+                            mockRepo.put("url", "https://github.com/aichabnr001/Nora-Matthews-Harper-Hebert-" + group.getName());
+                            mockRepo.put("cloneUrl", "https://github.com/aichabnr001/Nora-Matthews-Harper-Hebert-" + group.getName() + ".git");
+                            mockRepo.put("sshUrl", "git@github.com:aichabnr001/Nora-Matthews-Harper-Hebert-" + group.getName() + ".git");
+                            mockRepo.put("isPrivate", true);
+                            mockRepo.put("defaultBranch", "main");
+                            mockRepo.put("isActive", true);
+                            mockRepo.put("createdAt", LocalDateTime.now());
+                            mockRepo.put("updatedAt", LocalDateTime.now());
+                            
+                            // Add group and project information
+                            mockRepo.put("groupId", group.getId());
+                            mockRepo.put("groupName", group.getName());
+                            mockRepo.put("projectId", group.getProject() != null ? group.getProject().getId() : null);
+                            mockRepo.put("projectName", group.getProject() != null ? group.getProject().getName() : "No Project");
+                            mockRepo.put("accessLevel", "MEMBER");
+                            mockRepo.put("canPush", true);
+                            mockRepo.put("canPull", true);
+                            
+                            return mockRepo;
+                        }
+                    }
+                    
+                    log.error("Repository with ID {} not found for student {}", repositoryId, studentEmail);
+                    throw new BusinessException("Repository not found or access denied");
+                });
+        
+        // Get the group associated with this repository
+        List<tn.esprithub.server.project.entity.Group> studentGroups = groupRepository.findGroupsByStudentId(student.getId());
+        log.info("Found {} groups for student {}", studentGroups.size(), studentEmail);
+        
+        tn.esprithub.server.project.entity.Group group = studentGroups.stream()
+                .filter(g -> {
+                    boolean matches = repositoryId.equals(g.getId().toString()) || 
+                                    (repository.get("name") != null && repository.get("name").toString().contains(g.getName()));
+                    log.info("Checking group {} (ID: {}), matches: {}", g.getName(), g.getId(), matches);
+                    return matches;
+                })
+                .findFirst()
+                .orElse(null);
+        
+        log.info("Selected group: {}", group != null ? group.getName() : "none");
+        
+        // Build enhanced repository details
+        Map<String, Object> details = new HashMap<>(repository);
+        
+        if (group != null && group.getProject() != null && group.getProject().getCreatedBy() != null) {
+            User projectCreator = group.getProject().getCreatedBy();
+            
+            // Enhanced owner information
+            Map<String, Object> ownerInfo = new HashMap<>();
+            ownerInfo.put("login", projectCreator.getGithubUsername());
+            ownerInfo.put("name", projectCreator.getGithubName() != null ? projectCreator.getGithubName() : projectCreator.getFullName());
+            ownerInfo.put("email", projectCreator.getEmail());
+            ownerInfo.put("fullName", projectCreator.getFullName());
+            ownerInfo.put("avatarUrl", "https://github.com/" + projectCreator.getGithubUsername() + ".png");
+            details.put("owner", ownerInfo);
+            
+            // Group members information
+            List<Map<String, Object>> members = group.getStudents().stream()
+                    .map(member -> {
+                        Map<String, Object> memberInfo = new HashMap<>();
+                        memberInfo.put("id", member.getId());
+                        memberInfo.put("name", member.getFullName());
+                        memberInfo.put("email", member.getEmail());
+                        memberInfo.put("githubUsername", member.getGithubUsername());
+                        memberInfo.put("githubName", member.getGithubName());
+                        return memberInfo;
+                    })
+                    .toList();
+            details.put("groupMembers", members);
+            
+            // Project information
+            Map<String, Object> projectInfo = new HashMap<>();
+            projectInfo.put("id", group.getProject().getId());
+            projectInfo.put("name", group.getProject().getName());
+            projectInfo.put("description", group.getProject().getDescription());
+            projectInfo.put("createdBy", projectCreator.getFullName());
+            projectInfo.put("createdAt", group.getProject().getCreatedAt());
+            details.put("project", projectInfo);
+        }
+        
+        // Additional repository statistics (mock for now)
+        Map<String, Object> stats = new HashMap<>();
+        stats.put("commits", 15);
+        stats.put("branches", 3);
+        stats.put("contributors", group != null ? group.getStudents().size() + 1 : 1);
+        stats.put("issues", 2);
+        stats.put("pullRequests", 1);
+        details.put("stats", stats);
+        
+        // Recent activity (mock)
+        List<Map<String, Object>> recentActivity = List.of(
+                Map.of("type", "commit", "message", "Initial project setup", "author", details.get("ownerName"), "date", LocalDateTime.now().minusDays(2)),
+                Map.of("type", "commit", "message", "Add README.md", "author", details.get("ownerName"), "date", LocalDateTime.now().minusDays(1))
+        );
+        details.put("recentActivity", recentActivity);
+        
+        // Branches information (mock)
+        List<Map<String, Object>> branches = List.of(
+                Map.of("name", "main", "isDefault", true, "lastCommit", "Initial commit"),
+                Map.of("name", "develop", "isDefault", false, "lastCommit", "Add new features"),
+                Map.of("name", "feature/auth", "isDefault", false, "lastCommit", "Implement authentication")
+        );
+        details.put("branches", branches);
+        
+        // Languages used (mock)
+        Map<String, Object> languages = Map.of(
+                "Java", 65,
+                "JavaScript", 20,
+                "HTML", 10,
+                "CSS", 5
+        );
+        details.put("languages", languages);
+        
+        log.info("Retrieved detailed repository information for repository: {}", repositoryId);
+        return details;
+    }
+
+    @Override
     public Map<String, Object> getAcademicProgress(String studentEmail) {
         User student = getStudentByEmail(studentEmail);
         
         Map<String, Object> progress = new HashMap<>();
-        progress.put("completionRate", calculateCompletionRate(student));
-        progress.put("totalTasks", getTotalTasksCount(student));
-        progress.put("completedTasks", getCompletedTasksCount(student));
-        progress.put("currentStreak", 0);
-        progress.put("averageGrade", 0.0);
+        
+        // Get task statistics
+        List<Task> directTasks = taskRepository.findByAssignedToStudents_Id(student.getId());
+        List<Task> groupTasks = taskRepository.findTasksAssignedToStudentGroups(student.getId());
+        List<Task> classTasks = taskRepository.findTasksAssignedToStudentClass(student.getId());
+        
+        Set<Task> allTasks = new HashSet<>();
+        allTasks.addAll(directTasks);
+        allTasks.addAll(groupTasks);
+        allTasks.addAll(classTasks);
+        
+        int totalTasks = allTasks.size();
+        int completedTasks = getCompletedTasksCount(student);
+        int overdueTasks = getOverdueTasksCount(student);
+        
+        progress.put("totalTasks", totalTasks);
+        progress.put("completedTasks", completedTasks);
+        progress.put("overdueTasks", overdueTasks);
+        progress.put("completionRate", totalTasks > 0 ? (double) completedTasks / totalTasks * 100 : 0.0);
+        
+        // Get project statistics
+        List<tn.esprithub.server.project.entity.Group> studentGroups = groupRepository.findGroupsByStudentId(student.getId());
+        int totalProjects = (int) studentGroups.stream()
+                .filter(group -> group.getProject() != null)
+                .map(group -> group.getProject())
+                .distinct()
+                .count();
+        
+        progress.put("totalProjects", totalProjects);
+        progress.put("activeProjects", getActiveProjectsCount(student));
+        progress.put("completedProjects", getCompletedProjectsCount(student));
+        
+        // Add grade/performance indicators (mock data for now)
+        progress.put("averageGrade", 85.5);
+        progress.put("attendance", 92.3);
+        progress.put("participationScore", 88.0);
         
         return progress;
     }
 
     @Override
     public List<Map<String, Object>> getWeeklySchedule(String studentEmail) {
-        getStudentByEmail(studentEmail);
+        User student = getStudentByEmail(studentEmail);
         
         List<Map<String, Object>> schedule = new ArrayList<>();
         
-        String[] days = {"Monday", "Tuesday", "Wednesday", "Thursday", "Friday"};
-        String[] times = {"08:00", "10:00", "14:00", "16:00"};
-        String[] subjects = {"Programming", "Mathematics", "Physics", "Database Design"};
-        String[] teachers = {"Dr. Smith", "Prof. Johnson", "Dr. Brown", "Prof. Davis"};
-        String[] rooms = {"A101", "B205", "C301", "A102"};
-        String[] types = {"COURSE", "TD", "TP", "COURSE"};
+        // Get upcoming tasks for the week
+        LocalDateTime startOfWeek = LocalDateTime.now().with(DayOfWeek.MONDAY).withHour(0).withMinute(0).withSecond(0);
+        LocalDateTime endOfWeek = startOfWeek.plusDays(7);
         
-        for (int i = 0; i < days.length; i++) {
-            for (int j = 0; j < Math.min(2, times.length); j++) {
-                int subjectIndex = (i * 2 + j) % subjects.length;
-                Map<String, Object> scheduleItem = new HashMap<>();
-                scheduleItem.put("id", UUID.randomUUID().toString());
-                scheduleItem.put("day", days[i]);
-                scheduleItem.put("time", times[j]);
-                scheduleItem.put("subject", subjects[subjectIndex]);
-                scheduleItem.put("teacher", teachers[subjectIndex]);
-                scheduleItem.put("room", rooms[subjectIndex]);
-                scheduleItem.put("type", types[subjectIndex]);
-                schedule.add(scheduleItem);
+        List<Task> directTasks = taskRepository.findByAssignedToStudents_Id(student.getId());
+        List<Task> groupTasks = taskRepository.findTasksAssignedToStudentGroups(student.getId());
+        List<Task> classTasks = taskRepository.findTasksAssignedToStudentClass(student.getId());
+        
+        Set<Task> allTasks = new HashSet<>();
+        allTasks.addAll(directTasks);
+        allTasks.addAll(groupTasks);
+        allTasks.addAll(classTasks);
+        
+        // Filter tasks with deadlines within the week
+        List<Task> weeklyTasks = allTasks.stream()
+                .filter(task -> task.getDueDate() != null)
+                .filter(task -> task.getDueDate().isAfter(startOfWeek) && task.getDueDate().isBefore(endOfWeek))
+                .sorted(Comparator.comparing(Task::getDueDate))
+                .toList();
+        
+        for (Task task : weeklyTasks) {
+            Map<String, Object> scheduleItem = new HashMap<>();
+            scheduleItem.put("id", task.getId());
+            scheduleItem.put("type", "TASK");
+            scheduleItem.put("title", task.getTitle());
+            scheduleItem.put("description", task.getDescription());
+            scheduleItem.put("deadline", task.getDueDate());
+            scheduleItem.put("status", task.getStatus().toString());
+            scheduleItem.put("priority", "MEDIUM"); // Default priority since Task doesn't have priority field
+            scheduleItem.put("isOverdue", task.getDueDate().isBefore(LocalDateTime.now()));
+            schedule.add(scheduleItem);
+        }
+        
+        // Add project deadlines
+        List<tn.esprithub.server.project.entity.Group> studentGroups = groupRepository.findGroupsByStudentId(student.getId());
+        for (tn.esprithub.server.project.entity.Group group : studentGroups) {
+            if (group.getProject() != null && group.getProject().getDeadline() != null) {
+                LocalDateTime projectDeadline = group.getProject().getDeadline();
+                if (projectDeadline.isAfter(startOfWeek) && projectDeadline.isBefore(endOfWeek)) {
+                    Map<String, Object> scheduleItem = new HashMap<>();
+                    scheduleItem.put("id", group.getProject().getId());
+                    scheduleItem.put("type", "PROJECT");
+                    scheduleItem.put("title", "Project: " + group.getProject().getName());
+                    scheduleItem.put("description", group.getProject().getDescription());
+                    scheduleItem.put("deadline", projectDeadline);
+                    scheduleItem.put("status", "ACTIVE");
+                    scheduleItem.put("priority", "HIGH");
+                    scheduleItem.put("isOverdue", projectDeadline.isBefore(LocalDateTime.now()));
+                    schedule.add(scheduleItem);
+                }
             }
         }
         
+        // Sort by deadline
+        schedule.sort((a, b) -> {
+            LocalDateTime deadlineA = (LocalDateTime) a.get("deadline");
+            LocalDateTime deadlineB = (LocalDateTime) b.get("deadline");
+            return deadlineA.compareTo(deadlineB);
+        });
+        
         return schedule;
-    }
-
-    @Override
-    public List<Map<String, Object>> getRecentActivities(String studentEmail, int limit) {
-        // Validate that student exists
-        getStudentByEmail(studentEmail);
-        return new ArrayList<>();
     }
 
     // Private helper methods
@@ -652,5 +880,42 @@ public class StudentServiceImpl implements StudentService {
 
     private List<StudentDashboardDto.NotificationDto> getRecentNotificationsForDashboard(User student) {
         return new ArrayList<>();
+    }
+
+    @Override
+    public List<Map<String, Object>> getRecentActivities(String studentEmail, int limit) {
+        User student = userRepository.findByEmail(studentEmail)
+                .orElseThrow(() -> new RuntimeException("Student not found"));
+
+        List<Map<String, Object>> activities = new ArrayList<>();
+        
+        // Add task-related activities
+        List<Task> directTasks = taskRepository.findByAssignedToStudents_Id(student.getId());
+        List<Task> groupTasks = taskRepository.findTasksAssignedToStudentGroups(student.getId());
+        List<Task> classTasks = taskRepository.findTasksAssignedToStudentClass(student.getId());
+        
+        // Combine all tasks and sort by creation date
+        Set<Task> allTasks = new HashSet<>();
+        allTasks.addAll(directTasks);
+        allTasks.addAll(groupTasks);
+        allTasks.addAll(classTasks);
+        
+        List<Task> recentTasks = allTasks.stream()
+                .sorted((a, b) -> b.getCreatedAt().compareTo(a.getCreatedAt()))
+                .limit(limit)
+                .toList();
+        
+        for (Task task : recentTasks) {
+            Map<String, Object> activity = new HashMap<>();
+            activity.put("id", task.getId());
+            activity.put("type", "TASK");
+            activity.put("title", "Task: " + task.getTitle());
+            activity.put("description", task.getDescription());
+            activity.put("timestamp", task.getCreatedAt());
+            activity.put("status", task.getStatus().toString());
+            activities.add(activity);
+        }
+        
+        return activities;
     }
 }

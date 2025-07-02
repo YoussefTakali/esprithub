@@ -36,6 +36,7 @@ import { StudentGroupsComponent } from './components/groups/groups.component';
 import { StudentSubmissionsComponent } from './components/submissions/submissions.component';
 import { StudentRepositoriesComponent } from './components/repositories/repositories.component';
 import { StudentScheduleComponent } from './components/schedule/schedule.component';
+import { GitHubRepoDetailsComponent } from './components/github-repo-details/github-repo-details.component';
 import { StudentService } from './services/student.service';
 
 const routes: Routes = [
@@ -45,6 +46,7 @@ const routes: Routes = [
   { path: 'groups', component: StudentGroupsComponent },
   { path: 'submissions', component: StudentSubmissionsComponent },
   { path: 'repositories', component: StudentRepositoriesComponent },
+  { path: 'repositories/:id', component: GitHubRepoDetailsComponent },
   { path: 'schedule', component: StudentScheduleComponent },
   { path: '', redirectTo: 'dashboard', pathMatch: 'full' },
   { path: '**', redirectTo: 'dashboard' }
@@ -58,7 +60,8 @@ const routes: Routes = [
     StudentGroupsComponent,
     StudentSubmissionsComponent,
     StudentRepositoriesComponent,
-    StudentScheduleComponent
+    StudentScheduleComponent,
+    GitHubRepoDetailsComponent
   ],
   imports: [
     CommonModule,

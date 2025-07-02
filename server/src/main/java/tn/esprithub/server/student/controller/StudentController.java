@@ -179,6 +179,16 @@ public class StudentController {
         return ResponseEntity.ok(repositories);
     }
 
+    // Get detailed repository information
+    @GetMapping("/repositories/{repositoryId}/details")
+    public ResponseEntity<Map<String, Object>> getRepositoryDetails(
+            @PathVariable String repositoryId,
+            Authentication authentication) {
+        log.info("Fetching detailed repository information for repository: {} by student: {}", repositoryId, authentication.getName());
+        Map<String, Object> repositoryDetails = studentService.getRepositoryDetails(repositoryId, authentication.getName());
+        return ResponseEntity.ok(repositoryDetails);
+    }
+
     // Get student's weekly schedule
     @GetMapping("/schedule")
     public ResponseEntity<Map<String, Object>> getSchedule(Authentication authentication) {

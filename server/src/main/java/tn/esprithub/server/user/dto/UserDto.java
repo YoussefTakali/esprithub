@@ -36,6 +36,7 @@ public class UserDto {
     private UserRole role;
     
     private String githubUsername;
+    private String githubName;
     private Boolean isActive;
     private Boolean isEmailVerified;
     private LocalDateTime lastLogin;

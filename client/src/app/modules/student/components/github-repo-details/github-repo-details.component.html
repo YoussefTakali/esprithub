@@ -1,0 +1,305 @@
+<div class="github-repo-details">
+  <!-- Header -->
+  <div class="page-header">
+    <button class="back-button" (click)="goBack()">
+      <i class="fas fa-arrow-left"></i>
+      Back to Repositories
+    </button>
+    <h1 class="page-title">
+      <i class="fab fa-github"></i>
+      Repository Details
+    </h1>
+  </div>
+
+  <!-- Loading State -->
+  <div *ngIf="loading" class="loading-container">
+    <div class="loading-spinner">
+      <i class="fas fa-spinner fa-spin"></i>
+    </div>
+    <p>Loading repository details...</p>
+  </div>
+
+  <!-- Error State -->
+  <div *ngIf="error && !loading" class="error-container">
+    <div class="error-icon">
+      <i class="fas fa-exclamation-triangle"></i>
+    </div>
+    <h3>Error Loading Repository</h3>
+    <p>{{ error }}</p>
+    <button class="retry-button" (click)="goBack()">Go Back</button>
+  </div>
+
+  <!-- Repository Details -->
+  <div *ngIf="repository && !loading && !error" class="repo-content">
+    <!-- Repository Header -->
+    <div class="repo-header">
+      <div class="repo-title-section">
+        <div class="repo-name">
+          <i class="fab fa-github"></i>
+          <h2>{{ repository.name }}</h2>
+        </div>
+        <div class="repo-privacy">
+          <i [class]="repository.isPrivate ? 'fas fa-lock' : 'fas fa-globe'"></i>
+          <span>{{ repository.isPrivate ? 'Private' : 'Public' }}</span>
+        </div>
+      </div>
+      
+      <div class="repo-actions">
+        <button class="action-btn primary" (click)="openGitHub()">
+          <i class="fab fa-github"></i>
+          View on GitHub
+        </button>
+      </div>
+    </div>
+
+    <!-- Repository Info Cards -->
+    <div class="info-grid">
+      <!-- Basic Info Card -->
+      <div class="info-card">
+        <h3>
+          <i class="fas fa-info-circle"></i>
+          Basic Information
+        </h3>
+        <div class="info-content">
+          <div class="info-item">
+            <span class="label">Full Name:</span>
+            <span class="value">{{ repository.fullName }}</span>
+          </div>
+          <div class="info-item">
+            <span class="label">Description:</span>
+            <span class="value">{{ repository.description || 'No description available' }}</span>
+          </div>
+          <div class="info-item">
+            <span class="label">Owner:</span>
+            <div class="value owner-info">
+              <img *ngIf="repository.owner?.avatarUrl" [src]="repository.owner.avatarUrl" alt="Owner Avatar" class="owner-avatar">
+              <div class="owner-details">
+                <span class="owner-name">{{ repository.owner?.name || repository.ownerName || 'Unknown Owner' }}</span>
+                <span class="owner-username" *ngIf="repository.owner?.login">@{{ repository.owner.login }}</span>
+              </div>
+            </div>
+          </div>
+          <div class="info-item">
+            <span class="label">Default Branch:</span>
+            <span class="value branch-name">
+              <i class="fas fa-code-branch"></i>
+              {{ repository.defaultBranch }}
+            </span>
+          </div>
+          <div class="info-item">
+            <span class="label">Status:</span>
+            <span class="value status" [class.active]="repository.isActive" [class.inactive]="!repository.isActive">
+              <i [class]="repository.isActive ? 'fas fa-check-circle' : 'fas fa-times-circle'"></i>
+              {{ repository.isActive ? 'Active' : 'Inactive' }}
+            </span>
+          </div>
+        </div>
+      </div>
+
+      <!-- Group & Project Info Card -->
+      <div class="info-card">
+        <h3>
+          <i class="fas fa-users"></i>
+          Group & Project
+        </h3>
+        <div class="info-content">
+          <div class="info-item">
+            <span class="label">Group:</span>
+            <span class="value">{{ repository.groupName }}</span>
+          </div>
+          <div class="info-item">
+            <span class="label">Project:</span>
+            <span class="value">{{ repository.projectName || 'No project assigned' }}</span>
+          </div>
+          <div class="info-item">
+            <span class="label">Access Level:</span>
+            <span class="value access-level" [class.member]="repository.accessLevel === 'MEMBER'">
+              <i class="fas fa-shield-alt"></i>
+              {{ repository.accessLevel }}
+            </span>
+          </div>
+          <div class="info-item">
+            <span class="label">Permissions:</span>
+            <div class="permissions">
+              <span class="permission" [class.granted]="repository.canPull" [class.denied]="!repository.canPull">
+                <i [class]="repository.canPull ? 'fas fa-check' : 'fas fa-times'"></i>
+                Pull
+              </span>
+              <span class="permission" [class.granted]="repository.canPush" [class.denied]="!repository.canPush">
+                <i [class]="repository.canPush ? 'fas fa-check' : 'fas fa-times'"></i>
+                Push
+              </span>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Clone URLs Card -->
+      <div class="info-card">
+        <h3>
+          <i class="fas fa-download"></i>
+          Clone Repository
+        </h3>
+        <div class="info-content">
+          <div class="clone-section">
+            <div class="clone-header">
+              <span class="clone-label">HTTPS</span>
+              <button class="copy-btn" (click)="copyToClipboard(repository.cloneUrl, 'HTTPS URL')" title="Copy HTTPS URL">
+                <i class="fas fa-copy"></i>
+                Copy
+              </button>
+            </div>
+            <div class="clone-url">
+              <code>{{ repository.cloneUrl }}</code>
+            </div>
+          </div>
+
+          <div class="clone-section" *ngIf="repository.sshUrl">
+            <div class="clone-header">
+              <span class="clone-label">SSH</span>
+              <button class="copy-btn" (click)="copyToClipboard(repository.sshUrl, 'SSH URL')" title="Copy SSH URL">
+                <i class="fas fa-copy"></i>
+                Copy
+              </button>
+            </div>
+            <div class="clone-url">
+              <code>{{ repository.sshUrl }}</code>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Timestamps Card -->
+      <div class="info-card">
+        <h3>
+          <i class="fas fa-clock"></i>
+          Timeline
+        </h3>
+        <div class="info-content">
+          <div class="info-item">
+            <span class="label">Created:</span>
+            <span class="value timestamp">
+              <i class="fas fa-calendar-plus"></i>
+              {{ formatDate(repository.createdAt) }}
+            </span>
+          </div>
+          <div class="info-item">
+            <span class="label">Last Updated:</span>
+            <span class="value timestamp">
+              <i class="fas fa-calendar-check"></i>
+              {{ formatDate(repository.updatedAt) }}
+            </span>
+          </div>
+        </div>
+      </div>
+
+      <!-- Repository Statistics Card -->
+      <div class="info-card" *ngIf="repository.stats">
+        <h3>
+          <i class="fas fa-chart-bar"></i>
+          Repository Statistics
+        </h3>
+        <div class="info-content">
+          <div class="stats-grid">
+            <div class="stat-item">
+              <i class="fas fa-code-branch"></i>
+              <span class="stat-number">{{ repository.stats.branches || 0 }}</span>
+              <span class="stat-label">Branches</span>
+            </div>
+            <div class="stat-item">
+              <i class="fas fa-history"></i>
+              <span class="stat-number">{{ repository.stats.commits || 0 }}</span>
+              <span class="stat-label">Commits</span>
+            </div>
+            <div class="stat-item">
+              <i class="fas fa-users"></i>
+              <span class="stat-number">{{ repository.stats.contributors || 0 }}</span>
+              <span class="stat-label">Contributors</span>
+            </div>
+            <div class="stat-item">
+              <i class="fas fa-bug"></i>
+              <span class="stat-number">{{ repository.stats.issues || 0 }}</span>
+              <span class="stat-label">Issues</span>
+            </div>
+            <div class="stat-item">
+              <i class="fas fa-git-alt"></i>
+              <span class="stat-number">{{ repository.stats.pullRequests || 0 }}</span>
+              <span class="stat-label">Pull Requests</span>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Group Members Card -->
+      <div class="info-card" *ngIf="repository.groupMembers && repository.groupMembers.length > 0">
+        <h3>
+          <i class="fas fa-users"></i>
+          Group Members
+        </h3>
+        <div class="info-content">
+          <div class="members-list">
+            <div *ngFor="let member of repository.groupMembers" class="member-item">
+              <img *ngIf="member.githubUsername" [src]="'https://github.com/' + member.githubUsername + '.png'" 
+                   alt="{{ member.name }}" class="member-avatar">
+              <div class="member-info">
+                <span class="member-name">{{ member.githubName || member.name }}</span>
+                <span class="member-username" *ngIf="member.githubUsername">@{{ member.githubUsername }}</span>
+                <span class="member-email">{{ member.email }}</span>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Languages Card -->
+      <div class="info-card" *ngIf="repository.languages">
+        <h3>
+          <i class="fas fa-code"></i>
+          Languages Used
+        </h3>
+        <div class="info-content">
+          <div class="languages-list">
+            <div *ngFor="let lang of getLanguagesList()" class="language-item">
+              <span class="language-name">{{ lang.name }}</span>
+              <div class="language-bar">
+                <div class="language-fill" [style.width.%]="lang.percentage" [style.background-color]="getLanguageColor(lang.name)"></div>
+              </div>
+              <span class="language-percentage">{{ lang.percentage }}%</span>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Quick Actions -->
+      <div class="quick-actions">
+        <h3>Quick Actions</h3>
+        <div class="actions-grid">
+          <a [href]="repository.url" target="_blank" class="action-card">
+            <i class="fab fa-github"></i>
+            <span>Open Repository</span>
+          </a>
+          <a [href]="repository.url + '/issues'" target="_blank" class="action-card">
+            <i class="fas fa-bug"></i>
+            <span>View Issues</span>
+          </a>
+          <a [href]="repository.url + '/pulls'" target="_blank" class="action-card">
+            <i class="fas fa-code-branch"></i>
+            <span>Pull Requests</span>
+          </a>
+          <a [href]="repository.url + '/commits'" target="_blank" class="action-card">
+            <i class="fas fa-history"></i>
+            <span>Commit History</span>
+          </a>
+          <button class="action-card" (click)="copyToClipboard(repository.cloneUrl, 'Clone URL')">
+            <i class="fas fa-download"></i>
+            <span>Clone Repository</span>
+          </button>
+          <a [href]="repository.url + '/settings'" target="_blank" class="action-card">
+            <i class="fas fa-cog"></i>
+            <span>Settings</span>
+          </a>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>

@@ -262,6 +262,17 @@
   background: #5a6268;
 }
 
+.details-btn {
+  background: #007bff;
+  color: white;
+}
+
+.details-btn:hover {
+  background: #0056b3;
+  transform: translateY(-1px);
+  box-shadow: 0 3px 8px rgba(0, 123, 255, 0.3);
+}
+
 @media (max-width: 768px) {
   .student-repositories {
     padding: 16px;

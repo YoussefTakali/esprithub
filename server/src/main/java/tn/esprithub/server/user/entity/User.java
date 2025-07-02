@@ -59,6 +59,9 @@ public class User extends BaseEntity implements UserDetails {
     @Column(name = "github_username")
     private String githubUsername;
 
+    @Column(name = "github_name")
+    private String githubName;
+
     @Column(name = "is_active")
     @Builder.Default
     private Boolean isActive = true;

@@ -21,4 +21,5 @@ public class UserSummaryDto {
     private UserRole role;
     private Boolean isActive;
     private String githubUsername;
+    private String githubName;
 }

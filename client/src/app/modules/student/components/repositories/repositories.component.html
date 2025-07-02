@@ -70,6 +70,10 @@
 
         <div class="repository-footer">
           <div class="repo-actions">
+            <button class="action-btn details-btn" [routerLink]="['/student/repositories', repo.id]">
+              <i class="fas fa-info-circle"></i>
+              Details
+            </button>
             <a [href]="repo.url" target="_blank" class="action-btn view-btn">
               <i class="fab fa-github"></i>
               View on GitHub
