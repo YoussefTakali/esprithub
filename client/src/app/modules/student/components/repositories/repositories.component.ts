@@ -21,13 +21,14 @@ export class StudentRepositoriesComponent implements OnInit {
     this.loading = true;
     this.error = null;
     
-    this.studentService.getRepositories().subscribe({
+    this.studentService.getAllGitHubRepositories().subscribe({
       next: (repositories) => {
+        console.log('Loaded GitHub repositories:', repositories);
         this.repositories = repositories;
         this.loading = false;
       },
       error: (error) => {
-        console.error('Error loading repositories:', error);
+        console.error('Error loading GitHub repositories:', error);
         this.error = 'Failed to load repositories. Please try again.';
         this.loading = false;
       }

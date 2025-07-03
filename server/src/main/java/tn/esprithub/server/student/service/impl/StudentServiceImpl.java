@@ -22,6 +22,7 @@ import tn.esprithub.server.user.repository.UserRepository;
 import tn.esprithub.server.github.service.GitHubRepositoryService;
 import tn.esprithub.server.github.dto.GitHubRepositoryDetailsDto;
 import tn.esprithub.server.repository.repository.RepositoryEntityRepository;
+import tn.esprithub.server.project.entity.Group;
 
 import java.time.DayOfWeek;
 import java.time.LocalDateTime;
@@ -519,19 +520,52 @@ public class StudentServiceImpl implements StudentService {
         String owner = parts[0];
         String repoName = parts[1];
         
+        // Try to construct the actual GitHub repository name using group information
+        // Pattern: projectname-classname-groupname
+        if (group != null && group.getProject() != null && group.getClasse() != null) {
+            String projectName = group.getProject().getName().toLowerCase().replaceAll("[^a-z0-9]", "-");
+            String className = group.getClasse().getNom().toLowerCase().replaceAll("[^a-z0-9]", "-");
+            String groupName = group.getName().toLowerCase().replaceAll("[^a-z0-9]", "-");
+            
+            String constructedRepoName = projectName + "-" + className + "-" + groupName;
+            
+            log.info("Constructed repository name: {} (original: {})", constructedRepoName, repoName);
+            log.info("Project: {}, Class: {}, Group: {}", projectName, className, groupName);
+            
+            // First try with the constructed name
+            repoName = constructedRepoName;
+        }
+        
         log.info("Attempting to fetch GitHub data for repository: {}/{}", owner, repoName);
         
         // Try to get real GitHub data first
         GitHubRepositoryDetailsDto githubData = null;
         boolean isRealGitHubRepo = false;
+        String actualRepoName = repoName;
         
         try {
             githubData = gitHubRepositoryService.getRepositoryDetails(owner, repoName, student);
             isRealGitHubRepo = true;
-            log.info("Successfully fetched real GitHub data for: {}/{}", owner, repoName);
+            log.info("Successfully fetched real GitHub data for: {}/{}", owner, actualRepoName);
         } catch (Exception e) {
-            log.info("Repository {}/{} not found on GitHub (likely a mock repository): {}", owner, repoName, e.getMessage());
-            // githubData remains null, continue with mock data generation
+            log.info("Repository {}/{} not found on GitHub, trying original name from database", owner, repoName);
+            
+            // If constructed name failed, try with the original name from database
+            if (group != null) {
+                String originalRepoName = parts[1]; // Original repo name from database
+                try {
+                    githubData = gitHubRepositoryService.getRepositoryDetails(owner, originalRepoName, student);
+                    isRealGitHubRepo = true;
+                    actualRepoName = originalRepoName;
+                    log.info("Successfully fetched real GitHub data with original name: {}/{}", owner, originalRepoName);
+                } catch (Exception ex) {
+                    log.info("Repository {}/{} also not found with original name: {}", owner, originalRepoName, ex.getMessage());
+                    // githubData remains null, continue with mock data generation
+                }
+            } else {
+                log.info("No group information available, cannot try alternative repository names");
+                // githubData remains null, continue with mock data generation
+            }
         }
         
         final GitHubRepositoryDetailsDto finalGithubData = githubData;
@@ -866,7 +900,7 @@ public class StudentServiceImpl implements StudentService {
             scheduleItem.put("deadline", task.getDueDate());
             scheduleItem.put("status", task.getStatus().toString());
             scheduleItem.put("priority", "MEDIUM"); // Default priority since Task doesn't have priority field
-            scheduleItem.put("isOverdue", task.getDueDate().isBefore(LocalDateTime.now()));
+            scheduleItem.put("isOverdue", task.getDueDate() != null && task.getDueDate().isBefore(LocalDateTime.now()));
             schedule.add(scheduleItem);
         }
         
@@ -1160,5 +1194,146 @@ public class StudentServiceImpl implements StudentService {
         }
         
         return activities;
+    }
+    
+    @Override
+    public List<Map<String, Object>> getStudentGitHubRepositories(String studentEmail) {
+        log.info("Fetching all GitHub repositories for student: {}", studentEmail);
+        
+        User student = getStudentByEmail(studentEmail);
+        log.info("Found student: {} (ID: {})", student.getFullName(), student.getId());
+        
+        List<Map<String, Object>> repositories = new ArrayList<>();
+        
+        try {
+            // Get all groups the student is a member of that have repositories
+            List<Group> studentGroups = groupRepository.findGroupsWithRepositoriesByStudentId(student.getId());
+            log.info("Found {} groups with repositories for student: {}", studentGroups.size(), studentEmail);
+            
+            // Let's also check all groups the student is in (for debugging)
+            List<Group> allStudentGroups = groupRepository.findGroupsByStudentId(student.getId());
+            log.info("Student is member of {} total groups", allStudentGroups.size());
+            for (Group group : allStudentGroups) {
+                log.info("  Group: {} (ID: {}) - Has repository: {}", 
+                    group.getName(), 
+                    group.getId(), 
+                    group.getRepository() != null ? group.getRepository().getFullName() : "No repository"
+                );
+            }
+            
+            for (Group group : studentGroups) {
+                if (group.getRepository() != null) {
+                    try {
+                        log.info("Processing repository for group: {} - {}", group.getName(), group.getRepository().getFullName());
+                        
+                        // Use the GitHub service to fetch real repository data
+                        GitHubRepositoryDetailsDto repoData = gitHubRepositoryService.getRepositoryDetailsByRepositoryId(
+                            group.getRepository().getId().toString(), 
+                            student
+                        );
+                        
+                        // Convert DTO to Map and add group context information
+                        Map<String, Object> repoMap = convertGitHubDtoToMap(repoData);
+                        repoMap.put("repositoryId", group.getRepository().getId().toString()); // Database repository entity ID
+                        repoMap.put("groupId", group.getId().toString());
+                        repoMap.put("groupName", group.getName());
+                        repoMap.put("projectId", group.getProject().getId().toString());
+                        repoMap.put("projectName", group.getProject().getName());
+                        if (group.getClasse() != null) {
+                            repoMap.put("classId", group.getClasse().getId().toString());
+                            repoMap.put("className", group.getClasse().getNom());
+                        }
+                        
+                        repositories.add(repoMap);
+                        log.info("Successfully fetched GitHub data for repository: {}", group.getRepository().getFullName());
+                        
+                    } catch (Exception e) {
+                        log.warn("Failed to fetch GitHub data for repository: {} in group: {}. Error: {}", 
+                                group.getRepository().getFullName(), group.getName(), e.getMessage());
+                        
+                        // Add basic repository info even if GitHub fetch fails
+                        Map<String, Object> basicRepoData = new HashMap<>();
+                        basicRepoData.put("id", group.getRepository().getId().toString());
+                        basicRepoData.put("repositoryId", group.getRepository().getId().toString()); // Database repository entity ID
+                        basicRepoData.put("name", group.getRepository().getName());
+                        basicRepoData.put("fullName", group.getRepository().getFullName());
+                        basicRepoData.put("description", group.getRepository().getDescription());
+                        basicRepoData.put("url", group.getRepository().getUrl());
+                        basicRepoData.put("isPrivate", group.getRepository().getIsPrivate());
+                        basicRepoData.put("cloneUrl", group.getRepository().getCloneUrl());
+                        basicRepoData.put("sshUrl", group.getRepository().getSshUrl());
+                        basicRepoData.put("defaultBranch", group.getRepository().getDefaultBranch());
+                        basicRepoData.put("isActive", group.getRepository().getIsActive());
+                        basicRepoData.put("createdAt", group.getRepository().getCreatedAt());
+                        
+                        // Add group context
+                        basicRepoData.put("groupId", group.getId().toString());
+                        basicRepoData.put("groupName", group.getName());
+                        basicRepoData.put("projectId", group.getProject().getId().toString());
+                        basicRepoData.put("projectName", group.getProject().getName());
+                        if (group.getClasse() != null) {
+                            basicRepoData.put("classId", group.getClasse().getId().toString());
+                            basicRepoData.put("className", group.getClasse().getNom());
+                        }
+                        
+                        // Mark as fallback data
+                        basicRepoData.put("isGitHubDataAvailable", false);
+                        basicRepoData.put("error", "Unable to fetch real-time GitHub data");
+                        
+                        repositories.add(basicRepoData);
+                    }
+                }
+            }
+            
+            log.info("Successfully processed {} repositories for student: {}", repositories.size(), studentEmail);
+            return repositories;
+            
+        } catch (Exception e) {
+            log.error("Error fetching GitHub repositories for student: {}. Error: {}", studentEmail, e.getMessage());
+            throw new BusinessException("Failed to fetch student repositories: " + e.getMessage());
+        }
+    }
+    
+    private Map<String, Object> convertGitHubDtoToMap(GitHubRepositoryDetailsDto dto) {
+        Map<String, Object> map = new HashMap<>();
+        map.put("id", dto.getId());
+        map.put("name", dto.getName());
+        map.put("fullName", dto.getFullName());
+        map.put("description", dto.getDescription());
+        map.put("url", dto.getUrl());
+        map.put("htmlUrl", dto.getHtmlUrl());
+        map.put("cloneUrl", dto.getCloneUrl());
+        map.put("sshUrl", dto.getSshUrl());
+        map.put("gitUrl", dto.getGitUrl());
+        map.put("isPrivate", dto.getIsPrivate());
+        map.put("defaultBranch", dto.getDefaultBranch());
+        map.put("size", dto.getSize());
+        map.put("language", dto.getLanguage());
+        map.put("stargazersCount", dto.getStargazersCount());
+        map.put("watchersCount", dto.getWatchersCount());
+        map.put("forksCount", dto.getForksCount());
+        map.put("openIssuesCount", dto.getOpenIssuesCount());
+        map.put("createdAt", dto.getCreatedAt());
+        map.put("updatedAt", dto.getUpdatedAt());
+        map.put("pushedAt", dto.getPushedAt());
+        map.put("owner", convertOwnerDtoToMap(dto.getOwner()));
+        map.put("branches", dto.getBranches());
+        map.put("recentCommits", dto.getRecentCommits());
+        map.put("contributors", dto.getContributors());
+        map.put("languages", dto.getLanguages());
+        map.put("releases", dto.getReleases());
+        map.put("files", dto.getFiles());
+        map.put("isGitHubDataAvailable", true);
+        return map;
+    }
+    
+    private Map<String, Object> convertOwnerDtoToMap(GitHubRepositoryDetailsDto.OwnerDto owner) {
+        Map<String, Object> map = new HashMap<>();
+        map.put("login", owner.getLogin());
+        map.put("name", owner.getName());
+        map.put("avatarUrl", owner.getAvatarUrl());
+        map.put("type", owner.getType());
+        map.put("htmlUrl", owner.getHtmlUrl());
+        return map;
     }
 }

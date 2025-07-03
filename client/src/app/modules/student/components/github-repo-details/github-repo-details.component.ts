@@ -65,9 +65,14 @@ export class GitHubRepoDetailsComponent implements OnInit {
     this.loading = true;
     this.error = null;
 
-    // Use the StudentService to fetch real GitHub data
+    // Use the StudentService to fetch individual repository GitHub details
     this.studentService.getRepositoryGitHubDetails(repoId).subscribe({
-      next: (githubData: GitHubRepositoryDetails) => {
+      next: (githubData: any) => {
+        console.log('Received GitHub repository details:', githubData);
+        console.log('Repository name:', githubData.name);
+        console.log('Repository fullName:', githubData.fullName);
+        console.log('Repository owner:', githubData.owner);
+        
         this.repository = githubData;
         this.processGitHubData(githubData);
         this.loading = false;
@@ -80,22 +85,22 @@ export class GitHubRepoDetailsComponent implements OnInit {
     });
   }
 
-  private processGitHubData(data: GitHubRepositoryDetails): void {
+  private processGitHubData(data: any): void {
     // Update dashboard stats with real GitHub data
     this.dashboardStats = {
-      totalCommits: data.recentCommits?.length || 0,
-      contributors: data.contributors?.length || 0,
-      totalFiles: data.files?.length || 0,
-      repositorySize: this.formatRepositorySize(data.size || 0)
+      totalCommits: data.recentCommits?.length ?? 0,
+      contributors: data.contributors?.length ?? 0,
+      totalFiles: data.files?.length ?? 0,
+      repositorySize: this.formatRepositorySize(data.size ?? 0)
     };
 
     // Process contributors
-    this.contributors = data.contributors?.map(contributor => ({
+    this.contributors = data.contributors?.map((contributor: any) => ({
       name: contributor.login,
       commits: contributor.contributions,
       avatar: contributor.avatarUrl,
       url: contributor.htmlUrl
-    })) || [];
+    })) ?? [];
 
     // Process latest commit
     if (data.recentCommits && data.recentCommits.length > 0) {
@@ -110,24 +115,24 @@ export class GitHubRepoDetailsComponent implements OnInit {
     }
 
     // Process files for code view
-    this.repositoryFiles = data.files?.map(file => ({
+    this.repositoryFiles = data.files?.map((file: any) => ({
       name: file.name,
       type: file.type,
-      size: this.formatFileSize(file.size || 0),
+      size: this.formatFileSize(file.size ?? 0),
       lastModified: file.lastModified ? this.formatDate(file.lastModified) : 'Unknown',
       message: file.lastCommitMessage ?? 'No commit message',
       committer: file.lastCommitAuthor ?? 'Unknown',
       path: file.path,
       downloadUrl: file.downloadUrl,
       htmlUrl: file.htmlUrl
-    })) || [];
+    })) ?? [];
 
     // Process languages for file types
-    this.processLanguages(data.languages || {});
+    this.processLanguages(data.languages ?? {});
 
     // Update activity stats
     this.activityStats = {
-      totalCommits: data.recentCommits?.length || 0,
+      totalCommits: data.recentCommits?.length ?? 0,
       linesAdded: 0, // This would need to be calculated from commit data
       linesDeleted: 0 // This would need to be calculated from commit data
     };

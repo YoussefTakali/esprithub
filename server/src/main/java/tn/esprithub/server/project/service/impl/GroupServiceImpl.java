@@ -3,6 +3,7 @@ package tn.esprithub.server.project.service.impl;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.core.userdetails.UserDetails;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 import tn.esprithub.server.academic.entity.Classe;
 import tn.esprithub.server.academic.repository.ClasseRepository;
 import tn.esprithub.server.project.entity.Group;
@@ -64,11 +65,12 @@ public class GroupServiceImpl implements GroupService {
         // Fetch and set managed Students
         group.setStudents(group.getStudents().stream()
             .map(s -> userRepository.findById(s.getId()).orElseThrow(() -> new IllegalArgumentException("Student not found with id: " + s.getId())))
-            .toList());
+            .collect(java.util.stream.Collectors.toCollection(java.util.ArrayList::new)));
         return groupRepository.save(group);
     }
 
     @Override
+    @Transactional
     public Group createGroup(GroupCreateDto dto, Authentication authentication) {
         logger.info("Incoming group create DTO: {}", dto);
         if (dto.getClasseId() == null) {
@@ -98,7 +100,7 @@ public class GroupServiceImpl implements GroupService {
         Project managedProject = projectRepository.findById(dto.getProjectId()).orElseThrow(() -> new IllegalArgumentException("Project not found with provided id"));
         var managedStudents = dto.getStudentIds().stream()
             .map(id -> userRepository.findById(id).orElseThrow(() -> new IllegalArgumentException("Student not found with id: " + id)))
-            .toList();
+            .collect(java.util.stream.Collectors.toCollection(java.util.ArrayList::new));
         Group group = new Group();
         group.setName(dto.getName());
         group.setClasse(managedClasse);
@@ -114,15 +116,35 @@ public class GroupServiceImpl implements GroupService {
         
         try {
             // Compose repo name: projectName-className-groupName
-            String repoName = managedProject.getName() + "-" + managedClasse.getNom() + "-" + group.getName();
+            String baseRepoName = managedProject.getName() + "-" + managedClasse.getNom() + "-" + group.getName();
+            
+            // Clean the repository name to be GitHub-compatible
+            String cleanRepoName = baseRepoName
+                    .replaceAll("[^a-zA-Z0-9._-]", "-") // Replace invalid characters with hyphens
+                    .replaceAll("-+", "-") // Replace multiple consecutive hyphens with single hyphen
+                    .replaceAll("^-|-$", "") // Remove leading/trailing hyphens
+                    .toLowerCase(); // Convert to lowercase
+            
+            // Add a unique suffix based on the group ID to ensure uniqueness
+            String groupIdSuffix = savedGroup.getId().toString().substring(0, 8);
+            String repoName = cleanRepoName + "-" + groupIdSuffix;
+            
+            // Ensure the repository name doesn't exceed GitHub's 100 character limit
+            if (repoName.length() > 100) {
+                repoName = repoName.substring(0, 90) + "-" + groupIdSuffix;
+            }
+            
             String teacherToken = teacher.getGithubToken();
+            
+            logger.info("Creating GitHub repository with name: {} (original: {})", repoName, baseRepoName);
             String repoFullName = githubService.createRepositoryForUser(repoName, teacherToken);
+            
             if (repoFullName != null && !repoFullName.isBlank()) {
                 logger.info("GitHub repository created successfully: {}", repoFullName);
                 repoCreated = true;
                 repoUrl = "https://github.com/" + repoFullName;
                 
-                // Create repository entity in database
+                // Create repository entity in database FIRST
                 repository = tn.esprithub.server.repository.entity.Repository.builder()
                         .name(repoName)
                         .fullName(repoFullName)
@@ -136,27 +158,62 @@ public class GroupServiceImpl implements GroupService {
                         .isActive(true)
                         .build();
                 
+                logger.info("Saving repository entity to database...");
                 repository = repositoryEntityService.createRepository(repository);
+                logger.info("Repository entity saved with ID: {}", repository.getId());
                 
-                // Associate repository with group
+                // Associate repository with group IMMEDIATELY
+                logger.info("Associating repository {} with group {}", repository.getId(), savedGroup.getId());
                 savedGroup.setRepository(repository);
                 savedGroup = groupRepository.save(savedGroup);
+                logger.info("Group updated with repository_id: {}", 
+                    savedGroup.getRepository() != null ? savedGroup.getRepository().getId() : "null");
                 
-                // Invite students to the repository and create branches for them
-                for (var student : managedStudents) {
-                    if (student.getGithubUsername() != null && !student.getGithubUsername().isBlank()) {
-                        githubService.inviteUserToRepo(repoFullName, student.getGithubUsername(), teacherToken);
-                        githubService.createBranch(repoFullName, student.getFirstName() + student.getLastName(), teacherToken);
-                    }
-                }
+                // Force a flush to ensure database is updated
+                groupRepository.flush();
+                logger.info("Database flushed - repository association should be persisted");
+                
             } else {
                 logger.warn("GitHub repository creation returned empty repo name for group: {}", savedGroup.getName());
                 repoError = "GitHub repository creation returned empty repo name.";
             }
         } catch (Exception e) {
-            logger.error("GitHub integration failed for group {}: {}", savedGroup.getName(), e.getMessage());
+            logger.error("GitHub repository creation and linking failed for group {}: {}", savedGroup.getName(), e.getMessage(), e);
             repoError = e.getMessage();
         }
+        
+        // Only after repository is linked, try student invitations (in separate try-catch)
+        if (repoCreated && repository != null) {
+            try {
+                String repoFullName = repository.getFullName();
+                String teacherToken = teacher.getGithubToken();
+                logger.info("Starting student invitations and branch creation for repository: {}", repoFullName);
+                
+                for (var student : managedStudents) {
+                    if (student.getGithubUsername() != null && !student.getGithubUsername().isBlank()) {
+                        try {
+                            logger.info("Inviting student {} to repository {}", student.getGithubUsername(), repoFullName);
+                            githubService.inviteUserToRepo(repoFullName, student.getGithubUsername(), teacherToken);
+                            
+                            String branchName = student.getFirstName() + student.getLastName();
+                            logger.info("Creating branch {} for student {}", branchName, student.getGithubUsername());
+                            githubService.createBranch(repoFullName, branchName, teacherToken);
+                        } catch (Exception studentException) {
+                            logger.warn("Failed to invite student {} or create branch: {}", 
+                                student.getGithubUsername(), studentException.getMessage());
+                            // Continue with other students even if one fails
+                        }
+                    } else {
+                        logger.info("Student {} has no GitHub username, skipping invitation", student.getEmail());
+                    }
+                }
+                logger.info("Completed student invitations and branch creation for repository: {}", repoFullName);
+            } catch (Exception inviteException) {
+                logger.warn("Error during student invitations/branch creation (repository already linked): {}", inviteException.getMessage());
+                // Student invitation failures don't affect the repository creation success
+            }
+        }
+        
         // Attach repo info to group for controller (not persisted)
         savedGroup.setRepoCreated(repoCreated);
         savedGroup.setRepoUrl(repoUrl);
@@ -188,7 +245,7 @@ public class GroupServiceImpl implements GroupService {
         var managedStudentIds = dto.getStudentIds();
         var managedStudents = managedStudentIds.stream()
             .map(studentId -> userRepository.findById(studentId).orElseThrow(() -> new IllegalArgumentException("Student not found with id: " + studentId)))
-            .toList();
+            .collect(java.util.stream.Collectors.toCollection(java.util.ArrayList::new));
         Group group = groupRepository.findById(id).orElseThrow(() -> new IllegalArgumentException("Group not found with provided id"));
         group.setName(dto.getName());
         group.setClasse(managedClasse);

@@ -2,6 +2,7 @@ import { Injectable } from '@angular/core';
 import { HttpClient } from '@angular/common/http';
 import { Observable } from 'rxjs';
 import { map } from 'rxjs/operators';
+import { environment } from '../../../../environments/environment';
 
 export interface StudentDashboard {
   activeTasks: number;
@@ -187,7 +188,7 @@ export interface ScheduleEvent {
   providedIn: 'root'
 })
 export class StudentService {
-  private readonly apiUrl = '/api/student';
+  private readonly apiUrl = `${environment.apiUrl}/api/student`;
 
   constructor(private readonly http: HttpClient) {}
 
@@ -247,6 +248,12 @@ export class StudentService {
 
   getRepositoryGitHubDetails(repositoryId: string): Observable<any> {
     return this.http.get<any>(`${this.apiUrl}/repositories/${repositoryId}/github-details`);
+  }
+
+  getAllGitHubRepositories(): Observable<any[]> {
+    const url = `${this.apiUrl}/github-repositories`;
+    console.log('Calling getAllGitHubRepositories with URL:', url);
+    return this.http.get<any[]>(url);
   }
 
   getSchedule(): Observable<StudentSchedule> {

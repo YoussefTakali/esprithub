@@ -9,7 +9,7 @@
       <div class="repo-info">
         <i class="fas fa-folder folder-icon"></i>
         <span class="repo-label">Public repository</span>
-        <h1 class="repo-path">{{ repository.owner?.login || 'salmabm' }}/{{ repository.name || 'test_git' }}</h1>
+        <h1 class="repo-path">{{ repository.owner?.login }}/{{ repository.name }}</h1>
       </div>
     </div>
     <div class="header-right">
@@ -222,7 +222,7 @@
   <div class="repo-dashboard-content" *ngIf="activeTab === 'statistics'">
     <div class="dashboard-title">
       <h2>Repository Dashboard</h2>
-      <span class="repo-path-subtitle">{{ repository.owner?.login || 'salmabm' }}/{{ repository.name || 'test_git' }}</span>
+      <span class="repo-path-subtitle">{{ repository.owner?.login }}/{{ repository.name }}</span>
       <button class="refresh-btn" (click)="refreshData()">
         <i class="fas fa-sync-alt"></i>
         Refresh

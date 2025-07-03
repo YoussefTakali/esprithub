@@ -89,6 +89,11 @@ public interface StudentService {
     Map<String, Object> getRepositoryDetails(String repositoryId, String studentEmail);
     
     /**
+     * Get all GitHub repositories accessible to the student through group memberships
+     */
+    List<Map<String, Object>> getStudentGitHubRepositories(String studentEmail);
+    
+    /**
      * Get student's academic progress and statistics
      */
     Map<String, Object> getAcademicProgress(String studentEmail);
