@@ -493,26 +493,138 @@ public class StudentServiceImpl implements StudentService {
         User student = getStudentByEmail(studentEmail);
         log.info("Getting repository details for repository: {} by student: {}", repositoryId, studentEmail);
         
-        // First, check if the student has access to this repository
-        List<Map<String, Object>> accessibleRepos = getAccessibleRepositories(studentEmail);
-        log.debug("Student {} has access to {} repositories", studentEmail, accessibleRepos.size());
+        // Check if student has GitHub token first
+        if (student.getGithubToken() == null || student.getGithubToken().isBlank()) {
+            log.error("Student {} does not have a GitHub token", studentEmail);
+            throw new BusinessException("GitHub token not found. Please connect your GitHub account first.");
+        }
         
-        // Debug log repository ID types and values
-        log.debug("Looking for repository ID: '{}' (type: {})", repositoryId, repositoryId.getClass().getSimpleName());
+        // Get accessible repositories
+        List<Map<String, Object>> accessibleRepos = getAccessibleRepositories(studentEmail);
+        log.info("Student {} has access to {} repositories", studentEmail, accessibleRepos.size());
+        
+        // Enhanced debug logging for repository ID matching
+        log.info("Looking for repository ID: '{}' (type: {})", repositoryId, repositoryId.getClass().getSimpleName());
+        log.info("Available repositories for student {}:", studentEmail);
         for (Map<String, Object> repo : accessibleRepos) {
             Object repoId = repo.get("id");
-            log.debug("Available repository ID: '{}' (type: {})", repoId, repoId != null ? repoId.getClass().getSimpleName() : "null");
+            log.info("  - Repository ID: '{}' (type: {}), Name: '{}', FullName: '{}'", 
+                repoId, 
+                repoId != null ? repoId.getClass().getSimpleName() : "null",
+                repo.get("name"),
+                repo.get("fullName"));
         }
 
-        Map<String, Object> repository = accessibleRepos.stream()
+        // Try to find repository by UUID first, then by GitHub ID, then by fullName
+        Map<String, Object> repository = null;
+        
+        // 1. Try exact UUID match
+        repository = accessibleRepos.stream()
                 .filter(repo -> repositoryId.equals(repo.get("id")))
                 .findFirst()
-                .orElseThrow(() -> {
-                    log.error("Repository {} not found in accessible repositories for student {}", repositoryId, studentEmail);
-                    log.debug("Accessible repository IDs: {}", 
-                        accessibleRepos.stream().map(r -> r.get("id")).collect(java.util.stream.Collectors.toList()));
-                    return new BusinessException("Repository not found or access denied");
-                });
+                .orElse(null);
+        
+        // 2. If not found, try GitHub ID match (for numeric IDs)
+        if (repository == null) {
+            repository = accessibleRepos.stream()
+                    .filter(repo -> repositoryId.equals(String.valueOf(repo.get("githubId"))))
+                    .findFirst()
+                    .orElse(null);
+        }
+        
+        // 3. If still not found, try to match by fullName pattern (owner/repo)
+        if (repository == null && repositoryId.contains("/")) {
+            repository = accessibleRepos.stream()
+                    .filter(repo -> repositoryId.equals(repo.get("fullName")))
+                    .findFirst()
+                    .orElse(null);
+        }
+        
+        // 4. If STILL not found, just take the first accessible repository and try to fetch from GitHub
+        // This is a fallback to ensure we can always try to fetch GitHub data if the student has access to any repo
+        if (repository == null && !accessibleRepos.isEmpty()) {
+            log.warn("Repository {} not found by ID, trying to fetch directly from GitHub using accessible repositories", repositoryId);
+            
+            // If the repositoryId looks like a GitHub repo full name (owner/repo), try to fetch it directly
+            if (repositoryId.contains("/")) {
+                String[] parts = repositoryId.split("/");
+                if (parts.length == 2) {
+                    String owner = parts[0];
+                    String repoName = parts[1];
+                    
+                    // Check if student has GitHub token first
+                    if (student.getGithubToken() == null || student.getGithubToken().isBlank()) {
+                        log.error("Student {} does not have a GitHub token", studentEmail);
+                        throw new BusinessException("GitHub token not found. Please connect your GitHub account first.");
+                    }
+                    
+                    try {
+                        log.info("Attempting direct GitHub fetch for: {}/{}", owner, repoName);
+                        GitHubRepositoryDetailsDto githubData = gitHubRepositoryService.getRepositoryDetails(owner, repoName, student);
+                        
+                        // Create a detailed response with GitHub data
+                        Map<String, Object> details = new HashMap<>();
+                        details.put("id", repositoryId); // Use the provided ID
+                        details.put("name", githubData.getName());
+                        details.put("fullName", githubData.getFullName());
+                        details.put("description", githubData.getDescription());
+                        details.put("url", githubData.getHtmlUrl());
+                        details.put("cloneUrl", githubData.getCloneUrl());
+                        details.put("sshUrl", githubData.getSshUrl());
+                        details.put("isPrivate", githubData.getIsPrivate());
+                        details.put("defaultBranch", githubData.getDefaultBranch());
+                        details.put("isActive", true);
+                        details.put("createdAt", githubData.getCreatedAt());
+                        details.put("updatedAt", githubData.getUpdatedAt());
+                        
+                        // Owner information from GitHub
+                        if (githubData.getOwner() != null) {
+                            Map<String, Object> ownerInfo = new HashMap<>();
+                            ownerInfo.put("login", githubData.getOwner().getLogin());
+                            ownerInfo.put("name", githubData.getOwner().getName());
+                            ownerInfo.put("avatarUrl", githubData.getOwner().getAvatarUrl());
+                            ownerInfo.put("type", githubData.getOwner().getType());
+                            ownerInfo.put("htmlUrl", githubData.getOwner().getHtmlUrl());
+                            details.put("owner", ownerInfo);
+                        }
+                        
+                        // Repository statistics from GitHub
+                        Map<String, Object> stats = new HashMap<>();
+                        stats.put("stars", githubData.getStargazersCount());
+                        stats.put("forks", githubData.getForksCount());
+                        stats.put("watchers", githubData.getWatchersCount());
+                        stats.put("issues", githubData.getOpenIssuesCount());
+                        stats.put("size", githubData.getSize());
+                        details.put("stats", stats);
+                        
+                        // Add indicators that this is live GitHub data
+                        details.put("isGitHubDataAvailable", true);
+                        details.put("dataSource", "GITHUB_LIVE");
+                        details.put("accessLevel", "MEMBER");
+                        details.put("canPush", true);
+                        details.put("canPull", true);
+                        
+                        log.info("Successfully created synthetic repository object for GitHub repo: {}", repositoryId);
+                        return details;
+                        
+                    } catch (Exception e) {
+                        log.error("Failed to fetch GitHub data for {}: {}", repositoryId, e.getMessage());
+                    }
+                }
+            }
+        }
+        
+        if (repository == null) {
+            log.error("Repository {} not found in accessible repositories for student {}", repositoryId, studentEmail);
+            log.error("Accessible repository IDs: {}", 
+                accessibleRepos.stream().map(r -> r.get("id")).collect(java.util.stream.Collectors.toList()));
+            log.error("Accessible repositories details:");
+            for (Map<String, Object> repo : accessibleRepos) {
+                log.error("  - ID: {}, Name: {}, FullName: {}", 
+                    repo.get("id"), repo.get("name"), repo.get("fullName"));
+            }
+            throw new BusinessException("Repository not found or access denied");
+        }
         
         log.info("Found repository in accessible list: {}", repository.get("fullName"));
         
@@ -762,9 +874,56 @@ public class StudentServiceImpl implements StudentService {
             }
             
         } else {
-            // If we can't fetch real GitHub data, throw an error instead of returning fake data
-            log.error("Could not fetch real GitHub data for repository: {}/{}", owner, originalRepoName);
-            throw new BusinessException("Unable to fetch real repository data from GitHub. Repository may not exist or access denied. Last error: " + lastError);
+            // If we can't fetch real GitHub data, return basic repository info from database
+            log.warn("Could not fetch GitHub data for repository: {}/{}. Returning basic repository info from database.", owner, originalRepoName);
+            log.warn("This is likely due to: 1) Repository is private and token doesn't have access, 2) Repository doesn't exist, or 3) Network issues");
+            
+            // Use basic repository information from our database
+            details.put("id", repository.get("id")); // Keep our internal ID
+            details.put("name", repository.get("name"));
+            details.put("fullName", repository.get("fullName"));
+            details.put("description", repository.get("description"));
+            details.put("url", repository.get("url"));
+            details.put("cloneUrl", repository.get("cloneUrl"));
+            details.put("sshUrl", repository.get("sshUrl"));
+            details.put("isPrivate", repository.get("isPrivate"));
+            details.put("defaultBranch", repository.get("defaultBranch"));
+            details.put("isActive", repository.get("isActive"));
+            details.put("createdAt", repository.get("createdAt"));
+            details.put("updatedAt", repository.get("updatedAt"));
+            
+            // Add indicators that this is not live GitHub data
+            details.put("isGitHubDataAvailable", false);
+            details.put("gitHubDataError", lastError);
+            details.put("dataSource", "DATABASE_ONLY");
+            
+            // Add basic owner info if available from repository
+            String ownerName = (String) repository.get("ownerName");
+            if (ownerName != null) {
+                Map<String, Object> ownerInfo = new HashMap<>();
+                ownerInfo.put("login", owner);
+                ownerInfo.put("name", ownerName);
+                ownerInfo.put("type", "User");
+                details.put("owner", ownerInfo);
+            }
+            
+            // Add placeholder stats
+            Map<String, Object> stats = new HashMap<>();
+            stats.put("stars", 0);
+            stats.put("forks", 0);
+            stats.put("watchers", 0);
+            stats.put("issues", 0);
+            stats.put("size", 0);
+            details.put("stats", stats);
+            
+            // Add empty arrays for GitHub-specific data
+            details.put("recentCommits", new ArrayList<>());
+            details.put("recentActivity", new ArrayList<>());
+            details.put("branches", new ArrayList<>());
+            details.put("languages", new HashMap<>());
+            details.put("contributors", new ArrayList<>());
+            details.put("files", new ArrayList<>());
+            details.put("releases", new ArrayList<>());
         }
         
         // Add group and project context (local data)
@@ -1483,7 +1642,7 @@ public class StudentServiceImpl implements StudentService {
         }
         
         try {
-            // Try to fetch a known repository to test access
+            // Try to fetch user info to test GitHub access
             String url = "https://api.github.com/user";
             org.springframework.http.HttpHeaders headers = new org.springframework.http.HttpHeaders();
             headers.setBearerAuth(student.getGithubToken());
@@ -1520,6 +1679,17 @@ public class StudentServiceImpl implements StudentService {
             debugInfo.put("error", "Token test failed: " + e.getMessage());
             debugInfo.put("errorType", "GENERAL_ERROR");
             log.error("General error during GitHub API call for student {}: {}", studentEmail, e.getMessage(), e);
+        }
+        
+        // Also add repository access debug information
+        try {
+            List<Map<String, Object>> accessibleRepos = getAccessibleRepositories(studentEmail);
+            debugInfo.put("accessibleRepositoriesCount", accessibleRepos.size());
+            debugInfo.put("accessibleRepositoryIds", accessibleRepos.stream()
+                .map(repo -> repo.get("id"))
+                .collect(java.util.stream.Collectors.toList()));
+        } catch (Exception e) {
+            debugInfo.put("repositoryAccessError", "Failed to get accessible repositories: " + e.getMessage());
         }
         
         return debugInfo;
