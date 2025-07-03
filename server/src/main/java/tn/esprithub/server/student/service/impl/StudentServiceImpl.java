@@ -365,7 +365,7 @@ public class StudentServiceImpl implements StudentService {
         List<Map<String, Object>> repositories = groupsWithRepos.stream()
                 .map(group -> {
                     Map<String, Object> repo = new HashMap<>();
-                    repo.put("id", group.getRepository().getId());
+                    repo.put("id", group.getRepository().getId().toString()); // Convert UUID to String
                     repo.put("name", group.getRepository().getName());
                     repo.put("fullName", group.getRepository().getFullName());
                     repo.put("description", group.getRepository().getDescription());
@@ -381,9 +381,9 @@ public class StudentServiceImpl implements StudentService {
                         group.getRepository().getOwner().getFullName() : "Unknown");
                     
                     // Add group information
-                    repo.put("groupId", group.getId());
+                    repo.put("groupId", group.getId().toString()); // Convert UUID to String
                     repo.put("groupName", group.getName());
-                    repo.put("projectId", group.getProject() != null ? group.getProject().getId() : null);
+                    repo.put("projectId", group.getProject() != null ? group.getProject().getId().toString() : null); // Convert UUID to String
                     repo.put("projectName", group.getProject() != null ? group.getProject().getName() : null);
                     
                     // Add access level (student is a member of the group)
@@ -438,9 +438,9 @@ public class StudentServiceImpl implements StudentService {
                         mockRepo.put("ownerName", ownerName);
                         
                         // Add group information
-                        mockRepo.put("groupId", group.getId());
+                        mockRepo.put("groupId", group.getId().toString()); // Convert UUID to String
                         mockRepo.put("groupName", group.getName());
-                        mockRepo.put("projectId", group.getProject() != null ? group.getProject().getId() : null);
+                        mockRepo.put("projectId", group.getProject() != null ? group.getProject().getId().toString() : null); // Convert UUID to String
                         mockRepo.put("projectName", group.getProject() != null ? group.getProject().getName() : "No Project");
                         
                         // Add access level
@@ -494,11 +494,26 @@ public class StudentServiceImpl implements StudentService {
         
         // First, check if the student has access to this repository
         List<Map<String, Object>> accessibleRepos = getAccessibleRepositories(studentEmail);
+        log.debug("Student {} has access to {} repositories", studentEmail, accessibleRepos.size());
         
+        // Debug log repository ID types and values
+        log.debug("Looking for repository ID: '{}' (type: {})", repositoryId, repositoryId.getClass().getSimpleName());
+        for (Map<String, Object> repo : accessibleRepos) {
+            Object repoId = repo.get("id");
+            log.debug("Available repository ID: '{}' (type: {})", repoId, repoId != null ? repoId.getClass().getSimpleName() : "null");
+        }
+
         Map<String, Object> repository = accessibleRepos.stream()
                 .filter(repo -> repositoryId.equals(repo.get("id")))
                 .findFirst()
-                .orElseThrow(() -> new BusinessException("Repository not found or access denied"));
+                .orElseThrow(() -> {
+                    log.error("Repository {} not found in accessible repositories for student {}", repositoryId, studentEmail);
+                    log.debug("Accessible repository IDs: {}", 
+                        accessibleRepos.stream().map(r -> r.get("id")).collect(java.util.stream.Collectors.toList()));
+                    return new BusinessException("Repository not found or access denied");
+                });
+        
+        log.info("Found repository in accessible list: {}", repository.get("fullName"));
         
         // Get the group associated with this repository
         List<tn.esprithub.server.project.entity.Group> studentGroups = groupRepository.findGroupsByStudentId(student.getId());
@@ -509,6 +524,14 @@ public class StudentServiceImpl implements StudentService {
                 .findFirst()
                 .orElse(null);
         
+        if (group != null) {
+            log.info("Found associated group: {} with repository: {}", 
+                group.getName(), 
+                group.getRepository() != null ? group.getRepository().getFullName() : "null");
+        } else {
+            log.warn("No group found for repository ID: {}", repositoryId);
+        }
+        
         // Extract owner and repo name from the repository URL or name
         String repoFullName = (String) repository.get("fullName");
         if (repoFullName == null || !repoFullName.contains("/")) {
@@ -518,54 +541,79 @@ public class StudentServiceImpl implements StudentService {
         
         String[] parts = repoFullName.split("/");
         String owner = parts[0];
-        String repoName = parts[1];
+        String originalRepoName = parts[1];
+        
+        log.info("Repository full name: {}, Owner: {}, Original repo name: {}", repoFullName, owner, originalRepoName);
+        
+        // Check if student has GitHub token
+        if (student.getGithubToken() == null || student.getGithubToken().isBlank()) {
+            log.error("Student {} does not have a GitHub token", studentEmail);
+            throw new BusinessException("GitHub token not found. Please connect your GitHub account first.");
+        }
+        
+        // Try multiple repository name variations
+        List<String> repoNamesToTry = new ArrayList<>();
+        
+        // Add the original repo name from database first
+        repoNamesToTry.add(originalRepoName);
         
         // Try to construct the actual GitHub repository name using group information
-        // Pattern: projectname-classname-groupname
         if (group != null && group.getProject() != null && group.getClasse() != null) {
             String projectName = group.getProject().getName().toLowerCase().replaceAll("[^a-z0-9]", "-");
             String className = group.getClasse().getNom().toLowerCase().replaceAll("[^a-z0-9]", "-");
             String groupName = group.getName().toLowerCase().replaceAll("[^a-z0-9]", "-");
             
+            // Clean up multiple hyphens
+            projectName = projectName.replaceAll("-+", "-").replaceAll("^-|-$", "");
+            className = className.replaceAll("-+", "-").replaceAll("^-|-$", "");
+            groupName = groupName.replaceAll("-+", "-").replaceAll("^-|-$", "");
+            
             String constructedRepoName = projectName + "-" + className + "-" + groupName;
             
-            log.info("Constructed repository name: {} (original: {})", constructedRepoName, repoName);
-            log.info("Project: {}, Class: {}, Group: {}", projectName, className, groupName);
+            // Add group ID suffix if it exists (pattern from GroupServiceImpl)
+            if (group.getId() != null) {
+                String groupIdSuffix = group.getId().toString().substring(0, 8);
+                String constructedWithSuffix = constructedRepoName + "-" + groupIdSuffix;
+                repoNamesToTry.add(constructedWithSuffix);
+                
+                // Also try with length limit (from GroupServiceImpl logic)
+                if (constructedWithSuffix.length() > 100) {
+                    String truncatedName = constructedRepoName.substring(0, 90) + "-" + groupIdSuffix;
+                    repoNamesToTry.add(truncatedName);
+                }
+            }
             
-            // First try with the constructed name
-            repoName = constructedRepoName;
+            repoNamesToTry.add(constructedRepoName);
+            
+            log.info("Constructed repository name variations to try: {}", repoNamesToTry);
+            log.info("Project: {}, Class: {}, Group: {}", projectName, className, groupName);
         }
         
-        log.info("Attempting to fetch GitHub data for repository: {}/{}", owner, repoName);
-        
-        // Try to get real GitHub data first
+        // Try to get real GitHub data with different name variations
         GitHubRepositoryDetailsDto githubData = null;
         boolean isRealGitHubRepo = false;
-        String actualRepoName = repoName;
+        String actualRepoName = originalRepoName;
+        String lastError = null;
         
-        try {
-            githubData = gitHubRepositoryService.getRepositoryDetails(owner, repoName, student);
-            isRealGitHubRepo = true;
-            log.info("Successfully fetched real GitHub data for: {}/{}", owner, actualRepoName);
-        } catch (Exception e) {
-            log.info("Repository {}/{} not found on GitHub, trying original name from database", owner, repoName);
-            
-            // If constructed name failed, try with the original name from database
-            if (group != null) {
-                String originalRepoName = parts[1]; // Original repo name from database
-                try {
-                    githubData = gitHubRepositoryService.getRepositoryDetails(owner, originalRepoName, student);
-                    isRealGitHubRepo = true;
-                    actualRepoName = originalRepoName;
-                    log.info("Successfully fetched real GitHub data with original name: {}/{}", owner, originalRepoName);
-                } catch (Exception ex) {
-                    log.info("Repository {}/{} also not found with original name: {}", owner, originalRepoName, ex.getMessage());
-                    // githubData remains null, continue with mock data generation
-                }
-            } else {
-                log.info("No group information available, cannot try alternative repository names");
-                // githubData remains null, continue with mock data generation
+        for (String repoNameToTry : repoNamesToTry) {
+            try {
+                log.info("Attempting to fetch GitHub data for repository: {}/{}", owner, repoNameToTry);
+                log.info("Student details - Email: {}, GitHub Username: {}, Token exists: {}", 
+                    student.getEmail(), student.getGithubUsername(), student.getGithubToken() != null && !student.getGithubToken().isBlank());
+                githubData = gitHubRepositoryService.getRepositoryDetails(owner, repoNameToTry, student);
+                isRealGitHubRepo = true;
+                actualRepoName = repoNameToTry;
+                log.info("Successfully fetched real GitHub data for: {}/{}", owner, actualRepoName);
+                break;
+            } catch (Exception e) {
+                lastError = e.getMessage();
+                log.info("Repository {}/{} not found on GitHub: {}", owner, repoNameToTry, e.getMessage());
             }
+        }
+        
+        if (!isRealGitHubRepo) {
+            log.warn("Could not fetch GitHub data for any repository name variation. Last error: {}", lastError);
+            log.warn("Tried repository names: {}", repoNamesToTry);
         }
         
         final GitHubRepositoryDetailsDto finalGithubData = githubData;
@@ -605,27 +653,26 @@ public class StudentServiceImpl implements StudentService {
             stats.put("forks", finalGithubData.getForksCount());
             stats.put("watchers", finalGithubData.getWatchersCount());
             stats.put("issues", finalGithubData.getOpenIssuesCount());
-            stats.put("commits", finalGithubData.getRecentCommits() != null ? finalGithubData.getRecentCommits().size() : 0);
-            stats.put("branches", finalGithubData.getBranches() != null ? finalGithubData.getBranches().size() : 0);
-            stats.put("contributors", finalGithubData.getContributors() != null ? finalGithubData.getContributors().size() : 0);
+            stats.put("size", finalGithubData.getSize());
             details.put("stats", stats);
             
-            // Real recent activity from GitHub commits
-            if (finalGithubData.getRecentCommits() != null && !finalGithubData.getRecentCommits().isEmpty()) {
-                List<Map<String, Object>> recentActivity = finalGithubData.getRecentCommits().stream()
-                        .limit(10)
+            // Real recent commits from GitHub
+            if (finalGithubData.getRecentCommits() != null) {
+                List<Map<String, Object>> commits = finalGithubData.getRecentCommits().stream()
                         .map(commit -> {
-                            Map<String, Object> activity = new HashMap<>();
-                            activity.put("type", "commit");
-                            activity.put("message", commit.getMessage());
-                            activity.put("author", commit.getAuthorName());
-                            activity.put("date", commit.getDate());
-                            activity.put("sha", commit.getSha());
-                            activity.put("url", commit.getHtmlUrl());
-                            return activity;
+                            Map<String, Object> commitInfo = new HashMap<>();
+                            commitInfo.put("sha", commit.getSha());
+                            commitInfo.put("message", commit.getMessage());
+                            commitInfo.put("author", commit.getAuthorName());
+                            commitInfo.put("authorEmail", commit.getAuthorEmail());
+                            commitInfo.put("authorAvatarUrl", commit.getAuthorAvatarUrl());
+                            commitInfo.put("date", commit.getDate());
+                            commitInfo.put("htmlUrl", commit.getHtmlUrl());
+                            return commitInfo;
                         })
                         .toList();
-                details.put("recentActivity", recentActivity);
+                details.put("recentCommits", commits);
+                details.put("recentActivity", commits); // Alias for backward compatibility
             }
             
             // Real branches information from GitHub
@@ -673,9 +720,50 @@ public class StudentServiceImpl implements StudentService {
                 details.put("contributors", contributors);
             }
             
+            // Real files from GitHub
+            if (finalGithubData.getFiles() != null) {
+                List<Map<String, Object>> files = finalGithubData.getFiles().stream()
+                        .map(file -> {
+                            Map<String, Object> fileInfo = new HashMap<>();
+                            fileInfo.put("name", file.getName());
+                            fileInfo.put("path", file.getPath());
+                            fileInfo.put("type", file.getType());
+                            fileInfo.put("size", file.getSize());
+                            fileInfo.put("sha", file.getSha());
+                            fileInfo.put("htmlUrl", file.getHtmlUrl());
+                            fileInfo.put("downloadUrl", file.getDownloadUrl());
+                            fileInfo.put("lastModified", file.getLastModified());
+                            fileInfo.put("lastCommitMessage", file.getLastCommitMessage());
+                            fileInfo.put("lastCommitSha", file.getLastCommitSha());
+                            fileInfo.put("lastCommitAuthor", file.getLastCommitAuthor());
+                            return fileInfo;
+                        })
+                        .toList();
+                details.put("files", files);
+            }
+            
+            // Real releases from GitHub
+            if (finalGithubData.getReleases() != null) {
+                List<Map<String, Object>> releases = finalGithubData.getReleases().stream()
+                        .map(release -> {
+                            Map<String, Object> releaseInfo = new HashMap<>();
+                            releaseInfo.put("name", release.getName());
+                            releaseInfo.put("tagName", release.getTagName());
+                            releaseInfo.put("body", release.getBody());
+                            releaseInfo.put("isDraft", release.getIsDraft());
+                            releaseInfo.put("isPrerelease", release.getIsPrerelease());
+                            releaseInfo.put("publishedAt", release.getPublishedAt());
+                            releaseInfo.put("htmlUrl", release.getHtmlUrl());
+                            return releaseInfo;
+                        })
+                        .toList();
+                details.put("releases", releases);
+            }
+            
         } else {
-            // Generate mock repository details
-            details = createMockRepositoryDetails(repository, group);
+            // If we can't fetch real GitHub data, throw an error instead of returning fake data
+            log.error("Could not fetch real GitHub data for repository: {}/{}", owner, originalRepoName);
+            throw new BusinessException("Unable to fetch real repository data from GitHub. Repository may not exist or access denied. Last error: " + lastError);
         }
         
         // Add group and project context (local data)
@@ -717,107 +805,7 @@ public class StudentServiceImpl implements StudentService {
         }
         
         log.info("Successfully retrieved {} repository details for: {}/{}", 
-                isRealGitHubRepo ? "real" : "mock", owner, repoName);
-        return details;
-    }
-    
-    private Map<String, Object> createMockRepositoryDetails(Map<String, Object> repository, tn.esprithub.server.project.entity.Group group) {
-        log.info("Creating mock repository details for: {}", repository.get("name"));
-        
-        Map<String, Object> details = new HashMap<>();
-        
-        // Copy basic repository information
-        details.put("id", repository.get("id"));
-        details.put("name", repository.get("name"));
-        details.put("fullName", repository.get("fullName"));
-        details.put("description", repository.get("description"));
-        details.put("url", repository.get("url"));
-        details.put("cloneUrl", repository.get("cloneUrl"));
-        details.put("sshUrl", repository.get("sshUrl"));
-        details.put("isPrivate", repository.get("isPrivate"));
-        details.put("defaultBranch", repository.get("defaultBranch"));
-        details.put("createdAt", repository.get("createdAt"));
-        details.put("updatedAt", repository.get("updatedAt"));
-        details.put("isActive", repository.get("isActive"));
-        
-        // Create mock owner information
-        Map<String, Object> ownerInfo = new HashMap<>();
-        String ownerName = (String) repository.get("ownerName");
-        ownerInfo.put("login", ownerName != null ? ownerName.toLowerCase().replaceAll("\\s+", "") : "student-owner");
-        ownerInfo.put("name", ownerName != null ? ownerName : "Student Owner");
-        ownerInfo.put("avatarUrl", "https://github.com/identicons/" + (ownerName != null ? ownerName.toLowerCase().replaceAll("\\s+", "") : "student") + ".png");
-        ownerInfo.put("type", "User");
-        ownerInfo.put("htmlUrl", "https://github.com/" + (ownerName != null ? ownerName.toLowerCase().replaceAll("\\s+", "") : "student-owner"));
-        details.put("owner", ownerInfo);
-        
-        // Create mock repository statistics
-        Map<String, Object> stats = new HashMap<>();
-        stats.put("stars", 0);
-        stats.put("forks", 0);
-        stats.put("watchers", 1);
-        stats.put("issues", 0);
-        stats.put("commits", 5);
-        stats.put("branches", 1);
-        stats.put("contributors", group != null ? group.getStudents().size() : 1);
-        details.put("stats", stats);
-        
-        // Create mock recent activity
-        List<Map<String, Object>> recentActivity = new ArrayList<>();
-        Map<String, Object> activity = new HashMap<>();
-        activity.put("type", "commit");
-        activity.put("message", "Initial commit");
-        activity.put("author", "Team Lead");
-        activity.put("date", LocalDateTime.now().minusDays(1));
-        activity.put("sha", "abc123def456");
-        activity.put("url", repository.get("url") + "/commit/abc123def456");
-        recentActivity.add(activity);
-        details.put("recentActivity", recentActivity);
-        
-        // Create mock branches
-        List<Map<String, Object>> branches = new ArrayList<>();
-        Map<String, Object> mainBranch = new HashMap<>();
-        mainBranch.put("name", "main");
-        mainBranch.put("sha", "abc123def456");
-        mainBranch.put("isDefault", true);
-        mainBranch.put("isProtected", false);
-        mainBranch.put("lastCommit", "Initial commit");
-        branches.add(mainBranch);
-        details.put("branches", branches);
-        
-        // Create mock languages based on common student project languages
-        Map<String, Object> languages = new HashMap<>();
-        languages.put("Java", 60.5);
-        languages.put("JavaScript", 20.2);
-        languages.put("HTML", 12.8);
-        languages.put("CSS", 6.5);
-        details.put("languages", languages);
-        
-        // Create mock contributors from group members
-        List<Map<String, Object>> contributors = new ArrayList<>();
-        if (group != null && group.getStudents() != null) {
-            for (User member : group.getStudents()) {
-                Map<String, Object> contributorInfo = new HashMap<>();
-                String username = member.getGithubUsername() != null ? member.getGithubUsername() : member.getEmail().split("@")[0];
-                contributorInfo.put("login", username);
-                contributorInfo.put("name", member.getFullName());
-                contributorInfo.put("avatarUrl", "https://github.com/identicons/" + username + ".png");
-                contributorInfo.put("contributions", 5);
-                contributorInfo.put("htmlUrl", "https://github.com/" + username);
-                contributors.add(contributorInfo);
-            }
-        } else {
-            // Add a default contributor if no group members
-            Map<String, Object> contributorInfo = new HashMap<>();
-            contributorInfo.put("login", "student");
-            contributorInfo.put("name", "Student");
-            contributorInfo.put("avatarUrl", "https://github.com/identicons/student.png");
-            contributorInfo.put("contributions", 5);
-            contributorInfo.put("htmlUrl", "https://github.com/student");
-            contributors.add(contributorInfo);
-        }
-        details.put("contributors", contributors);
-        
-        log.info("Successfully created mock repository details for: {}", repository.get("name"));
+                isRealGitHubRepo ? "real" : "mock", owner, actualRepoName);
         return details;
     }
     @Override
@@ -1333,7 +1321,189 @@ public class StudentServiceImpl implements StudentService {
         map.put("name", owner.getName());
         map.put("avatarUrl", owner.getAvatarUrl());
         map.put("type", owner.getType());
-        map.put("htmlUrl", owner.getHtmlUrl());
-        return map;
+        map.put("htmlUrl", owner.getHtmlUrl());        return map;
+    }
+
+    @Override
+    public Map<String, Object> getGitHubRepositoryByFullName(String owner, String repo, String studentEmail) {
+        User student = getStudentByEmail(studentEmail);
+        log.info("Getting GitHub repository details for {}/{} by student: {}", owner, repo, studentEmail);
+        
+        // Check if student has GitHub token
+        if (student.getGithubToken() == null || student.getGithubToken().isBlank()) {
+            log.error("Student {} does not have a GitHub token", studentEmail);
+            throw new BusinessException("GitHub token not found. Please connect your GitHub account first.");
+        }
+        
+        try {
+            // Fetch directly from GitHub using student's token
+            GitHubRepositoryDetailsDto githubData = gitHubRepositoryService.getRepositoryDetails(owner, repo, student);
+            log.info("Successfully fetched GitHub data for: {}/{}", owner, repo);
+            
+            // Convert to Map for consistency with other endpoints
+            return convertGitHubDtoToMap(githubData);
+            
+        } catch (Exception e) {
+            log.error("Error fetching GitHub repository details for {}/{}: {}", owner, repo, e.getMessage());
+            throw new BusinessException("Failed to fetch GitHub repository details: " + e.getMessage());
+        }
+    }
+
+    @Override
+    public List<Map<String, Object>> getRepositoryFiles(String owner, String repo, String path, String branch, String studentEmail) {
+        User student = getStudentByEmail(studentEmail);
+        log.info("Getting repository files for {}/{} at path: {} on branch: {} by student: {}", owner, repo, path, branch, studentEmail);
+        
+        if (student.getGithubToken() == null || student.getGithubToken().isBlank()) {
+            throw new BusinessException("GitHub token not found. Please connect your GitHub account first.");
+        }
+        
+        // TODO: Implement GitHub API call to get repository files
+        throw new BusinessException("File listing functionality not yet implemented");
+    }
+    
+    @Override
+    public Map<String, Object> getFileContent(String owner, String repo, String path, String branch, String studentEmail) {
+        User student = getStudentByEmail(studentEmail);
+        log.info("Getting file content for {}/{} at path: {} on branch: {} by student: {}", owner, repo, path, branch, studentEmail);
+        
+        if (student.getGithubToken() == null || student.getGithubToken().isBlank()) {
+            throw new BusinessException("GitHub token not found. Please connect your GitHub account first.");
+        }
+        
+        // TODO: Implement GitHub API call to get file content
+        throw new BusinessException("File content functionality not yet implemented");
+    }
+    
+    @Override
+    public List<Map<String, Object>> getRepositoryCommits(String owner, String repo, String branch, int page, int perPage, String studentEmail) {
+        User student = getStudentByEmail(studentEmail);
+        log.info("Getting repository commits for {}/{} on branch: {} (page: {}, per_page: {}) by student: {}", owner, repo, branch, page, perPage, studentEmail);
+        
+        if (student.getGithubToken() == null || student.getGithubToken().isBlank()) {
+            throw new BusinessException("GitHub token not found. Please connect your GitHub account first.");
+        }
+        
+        // TODO: Implement GitHub API call to get repository commits
+        throw new BusinessException("Commits functionality not yet implemented");
+    }
+    
+    @Override
+    public List<Map<String, Object>> getRepositoryBranches(String owner, String repo, String studentEmail) {
+        User student = getStudentByEmail(studentEmail);
+        log.info("Getting repository branches for {}/{} by student: {}", owner, repo, studentEmail);
+        
+        if (student.getGithubToken() == null || student.getGithubToken().isBlank()) {
+            throw new BusinessException("GitHub token not found. Please connect your GitHub account first.");
+        }
+        
+        // TODO: Implement GitHub API call to get repository branches
+        throw new BusinessException("Branches functionality not yet implemented");
+    }
+    
+    @Override
+    public Map<String, Object> createFile(String owner, String repo, String path, String content, String message, String branch, String studentEmail) {
+        User student = getStudentByEmail(studentEmail);
+        log.info("Creating file in {}/{} at path: {} on branch: {} by student: {}", owner, repo, path, branch, studentEmail);
+        
+        if (student.getGithubToken() == null || student.getGithubToken().isBlank()) {
+            throw new BusinessException("GitHub token not found. Please connect your GitHub account first.");
+        }
+        
+        // TODO: Implement GitHub API call to create file
+        throw new BusinessException("File creation functionality not yet implemented");
+    }
+    
+    @Override
+    public Map<String, Object> updateFile(String owner, String repo, String path, String content, String message, String sha, String branch, String studentEmail) {
+        User student = getStudentByEmail(studentEmail);
+        log.info("Updating file in {}/{} at path: {} on branch: {} by student: {}", owner, repo, path, branch, studentEmail);
+        
+        if (student.getGithubToken() == null || student.getGithubToken().isBlank()) {
+            throw new BusinessException("GitHub token not found. Please connect your GitHub account first.");
+        }
+        
+        // TODO: Implement GitHub API call to update file
+        throw new BusinessException("File update functionality not yet implemented");
+    }
+    
+    @Override
+    public Map<String, Object> deleteFile(String owner, String repo, String path, String message, String sha, String branch, String studentEmail) {
+        User student = getStudentByEmail(studentEmail);
+        log.info("Deleting file in {}/{} at path: {} on branch: {} by student: {}", owner, repo, path, branch, studentEmail);
+        
+        if (student.getGithubToken() == null || student.getGithubToken().isBlank()) {
+            throw new BusinessException("GitHub token not found. Please connect your GitHub account first.");
+        }
+        
+        // TODO: Implement GitHub API call to delete file
+        throw new BusinessException("File deletion functionality not yet implemented");
+    }
+    
+    @Override
+    public Map<String, Object> createBranch(String owner, String repo, String branchName, String fromBranch, String studentEmail) {
+        User student = getStudentByEmail(studentEmail);
+        log.info("Creating branch {} from {} in {}/{} by student: {}", branchName, fromBranch, owner, repo, studentEmail);
+        
+        if (student.getGithubToken() == null || student.getGithubToken().isBlank()) {
+            throw new BusinessException("GitHub token not found. Please connect your GitHub account first.");
+        }
+        
+        // TODO: Implement GitHub API call to create branch
+        throw new BusinessException("Branch creation functionality not yet implemented");
+    }
+    
+    @Override
+    public List<Map<String, Object>> getRepositoryContributors(String owner, String repo, String studentEmail) {
+        User student = getStudentByEmail(studentEmail);
+        log.info("Getting repository contributors for {}/{} by student: {}", owner, repo, studentEmail);
+        
+        if (student.getGithubToken() == null || student.getGithubToken().isBlank()) {
+            throw new BusinessException("GitHub token not found. Please connect your GitHub account first.");
+        }
+        
+        // TODO: Implement GitHub API call to get repository contributors
+        throw new BusinessException("Contributors functionality not yet implemented");
+    }
+    
+    @Override
+    public Map<String, Object> debugGitHubAccess(String studentEmail) {
+        User student = getStudentByEmail(studentEmail);
+        log.info("Debug: Testing GitHub access for student: {}", studentEmail);
+        
+        Map<String, Object> debugInfo = new HashMap<>();
+        debugInfo.put("studentEmail", studentEmail);
+        debugInfo.put("githubUsername", student.getGithubUsername());
+        debugInfo.put("hasToken", student.getGithubToken() != null && !student.getGithubToken().isBlank());
+        
+        if (student.getGithubToken() == null || student.getGithubToken().isBlank()) {
+            debugInfo.put("error", "No GitHub token found");
+            return debugInfo;
+        }
+        
+        try {
+            // Try to fetch a known repository to test access
+            String url = "https://api.github.com/user";
+            org.springframework.http.HttpHeaders headers = new org.springframework.http.HttpHeaders();
+            headers.setBearerAuth(student.getGithubToken());
+            headers.set("Accept", "application/vnd.github.v3+json");
+            org.springframework.http.HttpEntity<String> entity = new org.springframework.http.HttpEntity<>(headers);
+            
+            org.springframework.http.ResponseEntity<String> response = restTemplate.exchange(url, org.springframework.http.HttpMethod.GET, entity, String.class);
+            
+            if (response.getStatusCode().is2xxSuccessful()) {
+                debugInfo.put("tokenValid", true);
+                debugInfo.put("githubUserData", response.getBody());
+            } else {
+                debugInfo.put("tokenValid", false);
+                debugInfo.put("error", "Invalid token - status: " + response.getStatusCode());
+            }
+            
+        } catch (Exception e) {
+            debugInfo.put("tokenValid", false);
+            debugInfo.put("error", "Token test failed: " + e.getMessage());
+        }
+        
+        return debugInfo;
     }
 }

@@ -38,6 +38,9 @@ public class GitHubRepositoryService {
             throw new BusinessException("GitHub token not found for user");
         }
 
+        log.info("Fetching GitHub repository details for {}/{} using token for user: {} (role: {})", 
+            owner, repo, user.getEmail(), user.getRole());
+
         try {
             // Get basic repository information
             JsonNode repoData = fetchRepositoryData(owner, repo, user.getGithubToken());
@@ -90,15 +93,42 @@ public class GitHubRepositoryService {
 
     private JsonNode fetchRepositoryData(String owner, String repo, String token) {
         String url = GITHUB_API_BASE + "/repos/" + owner + "/" + repo;
+        log.info("Making GitHub API call to: {}", url);
+        log.info("Using token starting with: {}...", token != null && token.length() > 10 ? token.substring(0, 10) : "null");
+        
         HttpHeaders headers = createHeaders(token);
         HttpEntity<String> entity = new HttpEntity<>(headers);
         
-        ResponseEntity<String> response = restTemplate.exchange(url, HttpMethod.GET, entity, String.class);
-        
         try {
-            return objectMapper.readTree(response.getBody());
+            ResponseEntity<String> response = restTemplate.exchange(url, HttpMethod.GET, entity, String.class);
+            
+            if (response.getStatusCode().is2xxSuccessful()) {
+                log.info("Successfully fetched repository data for {}/{}", owner, repo);
+                return objectMapper.readTree(response.getBody());
+            } else {
+                log.error("GitHub API returned status {} for repository {}/{}", response.getStatusCode(), owner, repo);
+                throw new BusinessException("GitHub API returned status: " + response.getStatusCode());
+            }
+        } catch (org.springframework.web.client.HttpClientErrorException e) {
+            log.error("GitHub API HTTP error for {}/{}: Status={}, Response={}", 
+                owner, repo, e.getStatusCode(), e.getResponseBodyAsString());
+            
+            if (e.getStatusCode().value() == 404) {
+                log.warn("Repository {}/{} not found on GitHub (404)", owner, repo);
+                throw new BusinessException("Repository " + owner + "/" + repo + " not found on GitHub");
+            } else if (e.getStatusCode().value() == 403) {
+                log.warn("Access denied to repository {}/{} (403) - check token permissions", owner, repo);
+                throw new BusinessException("Access denied to repository " + owner + "/" + repo + " - insufficient permissions");
+            } else if (e.getStatusCode().value() == 401) {
+                log.error("Invalid GitHub token for accessing repository {}/{} (401)", owner, repo);
+                throw new BusinessException("Invalid GitHub token - please reconnect your GitHub account");
+            } else {
+                log.error("GitHub API error {} for repository {}/{}: {}", e.getStatusCode(), owner, repo, e.getMessage());
+                throw new BusinessException("GitHub API error: " + e.getStatusCode() + " - " + e.getMessage());
+            }
         } catch (Exception e) {
-            throw new BusinessException("Failed to parse repository data");
+            log.error("Error parsing repository data for {}/{}: {}", owner, repo, e.getMessage());
+            throw new BusinessException("Failed to parse repository data: " + e.getMessage());
         }
     }
 

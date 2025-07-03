@@ -89,6 +89,11 @@ public interface StudentService {
     Map<String, Object> getRepositoryDetails(String repositoryId, String studentEmail);
     
     /**
+     * Get GitHub repository details directly by owner/repo name
+     */
+    Map<String, Object> getGitHubRepositoryByFullName(String owner, String repo, String studentEmail);
+    
+    /**
      * Get all GitHub repositories accessible to the student through group memberships
      */
     List<Map<String, Object>> getStudentGitHubRepositories(String studentEmail);
@@ -107,4 +112,26 @@ public interface StudentService {
      * Get student's recent activities
      */
     List<Map<String, Object>> getRecentActivities(String studentEmail, int limit);
+    
+    // GitHub repository file operations
+    List<Map<String, Object>> getRepositoryFiles(String owner, String repo, String path, String branch, String studentEmail);
+    
+    Map<String, Object> getFileContent(String owner, String repo, String path, String branch, String studentEmail);
+    
+    List<Map<String, Object>> getRepositoryCommits(String owner, String repo, String branch, int page, int perPage, String studentEmail);
+    
+    List<Map<String, Object>> getRepositoryBranches(String owner, String repo, String studentEmail);
+    
+    Map<String, Object> createFile(String owner, String repo, String path, String content, String message, String branch, String studentEmail);
+    
+    Map<String, Object> updateFile(String owner, String repo, String path, String content, String message, String sha, String branch, String studentEmail);
+    
+    Map<String, Object> deleteFile(String owner, String repo, String path, String message, String sha, String branch, String studentEmail);
+    
+    Map<String, Object> createBranch(String owner, String repo, String branchName, String fromBranch, String studentEmail);
+    
+    List<Map<String, Object>> getRepositoryContributors(String owner, String repo, String studentEmail);
+    
+    // Debug method to test GitHub access
+    Map<String, Object> debugGitHubAccess(String studentEmail);
 }

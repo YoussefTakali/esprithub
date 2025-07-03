@@ -205,6 +205,207 @@ public class StudentController {
         }
     }
 
+    // Get GitHub repository details by full name (owner/repo)
+    @GetMapping("/github/{owner}/{repo}")
+    public ResponseEntity<Map<String, Object>> getGitHubRepositoryByFullName(
+            @PathVariable String owner,
+            @PathVariable String repo,
+            Authentication authentication) {
+        log.info("Fetching GitHub repository details for {}/{} by student: {}", owner, repo, authentication.getName());
+        
+        try {
+            Map<String, Object> githubDetails = studentService.getGitHubRepositoryByFullName(owner, repo, authentication.getName());
+            return ResponseEntity.ok(githubDetails);
+        } catch (Exception e) {
+            log.error("Error fetching GitHub repository details: {}", e.getMessage());
+            return ResponseEntity.badRequest().body(Map.of("error", "Failed to fetch GitHub repository details: " + e.getMessage()));
+        }
+    }
+
+    // Get repository files and folders
+    @GetMapping("/github/{owner}/{repo}/files")
+    public ResponseEntity<List<Map<String, Object>>> getRepositoryFiles(
+            @PathVariable String owner,
+            @PathVariable String repo,
+            @RequestParam(value = "path", defaultValue = "") String path,
+            @RequestParam(value = "branch", defaultValue = "main") String branch,
+            Authentication authentication) {
+        log.info("Fetching files for repository {}/{} at path: {} on branch: {} by student: {}", 
+                owner, repo, path, branch, authentication.getName());
+        
+        try {
+            List<Map<String, Object>> files = studentService.getRepositoryFiles(owner, repo, path, branch, authentication.getName());
+            return ResponseEntity.ok(files);
+        } catch (Exception e) {
+            log.error("Error fetching repository files: {}", e.getMessage());
+            return ResponseEntity.badRequest().body(List.of(Map.of("error", "Failed to fetch repository files: " + e.getMessage())));
+        }
+    }
+
+    // Get file content
+    @GetMapping("/github/{owner}/{repo}/file-content")
+    public ResponseEntity<Map<String, Object>> getFileContent(
+            @PathVariable String owner,
+            @PathVariable String repo,
+            @RequestParam String path,
+            @RequestParam(value = "branch", defaultValue = "main") String branch,
+            Authentication authentication) {
+        log.info("Fetching file content for {}/{} at path: {} on branch: {} by student: {}", 
+                owner, repo, path, branch, authentication.getName());
+        
+        try {
+            Map<String, Object> fileContent = studentService.getFileContent(owner, repo, path, branch, authentication.getName());
+            return ResponseEntity.ok(fileContent);
+        } catch (Exception e) {
+            log.error("Error fetching file content: {}", e.getMessage());
+            return ResponseEntity.badRequest().body(Map.of("error", "Failed to fetch file content: " + e.getMessage()));
+        }
+    }
+
+    // Get repository commits with pagination
+    @GetMapping("/github/{owner}/{repo}/commits")
+    public ResponseEntity<List<Map<String, Object>>> getRepositoryCommits(
+            @PathVariable String owner,
+            @PathVariable String repo,
+            @RequestParam(value = "branch", defaultValue = "main") String branch,
+            @RequestParam(value = "page", defaultValue = "1") int page,
+            @RequestParam(value = "per_page", defaultValue = "30") int perPage,
+            Authentication authentication) {
+        log.info("Fetching commits for repository {}/{} on branch: {} (page: {}, per_page: {}) by student: {}", 
+                owner, repo, branch, page, perPage, authentication.getName());
+        
+        try {
+            List<Map<String, Object>> commits = studentService.getRepositoryCommits(owner, repo, branch, page, perPage, authentication.getName());
+            return ResponseEntity.ok(commits);
+        } catch (Exception e) {
+            log.error("Error fetching repository commits: {}", e.getMessage());
+            return ResponseEntity.badRequest().body(List.of(Map.of("error", "Failed to fetch repository commits: " + e.getMessage())));
+        }
+    }
+
+    // Get repository branches
+    @GetMapping("/github/{owner}/{repo}/branches")
+    public ResponseEntity<List<Map<String, Object>>> getRepositoryBranches(
+            @PathVariable String owner,
+            @PathVariable String repo,
+            Authentication authentication) {
+        log.info("Fetching branches for repository {}/{} by student: {}", owner, repo, authentication.getName());
+        
+        try {
+            List<Map<String, Object>> branches = studentService.getRepositoryBranches(owner, repo, authentication.getName());
+            return ResponseEntity.ok(branches);
+        } catch (Exception e) {
+            log.error("Error fetching repository branches: {}", e.getMessage());
+            return ResponseEntity.badRequest().body(List.of(Map.of("error", "Failed to fetch repository branches: " + e.getMessage())));
+        }
+    }
+
+    // Create a new file
+    @PostMapping("/github/{owner}/{repo}/files")
+    public ResponseEntity<Map<String, Object>> createFile(
+            @PathVariable String owner,
+            @PathVariable String repo,
+            @RequestBody Map<String, Object> fileData,
+            Authentication authentication) {
+        log.info("Creating file in repository {}/{} by student: {}", owner, repo, authentication.getName());
+        
+        try {
+            String path = (String) fileData.get("path");
+            String content = (String) fileData.get("content");
+            String message = (String) fileData.get("message");
+            String branch = (String) fileData.getOrDefault("branch", "main");
+            
+            Map<String, Object> result = studentService.createFile(owner, repo, path, content, message, branch, authentication.getName());
+            return ResponseEntity.ok(result);
+        } catch (Exception e) {
+            log.error("Error creating file: {}", e.getMessage());
+            return ResponseEntity.badRequest().body(Map.of("error", "Failed to create file: " + e.getMessage()));
+        }
+    }
+
+    // Update an existing file
+    @PutMapping("/github/{owner}/{repo}/files")
+    public ResponseEntity<Map<String, Object>> updateFile(
+            @PathVariable String owner,
+            @PathVariable String repo,
+            @RequestBody Map<String, Object> fileData,
+            Authentication authentication) {
+        log.info("Updating file in repository {}/{} by student: {}", owner, repo, authentication.getName());
+        
+        try {
+            String path = (String) fileData.get("path");
+            String content = (String) fileData.get("content");
+            String message = (String) fileData.get("message");
+            String sha = (String) fileData.get("sha"); // Required for updates
+            String branch = (String) fileData.getOrDefault("branch", "main");
+            
+            Map<String, Object> result = studentService.updateFile(owner, repo, path, content, message, sha, branch, authentication.getName());
+            return ResponseEntity.ok(result);
+        } catch (Exception e) {
+            log.error("Error updating file: {}", e.getMessage());
+            return ResponseEntity.badRequest().body(Map.of("error", "Failed to update file: " + e.getMessage()));
+        }
+    }
+
+    // Delete a file
+    @DeleteMapping("/github/{owner}/{repo}/files")
+    public ResponseEntity<Map<String, Object>> deleteFile(
+            @PathVariable String owner,
+            @PathVariable String repo,
+            @RequestParam String path,
+            @RequestParam String message,
+            @RequestParam String sha,
+            @RequestParam(value = "branch", defaultValue = "main") String branch,
+            Authentication authentication) {
+        log.info("Deleting file {} from repository {}/{} by student: {}", path, owner, repo, authentication.getName());
+        
+        try {
+            Map<String, Object> result = studentService.deleteFile(owner, repo, path, message, sha, branch, authentication.getName());
+            return ResponseEntity.ok(result);
+        } catch (Exception e) {
+            log.error("Error deleting file: {}", e.getMessage());
+            return ResponseEntity.badRequest().body(Map.of("error", "Failed to delete file: " + e.getMessage()));
+        }
+    }
+
+    // Create a new branch
+    @PostMapping("/github/{owner}/{repo}/branches")
+    public ResponseEntity<Map<String, Object>> createBranch(
+            @PathVariable String owner,
+            @PathVariable String repo,
+            @RequestBody Map<String, Object> branchData,
+            Authentication authentication) {
+        log.info("Creating branch in repository {}/{} by student: {}", owner, repo, authentication.getName());
+        
+        try {
+            String branchName = (String) branchData.get("name");
+            String fromBranch = (String) branchData.getOrDefault("from", "main");
+            
+            Map<String, Object> result = studentService.createBranch(owner, repo, branchName, fromBranch, authentication.getName());
+            return ResponseEntity.ok(result);
+        } catch (Exception e) {
+            log.error("Error creating branch: {}", e.getMessage());
+            return ResponseEntity.badRequest().body(Map.of("error", "Failed to create branch: " + e.getMessage()));
+        }
+    }
+
+    // Get repository contributors
+    @GetMapping("/github/{owner}/{repo}/contributors")
+    public ResponseEntity<List<Map<String, Object>>> getRepositoryContributors(
+            @PathVariable String owner,
+            @PathVariable String repo,
+            Authentication authentication) {
+        log.info("Fetching contributors for repository {}/{} by student: {}", owner, repo, authentication.getName());
+        
+        try {
+            List<Map<String, Object>> contributors = studentService.getRepositoryContributors(owner, repo, authentication.getName());
+            return ResponseEntity.ok(contributors);
+        } catch (Exception e) {
+            log.error("Error fetching repository contributors: {}", e.getMessage());
+            return ResponseEntity.badRequest().body(List.of(Map.of("error", "Failed to fetch repository contributors: " + e.getMessage())));
+        }
+    }
+
     // Get all GitHub repositories accessible to the student
     @GetMapping("/github-repositories")
     public ResponseEntity<List<Map<String, Object>>> getStudentGitHubRepositories(Authentication authentication) {
@@ -230,5 +431,19 @@ public class StudentController {
             "deadlines", studentService.getUpcomingDeadlines(authentication.getName(), 14)
         );
         return ResponseEntity.ok(scheduleResponse);
+    }
+
+    // Debug endpoint: Test GitHub access and list actual repositories
+    @GetMapping("/debug/github")
+    public ResponseEntity<Map<String, Object>> debugGitHubAccess(Authentication authentication) {
+        log.info("Debug: Testing GitHub access for student: {}", authentication.getName());
+        
+        try {
+            Map<String, Object> debugInfo = studentService.debugGitHubAccess(authentication.getName());
+            return ResponseEntity.ok(debugInfo);
+        } catch (Exception e) {
+            log.error("Error in GitHub debug: {}", e.getMessage());
+            return ResponseEntity.badRequest().body(Map.of("error", "GitHub debug failed: " + e.getMessage()));
+        }
     }
 }
