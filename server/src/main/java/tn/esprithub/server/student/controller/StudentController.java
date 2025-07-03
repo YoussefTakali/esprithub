@@ -7,12 +7,14 @@ import org.springframework.data.domain.Pageable;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.Authentication;
 import org.springframework.web.bind.annotation.*;
+import org.springframework.web.multipart.MultipartFile;
 import tn.esprithub.server.student.dto.StudentDashboardDto;
 import tn.esprithub.server.student.dto.StudentTaskDto;
 import tn.esprithub.server.student.dto.StudentGroupDto;
 import tn.esprithub.server.student.dto.StudentProjectDto;
 import tn.esprithub.server.student.service.StudentService;
 
+import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.UUID;
@@ -480,6 +482,57 @@ public class StudentController {
         } catch (Exception e) {
             log.error("Error fetching repository file tree: {}", e.getMessage());
             return ResponseEntity.badRequest().body(Map.of("error", "Failed to fetch repository file tree: " + e.getMessage()));
+        }
+    }
+    
+    // Upload single file
+    @PostMapping("/github/{owner}/{repo}/upload")
+    public ResponseEntity<Map<String, Object>> uploadFile(
+            @PathVariable String owner,
+            @PathVariable String repo,
+            @RequestParam("file") MultipartFile file,
+            @RequestParam("path") String path,
+            @RequestParam("message") String message,
+            @RequestParam(value = "branch", required = false) String branch,
+            Authentication authentication) {
+        log.info("Uploading file to repository {}/{} at path: {} by student: {}", owner, repo, path, authentication.getName());
+        
+        try {
+            byte[] fileContent = file.getBytes();
+            Map<String, Object> result = studentService.uploadFile(owner, repo, path, fileContent, message, branch, authentication.getName());
+            return ResponseEntity.ok(result);
+        } catch (Exception e) {
+            log.error("Error uploading file: {}", e.getMessage());
+            return ResponseEntity.badRequest().body(Map.of("error", "Failed to upload file: " + e.getMessage()));
+        }
+    }
+    
+    // Upload multiple files
+    @PostMapping("/github/{owner}/{repo}/upload-multiple")
+    public ResponseEntity<Map<String, Object>> uploadMultipleFiles(
+            @PathVariable String owner,
+            @PathVariable String repo,
+            @RequestParam("files") MultipartFile[] files,
+            @RequestParam("basePath") String basePath,
+            @RequestParam("message") String message,
+            @RequestParam(value = "branch", required = false) String branch,
+            Authentication authentication) {
+        log.info("Uploading {} files to repository {}/{} in path: {} by student: {}", 
+            files.length, owner, repo, basePath, authentication.getName());
+        
+        try {
+            Map<String, byte[]> fileMap = new HashMap<>();
+            for (MultipartFile file : files) {
+                if (!file.isEmpty()) {
+                    fileMap.put(file.getOriginalFilename(), file.getBytes());
+                }
+            }
+            
+            Map<String, Object> result = studentService.uploadMultipleFiles(owner, repo, basePath, fileMap, message, branch, authentication.getName());
+            return ResponseEntity.ok(result);
+        } catch (Exception e) {
+            log.error("Error uploading multiple files: {}", e.getMessage());
+            return ResponseEntity.badRequest().body(Map.of("error", "Failed to upload files: " + e.getMessage()));
         }
     }
 }

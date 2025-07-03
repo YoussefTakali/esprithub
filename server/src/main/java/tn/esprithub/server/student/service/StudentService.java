@@ -132,6 +132,11 @@ public interface StudentService {
     
     List<Map<String, Object>> getRepositoryContributors(String owner, String repo, String studentEmail);
     
+    // File upload operations
+    Map<String, Object> uploadFile(String owner, String repo, String path, byte[] fileContent, String message, String branch, String studentEmail);
+    
+    Map<String, Object> uploadMultipleFiles(String owner, String repo, String basePath, Map<String, byte[]> files, String message, String branch, String studentEmail);
+    
     // Repository overview and file tree operations
     Map<String, Object> getRepositoryOverview(String owner, String repo, String branch, String studentEmail);
     

@@ -47,6 +47,14 @@ export class GitHubRepoDetailsComponent implements OnInit {
   latestCommit: any = null;
   fileTree: any = {};
 
+  // Upload functionality properties
+  isDragOver = false;
+  selectedUploadBranch: string = 'main';
+  uploadCommitMessage: string = 'Add files via upload';
+  isUploading = false;
+  uploadProgress: { [key: string]: number } = {};
+  imageLoadError = false;
+
   constructor(
     private readonly route: ActivatedRoute,
     private readonly router: Router,
@@ -434,10 +442,20 @@ export class GitHubRepoDetailsComponent implements OnInit {
   }
 
   openFileContent(file: any): void {
+    this.resetImageError(); // Reset image error state
     const owner = this.repository.owner?.login ?? this.repository.fullName?.split('/')[0];
     const repoName = this.repository.name ?? this.repository.fullName?.split('/')[1];
     
     if (owner && repoName) {
+      // For images and binary files, we don't need to fetch the content
+      if (this.isBinaryFile(file.name)) {
+        this.selectedFile = file;
+        this.fileContent = '';
+        this.showFileContent = true;
+        return;
+      }
+      
+      // For text files, fetch the content
       this.studentService.getFileContent(owner, repoName, file.path, this.currentBranch).subscribe({
         next: (content: any) => {
           this.selectedFile = { ...file, ...content };
@@ -460,10 +478,36 @@ export class GitHubRepoDetailsComponent implements OnInit {
     }
   }
 
+  // Check if file is an image
+  isImageFile(fileName: string): boolean {
+    const imageExtensions = ['jpg', 'jpeg', 'png', 'gif', 'bmp', 'svg', 'webp', 'ico'];
+    const extension = fileName.split('.').pop()?.toLowerCase();
+    return imageExtensions.includes(extension ?? '');
+  }
+
+  // Check if file is binary
+  isBinaryFile(fileName: string): boolean {
+    const binaryExtensions = ['jpg', 'jpeg', 'png', 'gif', 'bmp', 'webp', 'ico', 'pdf', 'zip', 'rar', 'exe', 'dll', 'so', 'dylib'];
+    const extension = fileName.split('.').pop()?.toLowerCase();
+    return binaryExtensions.includes(extension ?? '');
+  }
+
+  // Get image source for display
+  getImageSrc(file: any): string {
+    if (file.downloadUrl) {
+      return file.downloadUrl;
+    }
+    // Fallback to constructing GitHub raw URL
+    const owner = this.repository.owner?.login ?? this.repository.fullName?.split('/')[0];
+    const repoName = this.repository.name ?? this.repository.fullName?.split('/')[1];
+    return `https://raw.githubusercontent.com/${owner}/${repoName}/${this.currentBranch}/${file.path}`;
+  }
+
   closeFileView(): void {
     this.showFileContent = false;
     this.selectedFile = null;
     this.fileContent = '';
+    this.resetImageError();
   }
 
   navigateToPath(index: number): void {
@@ -545,5 +589,125 @@ export class GitHubRepoDetailsComponent implements OnInit {
         changedFiles: 0
       }
     };
+  }
+
+  // File Upload and Drag-Drop functionality
+  onDragOver(event: DragEvent): void {
+    event.preventDefault();
+    event.stopPropagation();
+    this.isDragOver = true;
+  }
+
+  onDragLeave(event: DragEvent): void {
+    event.preventDefault();
+    event.stopPropagation();
+    this.isDragOver = false;
+  }
+
+  onDrop(event: DragEvent): void {
+    event.preventDefault();
+    event.stopPropagation();
+    this.isDragOver = false;
+
+    const files = event.dataTransfer?.files;
+    if (files && files.length > 0) {
+      this.handleFileUpload(Array.from(files));
+    }
+  }
+
+  triggerFileInput(): void {
+    const fileInput = document.querySelector('input[type="file"]') as HTMLInputElement;
+    if (fileInput) {
+      fileInput.click();
+    }
+  }
+
+  onFileSelect(event: any): void {
+    const files = event.target.files;
+    if (files && files.length > 0) {
+      this.handleFileUpload(Array.from(files));
+    }
+  }
+
+  private handleFileUpload(files: File[]): void {
+    if (!this.repository) {
+      console.error('No repository selected');
+      return;
+    }
+
+    const owner = this.repository.owner?.login ?? this.repository.fullName?.split('/')[0];
+    const repoName = this.repository.name ?? this.repository.fullName?.split('/')[1];
+
+    if (!owner || !repoName) {
+      console.error('Unable to determine repository owner and name');
+      return;
+    }
+
+    this.isUploading = true;
+    
+    // Get current path for upload
+    const basePath = this.currentPath.join('/');
+    
+    if (files.length === 1) {
+      // Single file upload
+      const file = files[0];
+      const filePath = basePath ? `${basePath}/${file.name}` : file.name;
+      
+      this.studentService.uploadFile(owner, repoName, file, filePath, this.uploadCommitMessage, this.selectedUploadBranch).subscribe({
+        next: (result) => {
+          console.log('File uploaded successfully:', result);
+          this.refreshCurrentPath(); // Refresh the file list
+          this.isUploading = false;
+          // Reset form
+          this.uploadCommitMessage = 'Add files via upload';
+        },
+        error: (error) => {
+          console.error('Error uploading file:', error);
+          this.isUploading = false;
+        }
+      });
+    } else {
+      // Multiple files upload
+      this.studentService.uploadMultipleFiles(owner, repoName, files, basePath, this.uploadCommitMessage, this.selectedUploadBranch).subscribe({
+        next: (result) => {
+          console.log('Files uploaded successfully:', result);
+          this.refreshCurrentPath(); // Refresh the file list
+          this.isUploading = false;
+          // Reset form
+          this.uploadCommitMessage = 'Add files via upload';
+        },
+        error: (error) => {
+          console.error('Error uploading files:', error);
+          this.isUploading = false;
+        }
+      });
+    }
+  }
+
+  private refreshCurrentPath(): void {
+    const owner = this.repository.owner?.login ?? this.repository.fullName?.split('/')[0];
+    const repoName = this.repository.name ?? this.repository.fullName?.split('/')[1];
+    
+    if (owner && repoName) {
+      const path = this.currentPath.join('/');
+      this.studentService.getRepositoryFiles(owner, repoName, path, this.selectedUploadBranch).subscribe({
+        next: (files: any[]) => {
+          this.repositoryFiles = this.processFileData(files);
+        },
+        error: (error) => {
+          console.error('Error refreshing file list:', error);
+        }
+      });
+    }
+  }
+
+  // Image handling methods
+  onImageError(event: any): void {
+    this.imageLoadError = true;
+  }
+
+  // Reset image error state when opening a new file
+  resetImageError(): void {
+    this.imageLoadError = false;
   }
 }

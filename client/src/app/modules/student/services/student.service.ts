@@ -356,4 +356,34 @@ export class StudentService {
     const body = { name: branchName, from: fromBranch };
     return this.http.post<any>(url, body);
   }
+
+  // File upload methods
+  uploadFile(owner: string, repo: string, file: File, path: string, message: string, branch?: string): Observable<any> {
+    const url = `${this.apiUrl}/github/${owner}/${repo}/upload`;
+    const formData = new FormData();
+    formData.append('file', file);
+    formData.append('path', path);
+    formData.append('message', message);
+    if (branch) {
+      formData.append('branch', branch);
+    }
+    
+    return this.http.post<any>(url, formData);
+  }
+
+  uploadMultipleFiles(owner: string, repo: string, files: File[], basePath: string, message: string, branch?: string): Observable<any> {
+    const url = `${this.apiUrl}/github/${owner}/${repo}/upload-multiple`;
+    const formData = new FormData();
+    
+    files.forEach(file => {
+      formData.append('files', file);
+    });
+    formData.append('basePath', basePath);
+    formData.append('message', message);
+    if (branch) {
+      formData.append('branch', branch);
+    }
+    
+    return this.http.post<any>(url, formData);
+  }
 }

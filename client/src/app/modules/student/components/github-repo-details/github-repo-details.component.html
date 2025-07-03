@@ -109,6 +109,51 @@
 
       <!-- File Browser -->
       <div class="file-browser">
+        <!-- Drag and Drop Upload Area -->
+        <div class="upload-area" 
+             [class.dragover]="isDragOver"
+             [class.uploading]="isUploading"
+             (dragover)="onDragOver($event)"
+             (dragleave)="onDragLeave($event)"
+             (drop)="onDrop($event)"
+             *ngIf="!showFileContent && !showCommitDetails">
+          <div class="upload-content" *ngIf="!isUploading">
+            <i class="fas fa-cloud-upload-alt upload-icon"></i>
+            <h3>Drag and drop files here</h3>
+            <p>or <button class="upload-btn" (click)="triggerFileInput()">browse to choose files</button></p>
+            <input type="file" 
+                   #fileInput 
+                   multiple 
+                   (change)="onFileSelect($event)"
+                   style="display: none;">
+            <div class="upload-options">
+              <label>
+                <span>Target Branch:</span>
+                <select [(ngModel)]="selectedUploadBranch" class="branch-select">
+                  <option [value]="repository?.defaultBranch || 'main'">{{ repository?.defaultBranch || 'main' }}</option>
+                  <option *ngFor="let branch of branches" [value]="branch.name">{{ branch.name }}</option>
+                </select>
+              </label>
+              <label>
+                <span>Commit Message:</span>
+                <input type="text" 
+                       [(ngModel)]="uploadCommitMessage" 
+                       placeholder="Add files via upload"
+                       class="commit-input">
+              </label>
+            </div>
+          </div>
+          
+          <!-- Upload progress -->
+          <div class="upload-progress" *ngIf="isUploading">
+            <div class="upload-spinner">
+              <i class="fas fa-spinner fa-spin"></i>
+            </div>
+            <h3>Uploading files...</h3>
+            <p>Please wait while your files are being uploaded to the repository.</p>
+          </div>
+        </div>
+
         <div class="file-browser-header">
           <div class="breadcrumb-nav" *ngIf="currentPath.length > 0">
             <button class="breadcrumb-btn" (click)="navigateToRoot()">
@@ -484,11 +529,51 @@
     </div>
     
     <div class="file-content">
-      <div class="line-numbers">
-        <div class="line-number" *ngFor="let line of fileContent.split('\n'); let i = index">{{ i + 1 }}</div>
+      <!-- Image preview for image files -->
+      <div class="image-preview" *ngIf="selectedFile && isImageFile(selectedFile.name)">
+        <img [src]="getImageSrc(selectedFile)" 
+             [alt]="selectedFile.name"
+             class="preview-image"
+             (error)="onImageError($event)"
+             [style.display]="imageLoadError ? 'none' : 'block'">
+        <div class="image-error" [style.display]="imageLoadError ? 'block' : 'none'">
+          <i class="fas fa-exclamation-triangle"></i>
+          <p>Unable to load image preview</p>
+        </div>
+        <div class="image-info">
+          <p><strong>File:</strong> {{ selectedFile.name }}</p>
+          <p><strong>Size:</strong> {{ selectedFile.sizeFormatted }}</p>
+          <p *ngIf="selectedFile.lastModified"><strong>Last Modified:</strong> {{ selectedFile.lastModified }}</p>
+        </div>
       </div>
-      <div class="file-code-content">
-        <pre><code>{{ fileContent }}</code></pre>
+      
+      <!-- Binary file notice -->
+      <div class="binary-file-preview" *ngIf="selectedFile && isBinaryFile(selectedFile.name) && !isImageFile(selectedFile.name)">
+        <i class="fas fa-file-archive"></i>
+        <h3>Binary File</h3>
+        <p>This is a binary file and cannot be displayed as text.</p>
+        <div class="image-info">
+          <p><strong>File:</strong> {{ selectedFile.name }}</p>
+          <p><strong>Size:</strong> {{ selectedFile.sizeFormatted }}</p>
+          <p *ngIf="selectedFile.lastModified"><strong>Last Modified:</strong> {{ selectedFile.lastModified }}</p>
+        </div>
+        <a [href]="selectedFile.downloadUrl" 
+           class="download-binary-btn" 
+           target="_blank"
+           *ngIf="selectedFile.downloadUrl">
+          <i class="fas fa-download"></i>
+          Download File
+        </a>
+      </div>
+      
+      <!-- Text content for text files -->
+      <div class="text-content" *ngIf="selectedFile && !isBinaryFile(selectedFile.name)">
+        <div class="line-numbers">
+          <div class="line-number" *ngFor="let line of fileContent.split('\n'); let i = index">{{ i + 1 }}</div>
+        </div>
+        <div class="file-code-content">
+          <pre><code>{{ fileContent }}</code></pre>
+        </div>
       </div>
     </div>
   </div>

@@ -2176,6 +2176,10 @@ public class StudentServiceImpl implements StudentService {
                             file.put("sizeFormatted", "-");
                         }
                         
+                        // Fetch latest commit info for this file
+                        Map<String, Object> commitInfo = getLatestCommitForFile(owner, repo, (String) fileData.get("path"), branch, student.getGithubToken());
+                        file.putAll(commitInfo);
+                        
                         files.add(file);
                     }
                 }
@@ -3308,5 +3312,217 @@ public class StudentServiceImpl implements StudentService {
         }
         
         return dynamicData;
+    }
+
+    private Map<String, Object> getLatestCommitForFile(String owner, String repo, String filePath, String branch, String githubToken) {
+        Map<String, Object> commitInfo = new HashMap<>();
+        
+        try {
+            // Get commits for specific file path
+            String url = String.format("https://api.github.com/repos/%s/%s/commits", owner, repo);
+            List<String> params = new ArrayList<>();
+            
+            if (branch != null && !branch.isBlank()) {
+                params.add("sha=" + branch);
+            }
+            if (filePath != null && !filePath.isBlank()) {
+                params.add("path=" + filePath);
+            }
+            params.add("per_page=1"); // We only need the latest commit
+            
+            if (!params.isEmpty()) {
+                url += "?" + String.join("&", params);
+            }
+            
+            HttpHeaders headers = new HttpHeaders();
+            headers.setBearerAuth(githubToken);
+            headers.set("Accept", "application/vnd.github.v3+json");
+            headers.set("User-Agent", "EspritHub-Server");
+            HttpEntity<String> entity = new HttpEntity<>(headers);
+            
+            ResponseEntity<Object[]> response = restTemplate.exchange(url, HttpMethod.GET, entity, Object[].class);
+            
+            if (response.getBody() != null && response.getBody().length > 0) {
+                Object latestCommitObj = response.getBody()[0];
+                if (latestCommitObj instanceof Map) {
+                    @SuppressWarnings("unchecked")
+                    Map<String, Object> latestCommit = (Map<String, Object>) latestCommitObj;
+                    
+                    // Extract commit details
+                    if (latestCommit.get("commit") instanceof Map) {
+                        @SuppressWarnings("unchecked")
+                        Map<String, Object> commitDetails = (Map<String, Object>) latestCommit.get("commit");
+                        
+                        commitInfo.put("lastCommitMessage", commitDetails.get("message"));
+                        
+                        // Extract author info
+                        if (commitDetails.get("author") instanceof Map) {
+                            @SuppressWarnings("unchecked")
+                            Map<String, Object> author = (Map<String, Object>) commitDetails.get("author");
+                            commitInfo.put("lastCommitAuthor", author.get("name"));
+                            commitInfo.put("lastModified", author.get("date"));
+                        }
+                    }
+                    
+                    // Extract GitHub author info if available
+                    if (latestCommit.get("author") instanceof Map) {
+                        @SuppressWarnings("unchecked")
+                        Map<String, Object> githubAuthor = (Map<String, Object>) latestCommit.get("author");
+                        if (githubAuthor.get("login") != null) {
+                            commitInfo.put("lastCommitAuthor", githubAuthor.get("login"));
+                        }
+                    }
+                    
+                    commitInfo.put("lastCommitSha", latestCommit.get("sha"));
+                    commitInfo.put("lastCommitUrl", latestCommit.get("html_url"));
+                }
+            } else {
+                // Fallback values when no commits found
+                commitInfo.put("lastCommitMessage", "No commits found");
+                commitInfo.put("lastCommitAuthor", "Unknown");
+                commitInfo.put("lastModified", null);
+            }
+            
+        } catch (Exception e) {
+            log.warn("Failed to get commit info for file {}/{}/{}: {}", owner, repo, filePath, e.getMessage());
+            // Fallback values on error
+            commitInfo.put("lastCommitMessage", "Unable to fetch commit info");
+            commitInfo.put("lastCommitAuthor", "Unknown");
+            commitInfo.put("lastModified", null);
+        }
+        
+        return commitInfo;
+    }
+
+    @Override
+    public Map<String, Object> uploadFile(String owner, String repo, String path, byte[] fileContent, String message, String branch, String studentEmail) {
+        User student = getStudentByEmail(studentEmail);
+        log.info("Uploading file to {}/{} at path: {} on branch: {} by student: {}", owner, repo, path, branch, studentEmail);
+        
+        if (student.getGithubToken() == null || student.getGithubToken().isBlank()) {
+            throw new BusinessException("GitHub token not found. Please connect your GitHub account first.");
+        }
+        
+        try {
+            // Check if file already exists to determine if we should create or update
+            String checkUrl = String.format("https://api.github.com/repos/%s/%s/contents/%s", owner, repo, path);
+            if (branch != null && !branch.isBlank()) {
+                checkUrl += "?ref=" + branch;
+            }
+            
+            HttpHeaders headers = new HttpHeaders();
+            headers.setBearerAuth(student.getGithubToken());
+            headers.set("Accept", "application/vnd.github.v3+json");
+            headers.set("User-Agent", "EspritHub-Server");
+            HttpEntity<String> entity = new HttpEntity<>(headers);
+            
+            String existingSha = null;
+            try {
+                ResponseEntity<Object> checkResponse = restTemplate.exchange(checkUrl, HttpMethod.GET, entity, Object.class);
+                if (checkResponse.getBody() instanceof Map) {
+                    @SuppressWarnings("unchecked")
+                    Map<String, Object> existingFile = (Map<String, Object>) checkResponse.getBody();
+                    existingSha = (String) existingFile.get("sha");
+                }
+            } catch (HttpClientErrorException e) {
+                if (e.getStatusCode().value() != 404) {
+                    throw e; // Re-throw if not a "not found" error
+                }
+                // File doesn't exist, we'll create it
+            }
+            
+            // Create request body with properly encoded binary content
+            Map<String, Object> requestBody = new HashMap<>();
+            requestBody.put("message", message);
+            requestBody.put("content", Base64.getEncoder().encodeToString(fileContent));
+            if (branch != null && !branch.isBlank()) {
+                requestBody.put("branch", branch);
+            }
+            if (existingSha != null) {
+                requestBody.put("sha", existingSha); // Required for updates
+            }
+            
+            headers.setContentType(MediaType.APPLICATION_JSON);
+            HttpEntity<Map<String, Object>> uploadEntity = new HttpEntity<>(requestBody, headers);
+            
+            log.debug("Making GitHub API call to upload file: {}", checkUrl);
+            ResponseEntity<Object> response = restTemplate.exchange(checkUrl, HttpMethod.PUT, uploadEntity, Object.class);
+            
+            if (response.getBody() instanceof Map) {
+                @SuppressWarnings("unchecked")
+                Map<String, Object> responseData = (Map<String, Object>) response.getBody();
+                
+                Map<String, Object> result = new HashMap<>();
+                result.put("success", true);
+                result.put("action", existingSha != null ? "updated" : "created");
+                result.put("path", path);
+                result.put("branch", branch);
+                
+                // Extract content info
+                if (responseData.get("content") instanceof Map) {
+                    @SuppressWarnings("unchecked")
+                    Map<String, Object> contentData = (Map<String, Object>) responseData.get("content");
+                    result.put("sha", contentData.get("sha"));
+                    result.put("htmlUrl", contentData.get("html_url"));
+                }
+                
+                // Extract commit info
+                if (responseData.get("commit") instanceof Map) {
+                    @SuppressWarnings("unchecked")
+                    Map<String, Object> commitData = (Map<String, Object>) responseData.get("commit");
+                    result.put("commitSha", commitData.get("sha"));
+                    result.put("commitUrl", commitData.get("url"));
+                }
+                
+                log.info("Successfully uploaded file to {}/{}/{}", owner, repo, path);
+                return result;
+            } else {
+                throw new BusinessException("Empty response from GitHub API");
+            }
+            
+        } catch (HttpClientErrorException e) {
+            log.error("GitHub API error when uploading file to {}/{}: {} - {}", owner, repo, e.getStatusCode(), e.getMessage());
+            if (e.getStatusCode().value() == 422) {
+                throw new BusinessException("Validation error: file may have conflicts or invalid content");
+            } else if (e.getStatusCode().value() == 404) {
+                throw new BusinessException("Repository or branch not found");
+            } else if (e.getStatusCode().value() == 403) {
+                throw new BusinessException("Access denied to repository or rate limit exceeded");
+            }
+            throw new BusinessException("Failed to upload file: " + e.getMessage());
+        } catch (Exception e) {
+            log.error("Error uploading file to {}/{}: {}", owner, repo, e.getMessage());
+            throw new BusinessException("Failed to upload file: " + e.getMessage());
+        }
+    }
+    
+    @Override
+    public Map<String, Object> uploadMultipleFiles(String owner, String repo, String basePath, Map<String, byte[]> files, String message, String branch, String studentEmail) {
+        Map<String, Object> result = new HashMap<>();
+        List<Map<String, Object>> uploadResults = new ArrayList<>();
+        List<String> errors = new ArrayList<>();
+        
+        for (Map.Entry<String, byte[]> fileEntry : files.entrySet()) {
+            String fileName = fileEntry.getKey();
+            byte[] fileContentBytes = fileEntry.getValue();
+            String fullPath = basePath.isEmpty() ? fileName : basePath + "/" + fileName;
+            
+            try {
+                Map<String, Object> uploadResult = uploadFile(owner, repo, fullPath, fileContentBytes, 
+                    message + " (" + fileName + ")", branch, studentEmail);
+                uploadResults.add(uploadResult);
+            } catch (Exception e) {
+                errors.add("Failed to upload " + fileName + ": " + e.getMessage());
+            }
+        }
+        
+        result.put("totalFiles", files.size());
+        result.put("successfulUploads", uploadResults.size());
+        result.put("failedUploads", errors.size());
+        result.put("uploadResults", uploadResults);
+        result.put("errors", errors);
+        result.put("success", errors.isEmpty());
+        
+        return result;
     }
 }
