@@ -41,6 +41,7 @@ public class StudentServiceImpl implements StudentService {
     private final GroupRepository groupRepository;
     private final GitHubRepositoryService gitHubRepositoryService;
     private final RepositoryEntityRepository repositoryEntityRepository;
+    private final org.springframework.web.client.RestTemplate restTemplate = new org.springframework.web.client.RestTemplate();
 
     @Override
     public StudentDashboardDto getStudentDashboard(String studentEmail) {
@@ -1487,21 +1488,38 @@ public class StudentServiceImpl implements StudentService {
             org.springframework.http.HttpHeaders headers = new org.springframework.http.HttpHeaders();
             headers.setBearerAuth(student.getGithubToken());
             headers.set("Accept", "application/vnd.github.v3+json");
+            headers.set("User-Agent", "EspritHub-Server");
             org.springframework.http.HttpEntity<String> entity = new org.springframework.http.HttpEntity<>(headers);
             
+            log.debug("Making GitHub API call to: {}", url);
             org.springframework.http.ResponseEntity<String> response = restTemplate.exchange(url, org.springframework.http.HttpMethod.GET, entity, String.class);
             
             if (response.getStatusCode().is2xxSuccessful()) {
                 debugInfo.put("tokenValid", true);
                 debugInfo.put("githubUserData", response.getBody());
+                log.debug("GitHub API call successful for student: {}", studentEmail);
             } else {
                 debugInfo.put("tokenValid", false);
                 debugInfo.put("error", "Invalid token - status: " + response.getStatusCode());
+                log.warn("GitHub API call failed with status: {} for student: {}", response.getStatusCode(), studentEmail);
             }
             
+        } catch (org.springframework.web.client.ResourceAccessException e) {
+            debugInfo.put("tokenValid", false);
+            debugInfo.put("error", "Network connection error: " + e.getMessage());
+            debugInfo.put("errorType", "NETWORK_ERROR");
+            log.error("Network error during GitHub API call for student {}: {}", studentEmail, e.getMessage());
+        } catch (org.springframework.web.client.HttpClientErrorException e) {
+            debugInfo.put("tokenValid", false);
+            debugInfo.put("error", "GitHub API error: " + e.getStatusCode() + " - " + e.getMessage());
+            debugInfo.put("errorType", "HTTP_CLIENT_ERROR");
+            debugInfo.put("statusCode", e.getStatusCode().value());
+            log.error("GitHub API HTTP error for student {}: {} - {}", studentEmail, e.getStatusCode(), e.getMessage());
         } catch (Exception e) {
             debugInfo.put("tokenValid", false);
             debugInfo.put("error", "Token test failed: " + e.getMessage());
+            debugInfo.put("errorType", "GENERAL_ERROR");
+            log.error("General error during GitHub API call for student {}: {}", studentEmail, e.getMessage(), e);
         }
         
         return debugInfo;
