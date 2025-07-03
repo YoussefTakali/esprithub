@@ -2,11 +2,14 @@ package tn.esprithub.server.student.service.impl;
 
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.core.ParameterizedTypeReference;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageImpl;
 import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
 import org.springframework.util.StringUtils;
+import org.springframework.http.*;
+import org.springframework.web.client.HttpClientErrorException;
 import tn.esprithub.server.common.exception.BusinessException;
 import tn.esprithub.server.project.entity.Task;
 import tn.esprithub.server.project.enums.TaskStatus;
@@ -30,6 +33,7 @@ import java.time.temporal.ChronoUnit;
 import java.util.*;
 import java.util.Comparator;
 import java.util.stream.Collectors;
+import java.util.Base64;
 
 @Service
 @RequiredArgsConstructor
@@ -366,6 +370,7 @@ public class StudentServiceImpl implements StudentService {
         List<Map<String, Object>> repositories = groupsWithRepos.stream()
                 .map(group -> {
                     Map<String, Object> repo = new HashMap<>();
+                    repo.put("repositoryId", group.getRepository().getId().toString()); // Add repository ID for clarity
                     repo.put("id", group.getRepository().getId().toString()); // Convert UUID to String
                     repo.put("name", group.getRepository().getName());
                     repo.put("fullName", group.getRepository().getFullName());
@@ -378,21 +383,211 @@ public class StudentServiceImpl implements StudentService {
                     repo.put("isActive", group.getRepository().getIsActive());
                     repo.put("createdAt", group.getRepository().getCreatedAt());
                     repo.put("updatedAt", group.getRepository().getUpdatedAt());
-                    repo.put("ownerName", group.getRepository().getOwner() != null ? 
-                        group.getRepository().getOwner().getFullName() : "Unknown");
                     
                     // Add group information
                     repo.put("groupId", group.getId().toString()); // Convert UUID to String
                     repo.put("groupName", group.getName());
                     repo.put("projectId", group.getProject() != null ? group.getProject().getId().toString() : null); // Convert UUID to String
                     repo.put("projectName", group.getProject() != null ? group.getProject().getName() : null);
+                    repo.put("classId", group.getClasse() != null ? group.getClasse().getId().toString() : null);
+                    repo.put("className", group.getClasse() != null ? group.getClasse().getNom() : null);
                     
                     // Add access level (student is a member of the group)
                     repo.put("accessLevel", "MEMBER");
                     repo.put("canPush", true);
                     repo.put("canPull", true);
                     
-                    log.info("Mapped repository: {} for group: {}", repo.get("name"), group.getName());
+                    // Try to fetch live GitHub data for this repository
+                    boolean isGitHubDataAvailable = false;
+                    String githubError = null;
+                    
+                    if (student.getGithubToken() != null && !student.getGithubToken().isBlank()) {
+                        try {
+                            // Extract owner and repo name from fullName
+                            String fullName = group.getRepository().getFullName();
+                            if (fullName != null && fullName.contains("/")) {
+                                String[] parts = fullName.split("/");
+                                String owner = parts[0];
+                                
+                                // Try multiple repository name variations (same logic as getRepositoryDetails)
+                                List<String> repoNamesToTry = new ArrayList<>();
+                                
+                                // Get the repository name from database first
+                                String databaseRepoName = parts[1]; // This is the repo name from fullName
+                                log.info("Database repository name: {}", databaseRepoName);
+                                
+                                // First, try the exact repository name from database (it might already be correct)
+                                repoNamesToTry.add(databaseRepoName);
+                                
+                                // Only try to construct if the database name doesn't look like the new format
+                                // (new format should have group ID suffix: xxx-xxx-xxx-xxxxxxxx)
+                                boolean hasGroupIdPattern = databaseRepoName.matches(".*-[a-f0-9]{8}$");
+                                log.info("Database repo name '{}' has group ID pattern: {}", databaseRepoName, hasGroupIdPattern);
+                                
+                                // If database name doesn't have group ID pattern, try to construct the actual GitHub repository name
+                                if (!hasGroupIdPattern && group.getProject() != null && group.getClasse() != null) {
+                                    log.info("Constructing repository name for group: {} with project: {} and class: {}", 
+                                        group.getName(), group.getProject().getName(), group.getClasse().getNom());
+                                    
+                                    // Use the exact same logic as GroupServiceImpl.createGroup()
+                                    String baseRepoName = group.getProject().getName() + "-" + group.getClasse().getNom() + "-" + group.getName();
+                                    log.info("Base repository name: {}", baseRepoName);
+                                    
+                                    // Clean the repository name to be GitHub-compatible (exact same logic as GroupServiceImpl)
+                                    String cleanRepoName = baseRepoName
+                                            .replaceAll("[^a-zA-Z0-9._-]", "-") // Replace invalid characters with hyphens
+                                            .replaceAll("-+", "-") // Replace multiple consecutive hyphens with single hyphen
+                                            .replaceAll("^-|-$", "") // Remove leading/trailing hyphens
+                                            .toLowerCase(); // Convert to lowercase
+                                    
+                                    log.info("Clean repository name: {}", cleanRepoName);
+                                    
+                                    // Add group ID suffix (this is the current format used by GroupServiceImpl)
+                                    if (group.getId() != null) {
+                                        String groupIdSuffix = group.getId().toString().substring(0, 8);
+                                        String constructedRepoName = cleanRepoName + "-" + groupIdSuffix;
+                                        
+                                        // Ensure the repository name doesn't exceed GitHub's 100 character limit (exact same logic as GroupServiceImpl)
+                                        if (constructedRepoName.length() > 100) {
+                                            constructedRepoName = constructedRepoName.substring(0, 90) + "-" + groupIdSuffix;
+                                        }
+                                        
+                                        log.info("Constructed repository name with group ID suffix: {}", constructedRepoName);
+                                        
+                                        // Only add the constructed name if it's different from database name
+                                        if (!constructedRepoName.equals(databaseRepoName)) {
+                                            repoNamesToTry.add(constructedRepoName);
+                                        }
+                                    }
+                                } else if (!hasGroupIdPattern) {
+                                    log.warn("Cannot construct repository name for group {} - missing project or class information", group.getName());
+                                } else {
+                                    log.info("Database repository name '{}' already appears to be in correct format (has group ID pattern)", databaseRepoName);
+                                }
+                                 // Try to fetch GitHub data with different name variations
+                                log.info("Will try {} repository name variations for group {}: {}", repoNamesToTry.size(), group.getName(), repoNamesToTry);
+                                GitHubRepositoryDetailsDto githubData = null;
+                                
+                                // Only proceed if we have constructed repository names to try
+                                if (!repoNamesToTry.isEmpty()) {
+                                    for (String repoNameToTry : repoNamesToTry) {
+                                        try {
+                                            log.info("Attempting to fetch GitHub data for repository: {}/{} (variation {}/{})", 
+                                                owner, repoNameToTry, repoNamesToTry.indexOf(repoNameToTry) + 1, repoNamesToTry.size());
+                                            githubData = gitHubRepositoryService.getRepositoryDetails(owner, repoNameToTry, student);
+                                            isGitHubDataAvailable = true;
+                                            
+                                            // Update repository info with live GitHub data
+                                            if (githubData != null) {
+                                                repo.put("description", githubData.getDescription());
+                                                repo.put("isPrivate", githubData.getIsPrivate());
+                                                repo.put("defaultBranch", githubData.getDefaultBranch());
+                                                repo.put("url", githubData.getHtmlUrl());
+                                                repo.put("cloneUrl", githubData.getCloneUrl());
+                                                repo.put("sshUrl", githubData.getSshUrl());
+                                                
+                                                // Add GitHub repository ID for matching
+                                                repo.put("githubId", githubData.getId());
+                                                
+                                                // Add GitHub statistics
+                                                Map<String, Object> stats = new HashMap<>();
+                                                stats.put("stars", githubData.getStargazersCount());
+                                                stats.put("forks", githubData.getForksCount());
+                                                stats.put("watchers", githubData.getWatchersCount());
+                                                stats.put("issues", githubData.getOpenIssuesCount());
+                                                stats.put("size", githubData.getSize());
+                                                repo.put("stats", stats);
+                                                
+                                                // Add languages if available
+                                                if (githubData.getLanguages() != null && !githubData.getLanguages().isEmpty()) {
+                                                    int totalBytes = githubData.getLanguages().values().stream().mapToInt(Integer::intValue).sum();
+                                                    Map<String, Object> languages = new HashMap<>();
+                                                    githubData.getLanguages().forEach((lang, bytes) -> {
+                                                        double percentage = totalBytes > 0 ? (double) bytes / totalBytes * 100 : 0;
+                                                        languages.put(lang, Math.round(percentage * 100.0) / 100.0);
+                                                    });
+                                                    repo.put("languages", languages);
+                                                }
+                                                
+                                                log.info("Successfully fetched GitHub data for repository: {}/{}", owner, repoNameToTry);
+                                            }
+                                            break; // Success, stop trying other names
+                                        } catch (Exception e) {
+                                            log.debug("Repository {}/{} not found on GitHub: {}", owner, repoNameToTry, e.getMessage());
+                                            githubError = e.getMessage();
+                                        }
+                                    }
+                                } else {
+                                    log.warn("No repository name variations to try for group: {}", group.getName());
+                                    githubError = "Cannot construct repository name - missing project or class information";
+                                }
+                                
+                                // If no GitHub data was found with constructed names, try searching user's repositories
+                                if (!isGitHubDataAvailable && !repoNamesToTry.isEmpty()) {
+                                    log.info("Trying fallback search in user's repositories for group: {}", group.getName());
+                                    Map<String, Object> foundRepo = searchUserRepositoriesForMatch(student, repoNamesToTry);
+                                    if (foundRepo != null && !foundRepo.isEmpty()) {
+                                        log.info("Found matching repository via fallback search: {}", foundRepo.get("name"));
+                                        
+                                        // Convert the raw GitHub API response to our expected format
+                                        isGitHubDataAvailable = true;
+                                        repo.put("description", foundRepo.get("description"));
+                                        repo.put("isPrivate", foundRepo.get("private"));
+                                        repo.put("defaultBranch", foundRepo.get("default_branch"));
+                                        repo.put("url", foundRepo.get("html_url"));
+                                        repo.put("cloneUrl", foundRepo.get("clone_url"));
+                                        repo.put("sshUrl", foundRepo.get("ssh_url"));
+                                        
+                                        // Add GitHub repository ID for matching
+                                        repo.put("githubId", foundRepo.get("id"));
+                                        
+                                        // Add basic GitHub statistics
+                                        Map<String, Object> stats = new HashMap<>();
+                                        stats.put("stars", foundRepo.get("stargazers_count"));
+                                        stats.put("forks", foundRepo.get("forks_count"));
+                                        stats.put("watchers", foundRepo.get("watchers_count"));
+                                        stats.put("issues", foundRepo.get("open_issues_count"));
+                                        stats.put("size", foundRepo.get("size"));
+                                        repo.put("stats", stats);
+                                        
+                                        githubError = null; // Clear the error since we found the repo
+                                    }
+                                }
+                            }
+                        } catch (Exception e) {
+                            log.warn("Failed to fetch GitHub data for repository {}: {}", group.getRepository().getFullName(), e.getMessage());
+                            githubError = e.getMessage();
+                        }
+                    } else {
+                        githubError = "GitHub token not available";
+                    }
+                    
+                    // Add GitHub data availability indicators
+                    repo.put("isGitHubDataAvailable", isGitHubDataAvailable);
+                    if (githubError != null) {
+                        repo.put("error", "Unable to fetch real-time GitHub data");
+                        repo.put("githubError", githubError);
+                    }
+                    repo.put("dataSource", isGitHubDataAvailable ? "GITHUB_LIVE" : "DATABASE_ONLY");
+                    
+                    // Add default stats if no GitHub data available
+                    if (!isGitHubDataAvailable && !repo.containsKey("stats")) {
+                        Map<String, Object> defaultStats = new HashMap<>();
+                        defaultStats.put("stars", 0);
+                        defaultStats.put("forks", 0);
+                        defaultStats.put("watchers", 0);
+                        defaultStats.put("issues", 0);
+                        defaultStats.put("size", 0);
+                        repo.put("stats", defaultStats);
+                    }
+                    
+                    // Add default languages if no GitHub data available
+                    if (!isGitHubDataAvailable && !repo.containsKey("languages")) {
+                        repo.put("languages", new HashMap<>());
+                    }
+                    
+                    log.info("Mapped repository: {} for group: {} (GitHub data available: {})", 
+                        repo.get("name"), group.getName(), isGitHubDataAvailable);
                     return repo;
                 })
                 .toList();
@@ -614,6 +809,69 @@ public class StudentServiceImpl implements StudentService {
             }
         }
         
+        // 5. Final fallback: if repositoryId is numeric, search user's GitHub repositories for matching ID
+        if (repository == null && repositoryId.matches("\\d+")) {
+            log.info("Repository not found by ID/name, trying to search user's GitHub repositories for numeric ID: {}", repositoryId);
+            
+            try {
+                Map<String, Object> foundRepo = searchUserRepositoriesById(student, repositoryId);
+                if (foundRepo != null && !foundRepo.isEmpty()) {
+                    log.info("Found matching repository via GitHub ID search: {}", foundRepo.get("name"));
+                    
+                    // Create a detailed response with GitHub data (similar to existing fallback logic)
+                    Map<String, Object> details = new HashMap<>();
+                    details.put("id", repositoryId); // Use the provided GitHub ID
+                    details.put("name", foundRepo.get("name"));
+                    details.put("fullName", foundRepo.get("full_name"));
+                    details.put("description", foundRepo.get("description"));
+                    details.put("url", foundRepo.get("html_url"));
+                    details.put("cloneUrl", foundRepo.get("clone_url"));
+                    details.put("sshUrl", foundRepo.get("ssh_url"));
+                    details.put("isPrivate", foundRepo.get("private"));
+                    details.put("defaultBranch", foundRepo.get("default_branch"));
+                    details.put("isActive", true);
+                    details.put("createdAt", foundRepo.get("created_at"));
+                    details.put("updatedAt", foundRepo.get("updated_at"));
+                    details.put("githubId", foundRepo.get("id"));
+                    
+                    // Owner information from GitHub
+                    Object ownerObj = foundRepo.get("owner");
+                    if (ownerObj instanceof Map) {
+                        @SuppressWarnings("unchecked")
+                        Map<String, Object> ownerData = (Map<String, Object>) ownerObj;
+                        Map<String, Object> ownerInfo = new HashMap<>();
+                        ownerInfo.put("login", ownerData.get("login"));
+                        ownerInfo.put("name", ownerData.get("name"));
+                        ownerInfo.put("avatarUrl", ownerData.get("avatar_url"));
+                        ownerInfo.put("type", ownerData.get("type"));
+                        ownerInfo.put("htmlUrl", ownerData.get("html_url"));
+                        details.put("owner", ownerInfo);
+                    }
+                    
+                    // Repository statistics from GitHub
+                    Map<String, Object> stats = new HashMap<>();
+                    stats.put("stars", foundRepo.get("stargazers_count"));
+                    stats.put("forks", foundRepo.get("forks_count"));
+                    stats.put("watchers", foundRepo.get("watchers_count"));
+                    stats.put("issues", foundRepo.get("open_issues_count"));
+                    stats.put("size", foundRepo.get("size"));
+                    details.put("stats", stats);
+                    
+                    // Add indicators that this is live GitHub data
+                    details.put("isGitHubDataAvailable", true);
+                    details.put("dataSource", "GITHUB_LIVE");
+                    details.put("accessLevel", "MEMBER");
+                    details.put("canPush", true);
+                    details.put("canPull", true);
+                    
+                    log.info("Successfully created repository object from GitHub ID: {}", repositoryId);
+                    return details;
+                }
+            } catch (Exception e) {
+                log.error("Failed to search GitHub repositories by ID {}: {}", repositoryId, e.getMessage());
+            }
+        }
+        
         if (repository == null) {
             log.error("Repository {} not found in accessible repositories for student {}", repositoryId, studentEmail);
             log.error("Accessible repository IDs: {}", 
@@ -667,39 +925,60 @@ public class StudentServiceImpl implements StudentService {
         // Try multiple repository name variations
         List<String> repoNamesToTry = new ArrayList<>();
         
-        // Add the original repo name from database first
+        // First, try the original repo name from database (it might already be correct)
+        log.info("Original repository name from database: {}", originalRepoName);
         repoNamesToTry.add(originalRepoName);
         
-        // Try to construct the actual GitHub repository name using group information
-        if (group != null && group.getProject() != null && group.getClasse() != null) {
-            String projectName = group.getProject().getName().toLowerCase().replaceAll("[^a-z0-9]", "-");
-            String className = group.getClasse().getNom().toLowerCase().replaceAll("[^a-z0-9]", "-");
-            String groupName = group.getName().toLowerCase().replaceAll("[^a-z0-9]", "-");
+        // Check if database name already has group ID pattern (new format)
+        boolean hasGroupIdPattern = originalRepoName.matches(".*-[a-f0-9]{8}$");
+        log.info("Database repo name '{}' has group ID pattern: {}", originalRepoName, hasGroupIdPattern);
+        
+        // Only try to construct if database name doesn't look like the new format
+        if (!hasGroupIdPattern && group != null && group.getProject() != null && group.getClasse() != null) {
+            log.info("Constructing repository name using GroupServiceImpl logic for group: {} with project: {} and class: {}", 
+                group.getName(), group.getProject().getName(), group.getClasse().getNom());
             
-            // Clean up multiple hyphens
-            projectName = projectName.replaceAll("-+", "-").replaceAll("^-|-$", "");
-            className = className.replaceAll("-+", "-").replaceAll("^-|-$", "");
-            groupName = groupName.replaceAll("-+", "-").replaceAll("^-|-$", "");
+            // Use the exact same logic as GroupServiceImpl.createGroup()
+            String baseRepoName = group.getProject().getName() + "-" + group.getClasse().getNom() + "-" + group.getName();
             
-            String constructedRepoName = projectName + "-" + className + "-" + groupName;
+            // Clean the repository name to be GitHub-compatible (exact same logic as GroupServiceImpl)
+            String cleanRepoName = baseRepoName
+                    .replaceAll("[^a-zA-Z0-9._-]", "-") // Replace invalid characters with hyphens
+                    .replaceAll("-+", "-") // Replace multiple consecutive hyphens with single hyphen
+                    .replaceAll("^-|-$", "") // Remove leading/trailing hyphens
+                    .toLowerCase(); // Convert to lowercase
             
             // Add group ID suffix if it exists (pattern from GroupServiceImpl)
             if (group.getId() != null) {
                 String groupIdSuffix = group.getId().toString().substring(0, 8);
-                String constructedWithSuffix = constructedRepoName + "-" + groupIdSuffix;
-                repoNamesToTry.add(constructedWithSuffix);
+                String repoName = cleanRepoName + "-" + groupIdSuffix;
                 
-                // Also try with length limit (from GroupServiceImpl logic)
-                if (constructedWithSuffix.length() > 100) {
-                    String truncatedName = constructedRepoName.substring(0, 90) + "-" + groupIdSuffix;
-                    repoNamesToTry.add(truncatedName);
+                // Ensure the repository name doesn't exceed GitHub's 100 character limit (exact same logic as GroupServiceImpl)
+                if (repoName.length() > 100) {
+                    repoName = repoName.substring(0, 90) + "-" + groupIdSuffix;
                 }
+                
+                // Only add the constructed name if it's different from original database name
+                if (!repoName.equals(originalRepoName)) {
+                    repoNamesToTry.add(repoName);
+                    log.info("Added constructed repository name: {}", repoName);
+                }
+                
+                log.info("Constructed exact repository name using GroupServiceImpl logic: {}", repoName);
+                log.info("Base name: {}, Clean name: {}, Group ID suffix: {}", baseRepoName, cleanRepoName, groupIdSuffix);
             }
             
-            repoNamesToTry.add(constructedRepoName);
+            // Also try the clean name without suffix as fallback
+            if (!cleanRepoName.equals(originalRepoName)) {
+                repoNamesToTry.add(cleanRepoName);
+            }
             
-            log.info("Constructed repository name variations to try: {}", repoNamesToTry);
-            log.info("Project: {}, Class: {}, Group: {}", projectName, className, groupName);
+            log.info("Repository name variations to try: {}", repoNamesToTry);
+        } else if (!hasGroupIdPattern) {
+            log.warn("Cannot construct repository name for group {} - missing project or class information", 
+                group != null ? group.getName() : "null");
+        } else {
+            log.info("Database repository name '{}' already appears to be in correct format (has group ID pattern)", originalRepoName);
         }
         
         // Try to get real GitHub data with different name variations
@@ -963,6 +1242,76 @@ public class StudentServiceImpl implements StudentService {
                     .toList();
             details.put("groupMembers", members);
         }
+
+        // Add action capabilities for frontend buttons
+        Map<String, Object> capabilities = new HashMap<>();
+        capabilities.put("canViewFiles", true);
+        capabilities.put("canCreateFiles", true);
+        capabilities.put("canEditFiles", true);
+        capabilities.put("canDeleteFiles", true);
+        capabilities.put("canViewCommits", true);
+        capabilities.put("canViewBranches", true);
+        capabilities.put("canCreateBranch", true);
+        capabilities.put("canViewContributors", true);
+        capabilities.put("canDownloadCode", true);
+        capabilities.put("canClone", true);
+        details.put("capabilities", capabilities);
+
+        // Add GitHub API endpoints for frontend
+        Map<String, String> apiEndpoints = new HashMap<>();
+        String baseRepoPath = owner + "/" + actualRepoName;
+        apiEndpoints.put("files", "/api/student/repositories/" + baseRepoPath + "/files");
+        apiEndpoints.put("fileContent", "/api/student/repositories/" + baseRepoPath + "/files/{path}");
+        apiEndpoints.put("commits", "/api/student/repositories/" + baseRepoPath + "/commits");
+        apiEndpoints.put("branches", "/api/student/repositories/" + baseRepoPath + "/branches");
+        apiEndpoints.put("contributors", "/api/student/repositories/" + baseRepoPath + "/contributors");
+        apiEndpoints.put("createFile", "/api/student/repositories/" + baseRepoPath + "/files");
+        apiEndpoints.put("updateFile", "/api/student/repositories/" + baseRepoPath + "/files/{path}");
+        apiEndpoints.put("deleteFile", "/api/student/repositories/" + baseRepoPath + "/files/{path}");
+        apiEndpoints.put("createBranch", "/api/student/repositories/" + baseRepoPath + "/branches");
+        details.put("apiEndpoints", apiEndpoints);
+
+        // Add repository navigation info
+        Map<String, Object> navigation = new HashMap<>();
+        navigation.put("owner", owner);
+        navigation.put("repository", actualRepoName);
+        navigation.put("fullName", owner + "/" + actualRepoName);
+        navigation.put("currentBranch", isRealGitHubRepo && finalGithubData != null ? 
+            finalGithubData.getDefaultBranch() : "main");
+        navigation.put("currentPath", "");
+        details.put("navigation", navigation);
+
+        // Add quick actions that frontend can use
+        Map<String, Object> quickActions = new HashMap<>();
+        quickActions.put("browseCode", true);
+        quickActions.put("viewCommitHistory", true);
+        quickActions.put("manageBranches", true);
+        quickActions.put("createNewFile", true);
+        quickActions.put("uploadFiles", true);
+        quickActions.put("viewContributors", true);
+        quickActions.put("downloadZip", true);
+        quickActions.put("cloneRepo", true);
+        details.put("quickActions", quickActions);
+
+        // Add repository insights
+        Map<String, Object> insights = new HashMap<>();
+        if (isRealGitHubRepo && finalGithubData != null) {
+            insights.put("totalCommits", finalGithubData.getRecentCommits() != null ? 
+                finalGithubData.getRecentCommits().size() : 0);
+            insights.put("totalBranches", finalGithubData.getBranches() != null ? 
+                finalGithubData.getBranches().size() : 0);
+            insights.put("totalContributors", finalGithubData.getContributors() != null ? 
+                finalGithubData.getContributors().size() : 0);
+            insights.put("lastActivity", finalGithubData.getPushedAt());
+            insights.put("primaryLanguage", finalGithubData.getLanguage());
+        } else {
+            insights.put("totalCommits", 0);
+            insights.put("totalBranches", 0);
+            insights.put("totalContributors", 0);
+            insights.put("lastActivity", null);
+            insights.put("primaryLanguage", "Unknown");
+        }
+        details.put("insights", insights);
         
         log.info("Successfully retrieved {} repository details for: {}/{}", 
                 isRealGitHubRepo ? "real" : "mock", owner, actualRepoName);
@@ -1518,8 +1867,92 @@ public class StudentServiceImpl implements StudentService {
             throw new BusinessException("GitHub token not found. Please connect your GitHub account first.");
         }
         
-        // TODO: Implement GitHub API call to get repository files
-        throw new BusinessException("File listing functionality not yet implemented");
+        try {
+            String url = String.format("https://api.github.com/repos/%s/%s/contents/%s", 
+                owner, repo, path != null ? path : "");
+            
+            if (branch != null && !branch.isBlank()) {
+                url += "?ref=" + branch;
+            }
+            
+            HttpHeaders headers = new HttpHeaders();
+            headers.setBearerAuth(student.getGithubToken());
+            headers.set("Accept", "application/vnd.github.v3+json");
+            headers.set("User-Agent", "EspritHub-Server");
+            HttpEntity<String> entity = new HttpEntity<>(headers);
+            
+            log.debug("Making GitHub API call to: {}", url);
+            ResponseEntity<Object[]> response = restTemplate.exchange(url, HttpMethod.GET, entity, Object[].class);
+            
+            List<Map<String, Object>> files = new ArrayList<>();
+            Object[] responseBody = response.getBody();
+            if (responseBody != null) {
+                for (Object item : responseBody) {
+                    if (item instanceof Map) {
+                        @SuppressWarnings("unchecked")
+                        Map<String, Object> fileData = (Map<String, Object>) item;
+                        
+                        Map<String, Object> file = new HashMap<>();
+                        file.put("name", fileData.get("name"));
+                        file.put("path", fileData.get("path"));
+                        file.put("type", fileData.get("type"));
+                        file.put("size", fileData.get("size"));
+                        file.put("sha", fileData.get("sha"));
+                        file.put("url", fileData.get("url"));
+                        file.put("htmlUrl", fileData.get("html_url"));
+                        file.put("downloadUrl", fileData.get("download_url"));
+                        
+                        // Add frontend-friendly properties
+                        String fileName = (String) fileData.get("name");
+                        String fileType = (String) fileData.get("type");
+                        
+                        // Add file extension and category
+                        if (fileName != null && fileName.contains(".")) {
+                            String extension = fileName.substring(fileName.lastIndexOf(".") + 1).toLowerCase();
+                            file.put("extension", extension);
+                            file.put("category", getFileCategory(extension));
+                        } else {
+                            file.put("extension", "");
+                            file.put("category", "folder".equals(fileType) ? "folder" : "unknown");
+                        }
+                        
+                        // Add action capabilities for this file
+                        Map<String, Boolean> fileCapabilities = new HashMap<>();
+                        fileCapabilities.put("canView", true);
+                        fileCapabilities.put("canEdit", !"dir".equals(fileType));
+                        fileCapabilities.put("canDelete", true);
+                        fileCapabilities.put("canDownload", !"dir".equals(fileType));
+                        file.put("capabilities", fileCapabilities);
+                        
+                        // Add file size in human readable format
+                        Object sizeObj = fileData.get("size");
+                        if (sizeObj instanceof Number) {
+                            long sizeBytes = ((Number) sizeObj).longValue();
+                            file.put("sizeFormatted", formatFileSize(sizeBytes));
+                        } else {
+                            file.put("sizeFormatted", "-");
+                        }
+                        
+                        files.add(file);
+                    }
+                }
+            }
+            
+            log.info("Successfully retrieved {} files for {}/{} at path: {}", files.size(), owner, repo, path);
+            return files;
+            
+        } catch (HttpClientErrorException e) {
+            log.error("GitHub API error when getting files for {}/{}: {} - {}", owner, repo, e.getStatusCode(), e.getMessage());
+            if (e.getStatusCode().value() == 404) {
+                throw new BusinessException("Repository, path, or branch not found");
+            } else if (e.getStatusCode().value() == 403) {
+                throw new BusinessException("Access denied to repository or rate limit exceeded");
+            }
+            throw new BusinessException("Failed to get repository files: " + e.getMessage());
+        } catch (Exception e) {
+            log.error("Error getting repository files for {}/{}: {}", owner, repo, e.getMessage());
+            throw new BusinessException("Failed to get repository files: " + e.getMessage());
+        }
     }
     
     @Override
@@ -1531,8 +1964,96 @@ public class StudentServiceImpl implements StudentService {
             throw new BusinessException("GitHub token not found. Please connect your GitHub account first.");
         }
         
-        // TODO: Implement GitHub API call to get file content
-        throw new BusinessException("File content functionality not yet implemented");
+        try {
+            String url = String.format("https://api.github.com/repos/%s/%s/contents/%s", owner, repo, path);
+            
+            if (branch != null && !branch.isBlank()) {
+                url += "?ref=" + branch;
+            }
+            
+            HttpHeaders headers = new HttpHeaders();
+            headers.setBearerAuth(student.getGithubToken());
+            headers.set("Accept", "application/vnd.github.v3+json");
+            headers.set("User-Agent", "EspritHub-Server");
+            HttpEntity<String> entity = new HttpEntity<>(headers);
+            
+            log.debug("Making GitHub API call to: {}", url);
+            ResponseEntity<Object> response = restTemplate.exchange(url, HttpMethod.GET, entity, Object.class);
+            
+            if (response.getBody() != null && response.getBody() instanceof Map) {
+                @SuppressWarnings("unchecked")
+                Map<String, Object> fileData = (Map<String, Object>) response.getBody();
+                
+                Map<String, Object> result = new HashMap<>();
+                result.put("name", fileData.get("name"));
+                result.put("path", fileData.get("path"));
+                result.put("sha", fileData.get("sha"));
+                result.put("size", fileData.get("size"));
+                result.put("encoding", fileData.get("encoding"));
+                result.put("content", fileData.get("content"));
+                result.put("url", fileData.get("url"));
+                result.put("htmlUrl", fileData.get("html_url"));
+                result.put("downloadUrl", fileData.get("download_url"));
+                
+                // Add enhanced file information
+                String fileName = (String) fileData.get("name");
+                String filePath = (String) fileData.get("path");
+                
+                // Add file extension and category
+                if (fileName != null && fileName.contains(".")) {
+                    String extension = fileName.substring(fileName.lastIndexOf(".") + 1).toLowerCase();
+                    result.put("extension", extension);
+                    result.put("category", getFileCategory(extension));
+                    result.put("isEditable", isEditableFile(extension));
+                } else {
+                    result.put("extension", "");
+                    result.put("category", "unknown");
+                    result.put("isEditable", false);
+                }
+                
+                // Add file size in human readable format
+                Object sizeObj = fileData.get("size");
+                if (sizeObj instanceof Number) {
+                    long sizeBytes = ((Number) sizeObj).longValue();
+                    result.put("sizeFormatted", formatFileSize(sizeBytes));
+                } else {
+                    result.put("sizeFormatted", "-");
+                }
+                
+                // Add navigation info
+                if (filePath != null && filePath.contains("/")) {
+                    String parentPath = filePath.substring(0, filePath.lastIndexOf("/"));
+                    result.put("parentPath", parentPath);
+                } else {
+                    result.put("parentPath", "");
+                }
+                
+                // Add action capabilities
+                Map<String, Boolean> capabilities = new HashMap<>();
+                capabilities.put("canEdit", true);
+                capabilities.put("canDelete", true);
+                capabilities.put("canDownload", true);
+                capabilities.put("canView", true);
+                result.put("capabilities", capabilities);
+                
+                log.info("Successfully retrieved file content for {}/{} at path: {}", owner, repo, path);
+                return result;
+            } else {
+                throw new BusinessException("Empty response from GitHub API");
+            }
+            
+        } catch (HttpClientErrorException e) {
+            log.error("GitHub API error when getting file content for {}/{}: {} - {}", owner, repo, e.getStatusCode(), e.getMessage());
+            if (e.getStatusCode().value() == 404) {
+                throw new BusinessException("File, repository, or branch not found");
+            } else if (e.getStatusCode().value() == 403) {
+                throw new BusinessException("Access denied to repository or rate limit exceeded");
+            }
+            throw new BusinessException("Failed to get file content: " + e.getMessage());
+        } catch (Exception e) {
+            log.error("Error getting file content for {}/{}: {}", owner, repo, e.getMessage());
+            throw new BusinessException("Failed to get file content: " + e.getMessage());
+        }
     }
     
     @Override
@@ -1544,8 +2065,94 @@ public class StudentServiceImpl implements StudentService {
             throw new BusinessException("GitHub token not found. Please connect your GitHub account first.");
         }
         
-        // TODO: Implement GitHub API call to get repository commits
-        throw new BusinessException("Commits functionality not yet implemented");
+        try {
+            String url = String.format("https://api.github.com/repos/%s/%s/commits", owner, repo);
+            List<String> params = new ArrayList<>();
+            
+            if (branch != null && !branch.isBlank()) {
+                params.add("sha=" + branch);
+            }
+            params.add("page=" + page);
+            params.add("per_page=" + perPage);
+            
+            if (!params.isEmpty()) {
+                url += "?" + String.join("&", params);
+            }
+            
+            HttpHeaders headers = new HttpHeaders();
+            headers.setBearerAuth(student.getGithubToken());
+            headers.set("Accept", "application/vnd.github.v3+json");
+            headers.set("User-Agent", "EspritHub-Server");
+            HttpEntity<String> entity = new HttpEntity<>(headers);
+            
+            log.debug("Making GitHub API call to: {}", url);
+            ResponseEntity<Object[]> response = restTemplate.exchange(url, HttpMethod.GET, entity, Object[].class);
+            
+            List<Map<String, Object>> commits = new ArrayList<>();
+            if (response.getBody() != null) {
+                for (Object item : response.getBody()) {
+                    if (item instanceof Map) {
+                        @SuppressWarnings("unchecked")
+                        Map<String, Object> commitData = (Map<String, Object>) item;
+                        
+                        Map<String, Object> commit = new HashMap<>();
+                        commit.put("sha", commitData.get("sha"));
+                        commit.put("url", commitData.get("url"));
+                        commit.put("htmlUrl", commitData.get("html_url"));
+                        
+                        // Extract commit details
+                        if (commitData.get("commit") instanceof Map) {
+                            @SuppressWarnings("unchecked")
+                            Map<String, Object> commitDetails = (Map<String, Object>) commitData.get("commit");
+                            commit.put("message", commitDetails.get("message"));
+                            
+                            // Extract author info
+                            if (commitDetails.get("author") instanceof Map) {
+                                @SuppressWarnings("unchecked")
+                                Map<String, Object> author = (Map<String, Object>) commitDetails.get("author");
+                                commit.put("authorName", author.get("name"));
+                                commit.put("authorEmail", author.get("email"));
+                                commit.put("authorDate", author.get("date"));
+                            }
+                            
+                            // Extract committer info
+                            if (commitDetails.get("committer") instanceof Map) {
+                                @SuppressWarnings("unchecked")
+                                Map<String, Object> committer = (Map<String, Object>) commitDetails.get("committer");
+                                commit.put("committerName", committer.get("name"));
+                                commit.put("committerEmail", committer.get("email"));
+                                commit.put("committerDate", committer.get("date"));
+                            }
+                        }
+                        
+                        // Extract GitHub author info
+                        if (commitData.get("author") instanceof Map) {
+                            @SuppressWarnings("unchecked")
+                            Map<String, Object> githubAuthor = (Map<String, Object>) commitData.get("author");
+                            commit.put("githubAuthorLogin", githubAuthor.get("login"));
+                            commit.put("githubAuthorAvatarUrl", githubAuthor.get("avatar_url"));
+                        }
+                        
+                        commits.add(commit);
+                    }
+                }
+            }
+            
+            log.info("Successfully retrieved {} commits for {}/{} on branch: {}", commits.size(), owner, repo, branch);
+            return commits;
+            
+        } catch (HttpClientErrorException e) {
+            log.error("GitHub API error when getting commits for {}/{}: {} - {}", owner, repo, e.getStatusCode(), e.getMessage());
+            if (e.getStatusCode().value() == 404) {
+                throw new BusinessException("Repository or branch not found");
+            } else if (e.getStatusCode().value() == 403) {
+                throw new BusinessException("Access denied to repository or rate limit exceeded");
+            }
+            throw new BusinessException("Failed to get repository commits: " + e.getMessage());
+        } catch (Exception e) {
+            log.error("Error getting repository commits for {}/{}: {}", owner, repo, e.getMessage());
+            throw new BusinessException("Failed to get repository commits: " + e.getMessage());
+        }
     }
     
     @Override
@@ -1557,8 +2164,57 @@ public class StudentServiceImpl implements StudentService {
             throw new BusinessException("GitHub token not found. Please connect your GitHub account first.");
         }
         
-        // TODO: Implement GitHub API call to get repository branches
-        throw new BusinessException("Branches functionality not yet implemented");
+        try {
+            String url = String.format("https://api.github.com/repos/%s/%s/branches", owner, repo);
+            
+            HttpHeaders headers = new HttpHeaders();
+            headers.setBearerAuth(student.getGithubToken());
+            headers.set("Accept", "application/vnd.github.v3+json");
+            headers.set("User-Agent", "EspritHub-Server");
+            HttpEntity<String> entity = new HttpEntity<>(headers);
+            
+            log.debug("Making GitHub API call to: {}", url);
+            ResponseEntity<Object[]> response = restTemplate.exchange(url, HttpMethod.GET, entity, Object[].class);
+            
+            List<Map<String, Object>> branches = new ArrayList<>();
+            if (response.getBody() != null) {
+                for (Object item : response.getBody()) {
+                    if (item instanceof Map) {
+                        @SuppressWarnings("unchecked")
+                        Map<String, Object> branchData = (Map<String, Object>) item;
+                        
+                        Map<String, Object> branch = new HashMap<>();
+                        branch.put("name", branchData.get("name"));
+                        branch.put("protected", branchData.get("protected"));
+                        
+                        // Extract commit info
+                        if (branchData.get("commit") instanceof Map) {
+                            @SuppressWarnings("unchecked")
+                            Map<String, Object> commit = (Map<String, Object>) branchData.get("commit");
+                            branch.put("commitSha", commit.get("sha"));
+                            branch.put("commitUrl", commit.get("url"));
+                        }
+                        
+                        branches.add(branch);
+                    }
+                }
+            }
+            
+            log.info("Successfully retrieved {} branches for {}/{}", branches.size(), owner, repo);
+            return branches;
+            
+        } catch (HttpClientErrorException e) {
+            log.error("GitHub API error when getting branches for {}/{}: {} - {}", owner, repo, e.getStatusCode(), e.getMessage());
+            if (e.getStatusCode().value() == 404) {
+                throw new BusinessException("Repository not found");
+            } else if (e.getStatusCode().value() == 403) {
+                throw new BusinessException("Access denied to repository or rate limit exceeded");
+            }
+            throw new BusinessException("Failed to get repository branches: " + e.getMessage());
+        } catch (Exception e) {
+            log.error("Error getting repository branches for {}/{}: {}", owner, repo, e.getMessage());
+            throw new BusinessException("Failed to get repository branches: " + e.getMessage());
+        }
     }
     
     @Override
@@ -1570,8 +2226,75 @@ public class StudentServiceImpl implements StudentService {
             throw new BusinessException("GitHub token not found. Please connect your GitHub account first.");
         }
         
-        // TODO: Implement GitHub API call to create file
-        throw new BusinessException("File creation functionality not yet implemented");
+        try {
+            String url = String.format("https://api.github.com/repos/%s/%s/contents/%s", owner, repo, path);
+            
+            // Create request body
+            Map<String, Object> requestBody = new HashMap<>();
+            requestBody.put("message", message);
+            requestBody.put("content", Base64.getEncoder().encodeToString(content.getBytes()));
+            if (branch != null && !branch.isBlank()) {
+                requestBody.put("branch", branch);
+            }
+            
+            HttpHeaders headers = new HttpHeaders();
+            headers.setBearerAuth(student.getGithubToken());
+            headers.set("Accept", "application/vnd.github.v3+json");
+            headers.set("User-Agent", "EspritHub-Server");
+            headers.setContentType(MediaType.APPLICATION_JSON);
+            HttpEntity<Map<String, Object>> entity = new HttpEntity<>(requestBody, headers);
+            
+            log.debug("Making GitHub API call to: {}", url);
+            ResponseEntity<Object> response = restTemplate.exchange(url, HttpMethod.PUT, entity, Object.class);
+            
+            if (response.getBody() != null && response.getBody() instanceof Map) {
+                @SuppressWarnings("unchecked")
+                Map<String, Object> responseData = (Map<String, Object>) response.getBody();
+                
+                Map<String, Object> result = new HashMap<>();
+                
+                // Extract content info
+                if (responseData.get("content") instanceof Map) {
+                    @SuppressWarnings("unchecked")
+                    Map<String, Object> contentData = (Map<String, Object>) responseData.get("content");
+                    result.put("name", contentData.get("name"));
+                    result.put("path", contentData.get("path"));
+                    result.put("sha", contentData.get("sha"));
+                    result.put("size", contentData.get("size"));
+                    result.put("url", contentData.get("url"));
+                    result.put("htmlUrl", contentData.get("html_url"));
+                    result.put("downloadUrl", contentData.get("download_url"));
+                }
+                
+                // Extract commit info
+                if (responseData.get("commit") instanceof Map) {
+                    @SuppressWarnings("unchecked")
+                    Map<String, Object> commitData = (Map<String, Object>) responseData.get("commit");
+                    result.put("commitSha", commitData.get("sha"));
+                    result.put("commitMessage", commitData.get("message"));
+                    result.put("commitUrl", commitData.get("url"));
+                }
+                
+                log.info("Successfully created file at {}/{}/{}", owner, repo, path);
+                return result;
+            } else {
+                throw new BusinessException("Empty response from GitHub API");
+            }
+            
+        } catch (HttpClientErrorException e) {
+            log.error("GitHub API error when creating file in {}/{}: {} - {}", owner, repo, e.getStatusCode(), e.getMessage());
+            if (e.getStatusCode().value() == 422) {
+                throw new BusinessException("File already exists or validation error");
+            } else if (e.getStatusCode().value() == 404) {
+                throw new BusinessException("Repository not found");
+            } else if (e.getStatusCode().value() == 403) {
+                throw new BusinessException("Access denied to repository or rate limit exceeded");
+            }
+            throw new BusinessException("Failed to create file: " + e.getMessage());
+        } catch (Exception e) {
+            log.error("Error creating file in {}/{}: {}", owner, repo, e.getMessage());
+            throw new BusinessException("Failed to create file: " + e.getMessage());
+        }
     }
     
     @Override
@@ -1583,8 +2306,76 @@ public class StudentServiceImpl implements StudentService {
             throw new BusinessException("GitHub token not found. Please connect your GitHub account first.");
         }
         
-        // TODO: Implement GitHub API call to update file
-        throw new BusinessException("File update functionality not yet implemented");
+        try {
+            String url = String.format("https://api.github.com/repos/%s/%s/contents/%s", owner, repo, path);
+            
+            // Create request body
+            Map<String, Object> requestBody = new HashMap<>();
+            requestBody.put("message", message);
+            requestBody.put("content", Base64.getEncoder().encodeToString(content.getBytes()));
+            requestBody.put("sha", sha);
+            if (branch != null && !branch.isBlank()) {
+                requestBody.put("branch", branch);
+            }
+            
+            HttpHeaders headers = new HttpHeaders();
+            headers.setBearerAuth(student.getGithubToken());
+            headers.set("Accept", "application/vnd.github.v3+json");
+            headers.set("User-Agent", "EspritHub-Server");
+            headers.setContentType(MediaType.APPLICATION_JSON);
+            HttpEntity<Map<String, Object>> entity = new HttpEntity<>(requestBody, headers);
+            
+            log.debug("Making GitHub API call to: {}", url);
+            ResponseEntity<Object> response = restTemplate.exchange(url, HttpMethod.PUT, entity, Object.class);
+            
+            if (response.getBody() instanceof Map) {
+                @SuppressWarnings("unchecked")
+                Map<String, Object> responseData = (Map<String, Object>) response.getBody();
+                
+                Map<String, Object> result = new HashMap<>();
+                
+                // Extract content info
+                if (responseData.get("content") instanceof Map) {
+                    @SuppressWarnings("unchecked")
+                    Map<String, Object> contentData = (Map<String, Object>) responseData.get("content");
+                    result.put("name", contentData.get("name"));
+                    result.put("path", contentData.get("path"));
+                    result.put("sha", contentData.get("sha"));
+                    result.put("size", contentData.get("size"));
+                    result.put("url", contentData.get("url"));
+                    result.put("htmlUrl", contentData.get("html_url"));
+                    result.put("downloadUrl", contentData.get("download_url"));
+                }
+                
+                // Extract commit info
+                if (responseData.get("commit") instanceof Map) {
+                    @SuppressWarnings("unchecked")
+                    Map<String, Object> commitData = (Map<String, Object>) responseData.get("commit");
+                    result.put("commitSha", commitData.get("sha"));
+                    result.put("commitMessage", commitData.get("message"));
+                    result.put("commitUrl", commitData.get("url"));
+                }
+                
+                log.info("Successfully updated file at {}/{}/{}", owner, repo, path);
+                return result;
+            } else {
+                throw new BusinessException("Empty response from GitHub API");
+            }
+            
+        } catch (HttpClientErrorException e) {
+            log.error("GitHub API error when updating file in {}/{}: {} - {}", owner, repo, e.getStatusCode(), e.getMessage());
+            if (e.getStatusCode().value() == 422) {
+                throw new BusinessException("File SHA mismatch or validation error");
+            } else if (e.getStatusCode().value() == 404) {
+                throw new BusinessException("File or repository not found");
+            } else if (e.getStatusCode().value() == 403) {
+                throw new BusinessException("Access denied to repository or rate limit exceeded");
+            }
+            throw new BusinessException("Failed to update file: " + e.getMessage());
+        } catch (Exception e) {
+            log.error("Error updating file in {}/{}: {}", owner, repo, e.getMessage());
+            throw new BusinessException("Failed to update file: " + e.getMessage());
+        }
     }
     
     @Override
@@ -1596,8 +2387,71 @@ public class StudentServiceImpl implements StudentService {
             throw new BusinessException("GitHub token not found. Please connect your GitHub account first.");
         }
         
-        // TODO: Implement GitHub API call to delete file
-        throw new BusinessException("File deletion functionality not yet implemented");
+        try {
+            String url = String.format("https://api.github.com/repos/%s/%s/contents/%s", owner, repo, path);
+            
+            // Create request body
+            Map<String, Object> requestBody = new HashMap<>();
+            requestBody.put("message", message);
+            requestBody.put("sha", sha);
+            if (branch != null && !branch.isBlank()) {
+                requestBody.put("branch", branch);
+            }
+            
+            HttpHeaders headers = new HttpHeaders();
+            headers.setBearerAuth(student.getGithubToken());
+            headers.set("Accept", "application/vnd.github.v3+json");
+            headers.set("User-Agent", "EspritHub-Server");
+            headers.setContentType(MediaType.APPLICATION_JSON);
+            HttpEntity<Map<String, Object>> entity = new HttpEntity<>(requestBody, headers);
+            
+            log.debug("Making GitHub API call to: {}", url);
+            ResponseEntity<Object> response = restTemplate.exchange(url, HttpMethod.DELETE, entity, Object.class);
+            
+            if (response.getBody() instanceof Map) {
+                @SuppressWarnings("unchecked")
+                Map<String, Object> responseData = (Map<String, Object>) response.getBody();
+                
+                Map<String, Object> result = new HashMap<>();
+                
+                // Extract commit info
+                if (responseData.get("commit") instanceof Map) {
+                    @SuppressWarnings("unchecked")
+                    Map<String, Object> commitData = (Map<String, Object>) responseData.get("commit");
+                    result.put("commitSha", commitData.get("sha"));
+                    result.put("commitMessage", commitData.get("message"));
+                    result.put("commitUrl", commitData.get("url"));
+                }
+                
+                result.put("deleted", true);
+                result.put("path", path);
+                
+                log.info("Successfully deleted file at {}/{}/{}", owner, repo, path);
+                return result;
+            } else {
+                // For delete operations, sometimes there's no response body, which is fine
+                Map<String, Object> result = new HashMap<>();
+                result.put("deleted", true);
+                result.put("path", path);
+                
+                log.info("Successfully deleted file at {}/{}/{}", owner, repo, path);
+                return result;
+            }
+            
+        } catch (HttpClientErrorException e) {
+            log.error("GitHub API error when deleting file in {}/{}: {} - {}", owner, repo, e.getStatusCode(), e.getMessage());
+            if (e.getStatusCode().value() == 422) {
+                throw new BusinessException("File SHA mismatch or validation error");
+            } else if (e.getStatusCode().value() == 404) {
+                throw new BusinessException("File or repository not found");
+            } else if (e.getStatusCode().value() == 403) {
+                throw new BusinessException("Access denied to repository or rate limit exceeded");
+            }
+            throw new BusinessException("Failed to delete file: " + e.getMessage());
+        } catch (Exception e) {
+            log.error("Error deleting file in {}/{}: {}", owner, repo, e.getMessage());
+            throw new BusinessException("Failed to delete file: " + e.getMessage());
+        }
     }
     
     @Override
@@ -1609,8 +2463,87 @@ public class StudentServiceImpl implements StudentService {
             throw new BusinessException("GitHub token not found. Please connect your GitHub account first.");
         }
         
-        // TODO: Implement GitHub API call to create branch
-        throw new BusinessException("Branch creation functionality not yet implemented");
+        try {
+            // First, get the SHA of the from branch
+            String getBranchUrl = String.format("https://api.github.com/repos/%s/%s/git/refs/heads/%s", owner, repo, fromBranch);
+            
+            HttpHeaders headers = new HttpHeaders();
+            headers.setBearerAuth(student.getGithubToken());
+            headers.set("Accept", "application/vnd.github.v3+json");
+            headers.set("User-Agent", "EspritHub-Server");
+            HttpEntity<String> entity = new HttpEntity<>(headers);
+            
+            log.debug("Getting source branch SHA from: {}", getBranchUrl);
+            ResponseEntity<Object> branchResponse = restTemplate.exchange(getBranchUrl, HttpMethod.GET, entity, Object.class);
+            
+            String sourceSha = null;
+            if (branchResponse.getBody() instanceof Map) {
+                @SuppressWarnings("unchecked")
+                Map<String, Object> branchData = (Map<String, Object>) branchResponse.getBody();
+                if (branchData.get("object") instanceof Map) {
+                    @SuppressWarnings("unchecked")
+                    Map<String, Object> objectData = (Map<String, Object>) branchData.get("object");
+                    sourceSha = (String) objectData.get("sha");
+                }
+            }
+            
+            if (sourceSha == null) {
+                throw new BusinessException("Could not get SHA for source branch: " + fromBranch);
+            }
+            
+            // Now create the new branch
+            String createBranchUrl = String.format("https://api.github.com/repos/%s/%s/git/refs", owner, repo);
+            
+            Map<String, Object> requestBody = new HashMap<>();
+            requestBody.put("ref", "refs/heads/" + branchName);
+            requestBody.put("sha", sourceSha);
+            
+            headers.setContentType(MediaType.APPLICATION_JSON);
+            HttpEntity<Map<String, Object>> createEntity = new HttpEntity<>(requestBody, headers);
+            
+            log.debug("Creating new branch at: {}", createBranchUrl);
+            ResponseEntity<Object> response = restTemplate.exchange(createBranchUrl, HttpMethod.POST, createEntity, Object.class);
+            
+            if (response.getBody() instanceof Map) {
+                @SuppressWarnings("unchecked")
+                Map<String, Object> responseData = (Map<String, Object>) response.getBody();
+                
+                Map<String, Object> result = new HashMap<>();
+                result.put("ref", responseData.get("ref"));
+                result.put("url", responseData.get("url"));
+                result.put("branchName", branchName);
+                result.put("fromBranch", fromBranch);
+                result.put("sha", sourceSha);
+                
+                // Extract object info
+                if (responseData.get("object") instanceof Map) {
+                    @SuppressWarnings("unchecked")
+                    Map<String, Object> objectData = (Map<String, Object>) responseData.get("object");
+                    result.put("objectSha", objectData.get("sha"));
+                    result.put("objectType", objectData.get("type"));
+                    result.put("objectUrl", objectData.get("url"));
+                }
+                
+                log.info("Successfully created branch {} from {} in {}/{}", branchName, fromBranch, owner, repo);
+                return result;
+            } else {
+                throw new BusinessException("Empty response from GitHub API");
+            }
+            
+        } catch (HttpClientErrorException e) {
+            log.error("GitHub API error when creating branch in {}/{}: {} - {}", owner, repo, e.getStatusCode(), e.getMessage());
+            if (e.getStatusCode().value() == 422) {
+                throw new BusinessException("Branch already exists or validation error");
+            } else if (e.getStatusCode().value() == 404) {
+                throw new BusinessException("Repository or source branch not found");
+            } else if (e.getStatusCode().value() == 403) {
+                throw new BusinessException("Access denied to repository or rate limit exceeded");
+            }
+            throw new BusinessException("Failed to create branch: " + e.getMessage());
+        } catch (Exception e) {
+            log.error("Error creating branch in {}/{}: {}", owner, repo, e.getMessage());
+            throw new BusinessException("Failed to create branch: " + e.getMessage());
+        }
     }
     
     @Override
@@ -1622,8 +2555,55 @@ public class StudentServiceImpl implements StudentService {
             throw new BusinessException("GitHub token not found. Please connect your GitHub account first.");
         }
         
-        // TODO: Implement GitHub API call to get repository contributors
-        throw new BusinessException("Contributors functionality not yet implemented");
+        try {
+            String url = String.format("https://api.github.com/repos/%s/%s/contributors", owner, repo);
+            
+            HttpHeaders headers = new HttpHeaders();
+            headers.setBearerAuth(student.getGithubToken());
+            headers.set("Accept", "application/vnd.github.v3+json");
+            headers.set("User-Agent", "EspritHub-Server");
+            HttpEntity<String> entity = new HttpEntity<>(headers);
+            
+            log.debug("Making GitHub API call to: {}", url);
+            ResponseEntity<Object[]> response = restTemplate.exchange(url, HttpMethod.GET, entity, Object[].class);
+            
+            List<Map<String, Object>> contributors = new ArrayList<>();
+            if (response.getBody() != null) {
+                for (Object item : response.getBody()) {
+                    if (item instanceof Map) {
+                        @SuppressWarnings("unchecked")
+                        Map<String, Object> contributorData = (Map<String, Object>) item;
+                        
+                        Map<String, Object> contributor = new HashMap<>();
+                        contributor.put("login", contributorData.get("login"));
+                        contributor.put("id", contributorData.get("id"));
+                        contributor.put("avatarUrl", contributorData.get("avatar_url"));
+                        contributor.put("url", contributorData.get("url"));
+                        contributor.put("htmlUrl", contributorData.get("html_url"));
+                        contributor.put("type", contributorData.get("type"));
+                        contributor.put("contributions", contributorData.get("contributions"));
+                        contributor.put("siteAdmin", contributorData.get("site_admin"));
+                        
+                        contributors.add(contributor);
+                    }
+                }
+            }
+            
+            log.info("Successfully retrieved {} contributors for {}/{}", contributors.size(), owner, repo);
+            return contributors;
+            
+        } catch (HttpClientErrorException e) {
+            log.error("GitHub API error when getting contributors for {}/{}: {} - {}", owner, repo, e.getStatusCode(), e.getMessage());
+            if (e.getStatusCode().value() == 404) {
+                throw new BusinessException("Repository not found");
+            } else if (e.getStatusCode().value() == 403) {
+                throw new BusinessException("Access denied to repository or rate limit exceeded");
+            }
+            throw new BusinessException("Failed to get repository contributors: " + e.getMessage());
+        } catch (Exception e) {
+            log.error("Error getting repository contributors for {}/{}: {}", owner, repo, e.getMessage());
+            throw new BusinessException("Failed to get repository contributors: " + e.getMessage());
+        }
     }
     
     @Override
@@ -1693,5 +2673,187 @@ public class StudentServiceImpl implements StudentService {
         }
         
         return debugInfo;
+    }
+    
+    // Helper methods for file operations
+    private String getFileCategory(String extension) {
+        if (extension == null || extension.isEmpty()) {
+            return "unknown";
+        }
+        
+        return switch (extension.toLowerCase()) {
+            case "java", "js", "ts", "py", "cpp", "c", "cs", "php", "rb", "go", "rs", "kt", "swift" -> "code";
+            case "html", "css", "scss", "less", "xml", "xsl", "xslt" -> "markup";
+            case "json", "yaml", "yml", "toml", "ini", "conf", "config" -> "config";
+            case "md", "txt", "rtf", "pdf", "doc", "docx" -> "document";
+            case "png", "jpg", "jpeg", "gif", "svg", "ico", "webp" -> "image";
+            case "mp3", "wav", "ogg", "m4a", "flac" -> "audio";
+            case "mp4", "avi", "mov", "wmv", "flv", "webm" -> "video";
+            case "zip", "rar", "7z", "tar", "gz", "bz2" -> "archive";
+            case "sql", "db", "sqlite", "mdb" -> "database";
+            case "sh", "bat", "ps1", "cmd" -> "script";
+            default -> "file";
+        };
+    }
+    
+    private String formatFileSize(long bytes) {
+        if (bytes <= 0) return "0 B";
+        
+        String[] units = {"B", "KB", "MB", "GB", "TB"};
+        int unitIndex = (int) (Math.log(bytes) / Math.log(1024));
+        unitIndex = Math.min(unitIndex, units.length - 1);
+        
+        double size = bytes / Math.pow(1024, unitIndex);
+        return String.format("%.1f %s", size, units[unitIndex]);
+    }
+    
+    private boolean isEditableFile(String extension) {
+        if (extension == null || extension.isEmpty()) {
+            return false;
+        }
+        
+        // Define editable file extensions
+        String[] editableExtensions = {
+            "java", "js", "ts", "py", "cpp", "c", "cs", "php", "rb", "go", "rs", "kt", "swift",
+            "html", "css", "scss", "less", "xml", "json", "yaml", "yml", "toml", "ini", "conf",
+            "md", "txt", "sh", "bat", "ps1", "cmd", "sql", "properties", "gradle", "maven"
+        };
+        
+        for (String editableExt : editableExtensions) {
+            if (editableExt.equalsIgnoreCase(extension)) {
+                return true;
+            }
+        }
+        
+        return false;
+    }
+    
+    /**
+     * Search the user's GitHub repositories for a match when direct repository names don't work
+     */
+    private Map<String, Object> searchUserRepositoriesForMatch(User student, List<String> targetNames) {
+        String accessToken = student.getGithubToken();
+        
+        try {
+            log.info("Searching user's repositories for matches with: {}", targetNames);
+            
+            String url = "https://api.github.com/user/repos?per_page=100&type=all";
+            HttpHeaders headers = new HttpHeaders();
+            headers.setBearerAuth(accessToken);
+            headers.set("Accept", "application/vnd.github.v3+json");
+            
+            HttpEntity<String> entity = new HttpEntity<>(headers);
+            ResponseEntity<List<Map<String, Object>>> response = restTemplate.exchange(
+                url, HttpMethod.GET, entity, 
+                new ParameterizedTypeReference<List<Map<String, Object>>>() {}
+            );
+            
+            if (response.getStatusCode() == HttpStatus.OK && response.getBody() != null) {
+                List<Map<String, Object>> repositories = response.getBody();
+                log.info("Found {} repositories in user's GitHub account", repositories.size());
+                
+                // Try exact matches first
+                for (String targetName : targetNames) {
+                    for (Map<String, Object> repo : repositories) {
+                        String repoName = (String) repo.get("name");
+                        if (targetName.equals(repoName)) {
+                            log.info("Found exact match in user repositories: {}", repoName);
+                            return repo;
+                        }
+                    }
+                }
+                
+                // Try case-insensitive matches
+                for (String targetName : targetNames) {
+                    for (Map<String, Object> repo : repositories) {
+                        String repoName = (String) repo.get("name");
+                        if (repoName != null && repoName.equalsIgnoreCase(targetName)) {
+                            log.info("Found case-insensitive match in user repositories: {} for target: {}", repoName, targetName);
+                            return repo;
+                        }
+                    }
+                }
+                
+                // Try fuzzy matches (contains)
+                for (String targetName : targetNames) {
+                    for (Map<String, Object> repo : repositories) {
+                        String repoName = (String) repo.get("name");
+                        if (repoName != null && repoName.toLowerCase().contains(targetName.toLowerCase())) {
+                            log.info("Found fuzzy match in user repositories: {} contains target: {}", repoName, targetName);
+                            return repo;
+                        }
+                    }
+                }
+                
+                log.warn("No matching repository found in user's GitHub account for targets: {}", targetNames);
+            } else {
+                log.warn("Failed to fetch user repositories. Status: {}", response.getStatusCode());
+            }
+        } catch (Exception e) {
+            log.error("Error searching user repositories: {}", e.getMessage());
+        }
+        
+        return Collections.emptyMap();
+    }
+    
+    /**
+     * Search for a repository in the user's GitHub repositories by numeric repository ID
+     * @param student The user to search for
+     * @param targetGitHubId The GitHub numeric repository ID to search for
+     * @return The repository map if found, null otherwise
+     */
+    private Map<String, Object> searchUserRepositoriesById(User student, String targetGitHubId) {
+        log.info("Searching user's GitHub repositories for ID: {}", targetGitHubId);
+        
+        try {
+            String url = "https://api.github.com/user/repos?per_page=100&type=all";
+            HttpHeaders headers = new HttpHeaders();
+            headers.setBearerAuth(student.getGithubToken());
+            headers.set("Accept", "application/vnd.github.v3+json");
+            
+            HttpEntity<String> entity = new HttpEntity<>(headers);
+            
+            // Fetch multiple pages if necessary
+            List<Map<String, Object>> allRepositories = new ArrayList<>();
+            int page = 1;
+            boolean hasMorePages = true;
+            
+            while (hasMorePages && page <= 10) { // Limit to 10 pages for safety
+                String pagedUrl = url + "&page=" + page;
+                log.debug("Fetching GitHub repositories page {}: {}", page, pagedUrl);
+                
+                ResponseEntity<List<Map<String, Object>>> response = restTemplate.exchange(
+                    pagedUrl,
+                    HttpMethod.GET,
+                    entity,
+                    new ParameterizedTypeReference<List<Map<String, Object>>>() {}
+                );
+                
+                if (response.getStatusCode() == HttpStatus.OK && response.getBody() != null && !response.getBody().isEmpty()) {
+                    allRepositories.addAll(response.getBody());
+                    page++;
+                } else {
+                    hasMorePages = false;
+                }
+            }
+            
+            log.info("Found {} total repositories in user's GitHub account", allRepositories.size());
+            
+            // Search for the repository by ID
+            for (Map<String, Object> repo : allRepositories) {
+                Object repoId = repo.get("id");
+                if (repoId != null && targetGitHubId.equals(String.valueOf(repoId))) {
+                    log.info("Found matching repository by GitHub ID {}: {}", targetGitHubId, repo.get("name"));
+                    return repo;
+                }
+            }
+            
+            log.info("No repository found with GitHub ID: {}", targetGitHubId);
+            return null;
+            
+        } catch (Exception e) {
+            log.error("Error searching user's GitHub repositories by ID {}: {}", targetGitHubId, e.getMessage());
+            return null;
+        }
     }
 }
