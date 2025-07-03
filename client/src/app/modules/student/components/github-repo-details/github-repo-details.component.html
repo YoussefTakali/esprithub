@@ -10,11 +10,6 @@
         <i class="fas fa-folder folder-icon"></i>
         <span class="repo-label">Public repository</span>
         <h1 class="repo-path">{{ repository.owner?.login || 'salmabm' }}/{{ repository.name || 'test_git' }}</h1>
-        <div class="repo-stats">
-          <span class="stat"><i class="far fa-star"></i> 0</span>
-          <span class="stat"><i class="fas fa-code-branch"></i> 0</span>
-          <span class="stat"><i class="far fa-eye"></i> 0</span>
-        </div>
       </div>
     </div>
     <div class="header-right">
@@ -67,8 +62,15 @@
   <div class="code-content" *ngIf="activeTab === 'code'">
     <div class="main-content">
       <!-- Latest Commit Banner -->
-      <div class="latest-commit-banner" (click)="showCommitDetailsView(latestCommit)" 
-           style="cursor: pointer;" title="View commit details">
+      <div class="latest-commit-banner" 
+           (click)="showCommitDetailsView(latestCommit)" 
+           (keydown.enter)="showCommitDetailsView(latestCommit)"
+           (keydown.space)="showCommitDetailsView(latestCommit)"
+           tabindex="0"
+           role="button"
+           style="cursor: pointer;" 
+           title="View commit details"
+           [attr.aria-label]="'View commit details: ' + latestCommit.message">
         <div class="commit-icon">
           <i class="fas fa-circle"></i>
         </div>
@@ -180,7 +182,7 @@
           <div class="file-type-item" *ngFor="let fileType of fileTypes">
             <div class="file-type-info">
               <div class="file-type-color" [style.background-color]="fileType.color"></div>
-              <span class="file-type-name">{{ fileType.type }}</span>
+              <span class="file-type-name" [attr.data-type]="fileType.type">{{ fileType.type }}</span>
               <span class="file-type-percentage">{{ fileType.percentage }}%</span>
               <span class="file-type-size">({{ fileType.size }})</span>
             </div>
@@ -230,10 +232,24 @@
     <!-- Stats Cards -->
     <div class="stats-grid">
       <div class="stat-card">
-        <div class="stat-icon total-commits">
-          <span class="stat-number">{{ dashboardStats.totalCommits }}</span>
+        <div class="stat-icon stars">
+          <span class="stat-number">{{ repository.stargazers_count || 0 }}</span>
         </div>
-        <div class="stat-label">TOTAL COMMITS (30 DAYS)</div>
+        <div class="stat-label">STARS</div>
+      </div>
+
+      <div class="stat-card">
+        <div class="stat-icon forks">
+          <span class="stat-number">{{ repository.forks_count || 0 }}</span>
+        </div>
+        <div class="stat-label">FORKS</div>
+      </div>
+
+      <div class="stat-card">
+        <div class="stat-icon watchers">
+          <span class="stat-number">{{ repository.watchers_count || 0 }}</span>
+        </div>
+        <div class="stat-label">WATCHERS</div>
       </div>
       
       <div class="stat-card">
@@ -244,17 +260,17 @@
       </div>
       
       <div class="stat-card">
+        <div class="stat-icon total-commits">
+          <span class="stat-number">{{ dashboardStats.totalCommits }}</span>
+        </div>
+        <div class="stat-label">TOTAL COMMITS (30 DAYS)</div>
+      </div>
+      
+      <div class="stat-card">
         <div class="stat-icon total-files">
           <span class="stat-number">{{ dashboardStats.totalFiles }}</span>
         </div>
         <div class="stat-label">TOTAL FILES</div>
-      </div>
-      
-      <div class="stat-card">
-        <div class="stat-icon repository-size">
-          <span class="stat-number">{{ dashboardStats.repositorySize }}</span>
-        </div>
-        <div class="stat-label">REPOSITORY SIZE</div>
       </div>
     </div>
 
@@ -319,7 +335,7 @@
       <div class="file-types-chart">
         <div class="file-type-item" *ngFor="let fileType of fileTypes">
           <div class="file-type-color" [style.background-color]="fileType.color"></div>
-          <span class="file-type-name">{{ fileType.type }}</span>
+          <span class="file-type-name" [attr.data-type]="fileType.type">{{ fileType.type }}</span>
           <span class="file-type-percentage">{{ fileType.percentage }}%</span>
           <div class="file-type-bar">
             <div class="file-type-fill" 
@@ -334,11 +350,16 @@
 </div>
 
 <!-- Clone Modal -->
-<div class="modal-overlay" *ngIf="showCloneModal" (click)="closeCloneModal()">
-  <div class="clone-modal" (click)="$event.stopPropagation()">
+<div class="modal-overlay" *ngIf="showCloneModal" 
+     (click)="closeCloneModal()" 
+     (keydown.escape)="closeCloneModal()"
+     role="dialog"
+     aria-modal="true"
+     aria-labelledby="clone-modal-title">
+  <div class="clone-modal" (click)="$event.stopPropagation()" (keydown)="$event.stopPropagation()">
     <div class="modal-header">
-      <h3><i class="fas fa-download"></i> Clone or download this repository</h3>
-      <button class="close-btn" (click)="closeCloneModal()">
+      <h3 id="clone-modal-title"><i class="fas fa-download"></i> Clone or download this repository</h3>
+      <button class="close-btn" (click)="closeCloneModal()" aria-label="Close modal">
         <i class="fas fa-times"></i>
       </button>
     </div>
@@ -375,21 +396,38 @@
 </div>
 
 <!-- File Content View Modal -->
-<div class="modal-overlay" *ngIf="showFileContent" (click)="closeFileView()">
-  <div class="file-content-modal" (click)="$event.stopPropagation()">
+<div class="modal-overlay" *ngIf="showFileContent" 
+     (click)="closeFileView()" 
+     (keydown.escape)="closeFileView()"
+     role="dialog"
+     aria-modal="true"
+     aria-labelledby="file-modal-title">
+  <div class="file-content-modal" (click)="$event.stopPropagation()" (keydown)="$event.stopPropagation()">
     <div class="file-header">
       <div class="file-path">
         <button class="back-btn" (click)="closeFileView()">
           <i class="fas fa-arrow-left"></i>
-          Back
+          Back to files
         </button>
-        <span class="file-name">{{ selectedFile?.name }}</span>
+        <span id="file-modal-title" class="file-name">{{ selectedFile?.name }}</span>
       </div>
       <div class="file-actions">
         <button class="btn-raw">Raw</button>
         <button class="btn-download">
           <i class="fas fa-download"></i>
           Download
+        </button>
+        <button class="btn-edit">
+          <i class="fas fa-edit"></i>
+          Edit
+        </button>
+        <button class="btn-replace">
+          <i class="fas fa-upload"></i>
+          Replace
+        </button>
+        <button class="btn-delete">
+          <i class="fas fa-trash"></i>
+          Delete
         </button>
       </div>
     </div>
@@ -406,15 +444,20 @@
 </div>
 
 <!-- Commit Details View Modal -->
-<div class="modal-overlay" *ngIf="showCommitDetails" (click)="closeCommitDetails()">
-  <div class="commit-details-modal" (click)="$event.stopPropagation()">
+<div class="modal-overlay" *ngIf="showCommitDetails" 
+     (click)="closeCommitDetails()" 
+     (keydown.escape)="closeCommitDetails()"
+     role="dialog"
+     aria-modal="true"
+     aria-labelledby="commit-modal-title">
+  <div class="commit-details-modal" (click)="$event.stopPropagation()" (keydown)="$event.stopPropagation()">
     <div class="commit-header">
       <button class="back-btn" (click)="closeCommitDetails()">
         <i class="fas fa-arrow-left"></i>
-        Back
+        Back to Commit History
       </button>
       <div class="commit-info">
-        <h3>{{ getCommitDetails().message }}</h3>
+        <h3 id="commit-modal-title">{{ getCommitDetails().message }}</h3>
         <div class="commit-meta">
           <span class="commit-author">{{ getCommitDetails().author }}</span>
           <span class="commit-date">{{ getCommitDetails().date }}</span>
@@ -425,15 +468,15 @@
     
     <div class="commit-stats">
       <span class="stat">{{ getCommitDetails().stats.changedFiles }} changed files</span>
-      <span class="stat additions">{{ getCommitDetails().stats.additions }} additions</span>
-      <span class="stat deletions">{{ getCommitDetails().stats.deletions }} deletions</span>
+      <span class="stat additions">+{{ getCommitDetails().stats.additions }} additions</span>
+      <span class="stat deletions">-{{ getCommitDetails().stats.deletions }} deletions</span>
     </div>
     
     <div class="commit-changes">
       <div class="change-item" *ngFor="let change of getCommitDetails().changes">
         <div class="change-header">
           <div class="file-status" [ngClass]="change.type">{{ change.type }}</div>
-          <span class="file-name">{{ change.file }}</span>
+          <span class="change-file-name">{{ change.file }}</span>
           <span class="change-stats" *ngIf="!change.isBinary">
             +{{ change.additions }} -{{ change.deletions }}
           </span>
@@ -445,122 +488,17 @@
         </div>
       </div>
     </div>
+    
+    <div class="commit-footer">
+      <button class="view-on-github-btn">
+        <i class="fas fa-external-link-alt"></i>
+        View on GitHub
+      </button>
+    </div>
   </div>
 </div>
 
-<!-- Repository Dashboard (Statistics) -->
-<div class="repo-dashboard-content" *ngIf="activeTab === 'statistics'">
-      <h2>Repository Dashboard</h2>
-      <span class="repo-path-subtitle">{{ repository.owner?.login || 'salmabm' }}/{{ repository.name || 'test_git' }}</span>
-      <button class="refresh-btn" (click)="refreshData()">
-        <i class="fas fa-sync-alt"></i>
-        Refresh
-      </button>
-    </div>
 
-    <!-- Stats Cards -->
-    <div class="stats-grid">
-      <div class="stat-card">
-        <div class="stat-icon total-commits">
-          <span class="stat-number">{{ dashboardStats.totalCommits }}</span>
-        </div>
-        <div class="stat-label">TOTAL COMMITS (30 DAYS)</div>
-      </div>
-      
-      <div class="stat-card">
-        <div class="stat-icon contributors">
-          <span class="stat-number">{{ dashboardStats.contributors }}</span>
-        </div>
-        <div class="stat-label">CONTRIBUTORS</div>
-      </div>
-      
-      <div class="stat-card">
-        <div class="stat-icon total-files">
-          <span class="stat-number">{{ dashboardStats.totalFiles }}</span>
-        </div>
-        <div class="stat-label">TOTAL FILES</div>
-      </div>
-      
-      <div class="stat-card">
-        <div class="stat-icon repository-size">
-          <span class="stat-number">{{ dashboardStats.repositorySize }}</span>
-        </div>
-        <div class="stat-label">REPOSITORY SIZE</div>
-      </div>
-    </div>
-
-    <!-- Activity Statistics -->
-    <div class="activity-section">
-      <div class="section-header">
-        <h3>
-          <i class="fas fa-chart-line"></i>
-          Activity Statistics
-        </h3>
-        <div class="period-selector">
-          <button 
-            *ngFor="let period of activityPeriods" 
-            class="period-btn"
-            [class.active]="selectedActivityPeriod === period"
-            (click)="onActivityPeriodChange(period)">
-            {{ period }}
-          </button>
-        </div>
-      </div>
-
-      <div class="activity-stats">
-        <div class="activity-stat">
-          <span class="stat-label">Total Commits:</span>
-          <span class="stat-value">{{ activityStats.totalCommits }}</span>
-        </div>
-        <div class="activity-stat">
-          <span class="stat-label">Lines Added:</span>
-          <span class="stat-value added">+{{ activityStats.linesAdded }}</span>
-        </div>
-        <div class="activity-stat">
-          <span class="stat-label">Lines Deleted:</span>
-          <span class="stat-value deleted">-{{ activityStats.linesDeleted }}</span>
-        </div>
-      </div>
-
-      <!-- Daily Activity Chart -->
-      <div class="daily-activity">
-        <h4>Daily Activity</h4>
-        <div class="activity-chart">
-          <div class="chart-container">
-            <div class="chart-bar">
-              <div class="bar-line"></div>
-              <div class="activity-point active" style="left: 90%;">
-                <div class="point-value">1</div>
-              </div>
-            </div>
-            <div class="chart-labels">
-              <span class="chart-label">Jul/01</span>
-            </div>
-          </div>
-        </div>
-      </div>
-    </div>
-
-    <!-- File Types Distribution -->
-    <div class="file-types-section">
-      <h3>
-        <i class="fas fa-folder"></i>
-        File Types Distribution
-      </h3>
-      <div class="file-types-chart">
-        <div class="file-type-item" *ngFor="let fileType of fileTypes">
-          <div class="file-type-color" [style.background-color]="fileType.color"></div>
-          <span class="file-type-name">{{ fileType.type }}</span>
-          <span class="file-type-percentage">{{ fileType.percentage }}%</span>
-          <div class="file-type-bar">
-            <div class="file-type-fill" 
-                 [style.width.%]="fileType.percentage" 
-                 [style.background-color]="fileType.color">
-            </div>
-          </div>
-        </div>
-      </div>
-</div>
 
 <!-- Loading State -->
 <div *ngIf="loading" class="loading-state">
