@@ -11,7 +11,29 @@ export class GitHubRepoDetailsComponent implements OnInit {
   repository: any = null;
   loading = true;
   error: string | null = null;
-  showCodeDropdown = false;
+  selectedActivityPeriod = '30 days';
+  activityPeriods = ['7 days', '30 days', '90 days'];
+  
+  // Mock data for demonstration - replace with real data from API
+  dashboardStats = {
+    totalCommits: 1,
+    contributors: 2,
+    totalFiles: 5,
+    repositorySize: '2.1 MB'
+  };
+  
+  activityStats = {
+    totalCommits: 1,
+    linesAdded: 57,
+    linesDeleted: 25
+  };
+  
+  fileTypes = [
+    { type: 'JavaScript', percentage: 45, color: '#f1e05a' },
+    { type: 'TypeScript', percentage: 30, color: '#2b7489' },
+    { type: 'HTML', percentage: 15, color: '#e34c26' },
+    { type: 'CSS', percentage: 10, color: '#563d7c' }
+  ];
 
   constructor(
     private readonly route: ActivatedRoute,
@@ -38,6 +60,15 @@ export class GitHubRepoDetailsComponent implements OnInit {
     this.studentService.getRepositoryDetails(repoId).subscribe({
       next: (repository) => {
         this.repository = repository;
+        // Update dashboard stats with real data if available
+        if (repository.stats) {
+          this.dashboardStats = {
+            totalCommits: repository.stats.commits || this.dashboardStats.totalCommits,
+            contributors: repository.contributors?.length || this.dashboardStats.contributors,
+            totalFiles: repository.stats.files || this.dashboardStats.totalFiles,
+            repositorySize: repository.stats.size || this.dashboardStats.repositorySize
+          };
+        }
         this.loading = false;
       },
       error: (error) => {
@@ -52,77 +83,14 @@ export class GitHubRepoDetailsComponent implements OnInit {
     this.router.navigate(['/student/repositories']);
   }
 
-  openGitHub(): void {
-    if (this.repository?.url) {
-      window.open(this.repository.url, '_blank');
+  onActivityPeriodChange(period: string): void {
+    this.selectedActivityPeriod = period;
+    // Here you would typically reload activity data for the selected period
+  }
+
+  refreshData(): void {
+    if (this.repository) {
+      this.loadRepositoryDetails(this.repository.id);
     }
-  }
-
-  toggleCodeDropdown(): void {
-    this.showCodeDropdown = !this.showCodeDropdown;
-  }
-
-  copyToClipboard(text: string, type: string): void {
-    navigator.clipboard.writeText(text).then(() => {
-      console.log(`${type} copied to clipboard`);
-      // You could show a toast notification here
-    }).catch(err => {
-      console.error('Failed to copy to clipboard:', err);
-    });
-  }
-
-  getRelativeTime(date: Date | string): string {
-    if (!date) return 'Unknown';
-    
-    const dateObj = typeof date === 'string' ? new Date(date) : date;
-    const now = new Date();
-    const diffInMs = now.getTime() - dateObj.getTime();
-    const diffInDays = Math.floor(diffInMs / (1000 * 60 * 60 * 24));
-    
-    if (diffInDays === 0) return 'today';
-    if (diffInDays === 1) return '1 day ago';
-    if (diffInDays < 30) return `${diffInDays} days ago`;
-    if (diffInDays < 365) return `${Math.floor(diffInDays / 30)} month${Math.floor(diffInDays / 30) > 1 ? 's' : ''} ago`;
-    return `${Math.floor(diffInDays / 365)} year${Math.floor(diffInDays / 365) > 1 ? 's' : ''} ago`;
-  }
-
-  formatDate(date: Date | string): string {
-    if (!date) return 'Unknown';
-    const dateObj = typeof date === 'string' ? new Date(date) : date;
-    return dateObj.toLocaleDateString() + ' at ' + dateObj.toLocaleTimeString();
-  }
-
-  getLanguagesList(): any[] {
-    if (!this.repository?.languages) return [];
-    
-    return Object.entries(this.repository.languages).map(([name, percentage]) => ({
-      name,
-      percentage: Number(percentage)
-    })).sort((a, b) => b.percentage - a.percentage);
-  }
-
-  getLanguageColor(language: string): string {
-    const colors: { [key: string]: string } = {
-      'Java': '#b07219',
-      'JavaScript': '#f1e05a',
-      'TypeScript': '#2b7489',
-      'HTML': '#e34c26',
-      'CSS': '#563d7c',
-      'Python': '#3572a5',
-      'C++': '#f34b7d',
-      'C#': '#239120',
-      'PHP': '#4f5d95',
-      'Ruby': '#701516',
-      'Go': '#00add8',
-      'Rust': '#dea584',
-      'Swift': '#ffac45',
-      'Kotlin': '#f18e33'
-    };
-    return colors[language] || '#6c757d';
-  }
-
-  getFileIcon(type: string): string {
-    if (type === 'folder') return 'fas fa-folder';
-    return 'fas fa-file';
   }
 }

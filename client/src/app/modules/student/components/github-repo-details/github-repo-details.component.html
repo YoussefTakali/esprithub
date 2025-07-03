@@ -1,247 +1,162 @@
-<div class="github-repo-page" *ngIf="repository && !loading && !error">
-  <!-- Navigation -->
-  <div class="breadcrumb-nav">
-    <button class="back-btn" (click)="goBack()">
-      <i class="fas fa-arrow-left"></i>
-      Back to Repositories
-    </button>
-  </div>
-
-  <!-- Repository Header -->
-  <div class="repo-header">
-    <div class="repo-title">
-      <i class="fas fa-book-open repo-icon"></i>
-      <h1 class="repo-name">
-        <span class="owner">{{ repository.owner?.login || 'owner' }}</span>
-        <span class="separator">/</span>
-        <span class="name">{{ repository.name }}</span>
-      </h1>
-      <span class="visibility-badge" [class.private]="repository.isPrivate">
-        <i [class]="repository.isPrivate ? 'fas fa-lock' : 'fas fa-globe'"></i>
-        {{ repository.isPrivate ? 'Private' : 'Public' }}
-      </span>
+<div class="repository-dashboard" *ngIf="repository && !loading && !error">
+  <!-- Header -->
+  <div class="dashboard-header">
+    <div class="header-left">
+      <button class="back-btn" (click)="goBack()">
+        <i class="fas fa-arrow-left"></i>
+        Back to Repositories
+      </button>
+      <div class="repo-info">
+        <i class="fas fa-folder folder-icon"></i>
+        <span class="repo-label">Public repository</span>
+        <h1 class="repo-path">{{ repository.owner?.login || 'salmabm' }}/{{ repository.name || 'test_git' }}</h1>
+      </div>
     </div>
-    <div class="repo-stats">
-      <div class="stat-item">
-        <i class="far fa-star"></i>
-        <span>{{ repository.stats?.stars || 0 }}</span>
-      </div>
-      <div class="stat-item">
-        <i class="fas fa-code-branch"></i>
-        <span>{{ repository.stats?.forks || 0 }}</span>
-      </div>
-      <div class="stat-item">
-        <i class="far fa-eye"></i>
-        <span>{{ repository.stats?.watchers || 0 }}</span>
+    <div class="header-right">
+      <div class="header-actions">
+        <button class="btn-add-file">
+          <i class="fas fa-plus"></i>
+          Add file
+        </button>
+        <button class="btn-code">
+          <i class="fas fa-code"></i>
+          Code
+        </button>
       </div>
     </div>
   </div>
 
-  <!-- Repository Actions -->
-  <div class="repo-actions">
-    <div class="action-buttons">
-      <button class="btn-star">
-        <i class="far fa-star"></i>
-        Star
-      </button>
-      <button class="btn-watch">
-        <i class="far fa-eye"></i>
-        Watch
-        <i class="fas fa-chevron-down"></i>
-      </button>
-      <button class="btn-fork">
-        <i class="fas fa-code-branch"></i>
-        Fork
-      </button>
-    </div>
-    <div class="code-dropdown">
-      <button class="btn-code" (click)="toggleCodeDropdown()">
-        <i class="fas fa-code"></i>
-        Code
-        <i class="fas fa-chevron-down"></i>
-      </button>
-      <div class="dropdown-menu" *ngIf="showCodeDropdown" (clickOutside)="showCodeDropdown = false">
-        <div class="clone-section">
-          <h4>Clone</h4>
-          <div class="clone-tabs">
-            <button class="tab active">HTTPS</button>
-            <button class="tab">SSH</button>
-          </div>
-          <div class="clone-url">
-            <input type="text" [value]="repository.cloneUrl" readonly>
-            <button class="copy-btn" (click)="copyToClipboard(repository.cloneUrl, 'Clone URL')">
-              <i class="fas fa-copy"></i>
-            </button>
-          </div>
-        </div>
-        <div class="download-section">
-          <a [href]="repository.url + '/archive/refs/heads/' + repository.defaultBranch + '.zip'" 
-             class="download-zip" target="_blank">
-            <i class="fas fa-download"></i>
-            Download ZIP
-          </a>
-        </div>
-      </div>
-    </div>
-  </div>
-
-  <!-- Repository Navigation -->
-  <div class="repo-nav">
+  <!-- Tab Navigation -->
+  <div class="tab-navigation">
     <div class="nav-tabs">
-      <button class="nav-tab active">
+      <button class="nav-tab">
         <i class="fas fa-code"></i>
         Code
-      </button>
-      <button class="nav-tab">
-        <i class="fas fa-exclamation-circle"></i>
-        Issues
-        <span class="counter" *ngIf="repository.stats?.issues > 0">{{ repository.stats.issues }}</span>
-      </button>
-      <button class="nav-tab">
-        <i class="fas fa-git-alt"></i>
-        Pull requests
-        <span class="counter" *ngIf="repository.stats?.pullRequests > 0">{{ repository.stats.pullRequests }}</span>
-      </button>
-      <button class="nav-tab">
-        <i class="fas fa-play"></i>
-        Actions
-      </button>
-      <button class="nav-tab">
-        <i class="fas fa-shield-alt"></i>
-        Security
       </button>
       <button class="nav-tab">
         <i class="fas fa-chart-line"></i>
-        Insights
+        Statistics
       </button>
     </div>
-  </div>
-
-  <!-- Repository Content -->
-  <div class="repo-content">
-    <!-- Branch and File Info -->
-    <div class="branch-info">
-      <div class="branch-selector">
-        <button class="branch-btn">
-          <i class="fas fa-code-branch"></i>
-          {{ repository.defaultBranch || 'main' }}
-          <i class="fas fa-chevron-down"></i>
-        </button>
-      </div>
-      <div class="file-count" *ngIf="repository.stats?.branches">
-        <span>{{ repository.stats.branches }} branches</span>
-      </div>
-      <div class="commit-info" *ngIf="repository.stats?.commits">
-        <i class="fas fa-history"></i>
-        <span>{{ repository.stats.commits }} commits</span>
-      </div>
-    </div>
-
-    <!-- Latest Commit -->
-    <div class="latest-commit" *ngIf="repository.recentActivity && repository.recentActivity.length > 0">
-      <div class="commit-avatar">
-        <img [src]="repository.owner?.avatarUrl || 'https://github.com/identicons/default.png'" 
-             [alt]="repository.owner?.name || 'User'" class="avatar">
-      </div>
-      <div class="commit-details">
-        <span class="commit-author">{{ repository.recentActivity[0]?.author || repository.owner?.name }}</span>
-        <span class="commit-message">{{ repository.recentActivity[0]?.message || 'Initial commit' }}</span>
-        <span class="commit-time">{{ getRelativeTime(repository.recentActivity[0]?.date || repository.updatedAt) }}</span>
-      </div>
-      <div class="commit-sha">
-        <span class="sha">{{ (repository.recentActivity[0]?.sha || 'abc123').substring(0, 7) }}</span>
-      </div>
-    </div>
-
-    <!-- File Browser -->
-    <div class="file-browser">
-      <div class="file-list" *ngIf="repository.files && repository.files.length > 0; else noFiles">
-        <div class="file-item" *ngFor="let file of repository.files">
-          <div class="file-icon">
-            <i [class]="getFileIcon(file.type)"></i>
-          </div>
-          <div class="file-name">
-            <span>{{ file.name }}</span>
-          </div>
-          <div class="file-commit">
-            <span>{{ file.lastCommitMessage || 'Initial commit' }}</span>
-          </div>
-          <div class="file-date">
-            <span>{{ getRelativeTime(file.lastModified) || 'Unknown' }}</span>
-          </div>
-        </div>
-      </div>
-      <ng-template #noFiles>
-        <div class="no-files">
-          <i class="fas fa-folder-open"></i>
-          <p>No files found in this repository</p>
-        </div>
-      </ng-template>
-    </div>
-
-    <!-- README Section -->
-    <div class="readme-section" *ngIf="repository.description">
-      <div class="readme-header">
-        <i class="fas fa-book"></i>
-        <span>README.md</span>
-      </div>
-      <div class="readme-content">
-        <p>{{ repository.description }}</p>
-      </div>
+    <div class="branch-selector">
+      <span>Branch:</span>
+      <select class="branch-dropdown">
+        <option>{{ repository.defaultBranch || 'main' }}</option>
+      </select>
     </div>
   </div>
 
-  <!-- Sidebar -->
-  <div class="repo-sidebar">
-    <!-- About -->
-    <div class="sidebar-section">
-      <h3>About</h3>
-      <p *ngIf="repository.description" class="description">{{ repository.description }}</p>
-      <div class="repo-stats-vertical">
-        <div class="stat-row">
-          <i class="far fa-star"></i>
-          <span>{{ repository.stats?.stars || 0 }} stars</span>
+  <!-- Repository Dashboard -->
+  <div class="repo-dashboard-content">
+    <div class="dashboard-title">
+      <h2>Repository Dashboard</h2>
+      <span class="repo-path-subtitle">{{ repository.owner?.login || 'salmabm' }}/{{ repository.name || 'test_git' }}</span>
+      <button class="refresh-btn" (click)="refreshData()">
+        <i class="fas fa-sync-alt"></i>
+        Refresh
+      </button>
+    </div>
+
+    <!-- Stats Cards -->
+    <div class="stats-grid">
+      <div class="stat-card">
+        <div class="stat-icon total-commits">
+          <span class="stat-number">{{ dashboardStats.totalCommits }}</span>
         </div>
-        <div class="stat-row">
-          <i class="far fa-eye"></i>
-          <span>{{ repository.stats?.watchers || 0 }} watching</span>
+        <div class="stat-label">TOTAL COMMITS (30 DAYS)</div>
+      </div>
+      
+      <div class="stat-card">
+        <div class="stat-icon contributors">
+          <span class="stat-number">{{ dashboardStats.contributors }}</span>
         </div>
-        <div class="stat-row">
-          <i class="fas fa-code-branch"></i>
-          <span>{{ repository.stats?.forks || 0 }} forks</span>
+        <div class="stat-label">CONTRIBUTORS</div>
+      </div>
+      
+      <div class="stat-card">
+        <div class="stat-icon total-files">
+          <span class="stat-number">{{ dashboardStats.totalFiles }}</span>
+        </div>
+        <div class="stat-label">TOTAL FILES</div>
+      </div>
+      
+      <div class="stat-card">
+        <div class="stat-icon repository-size">
+          <span class="stat-number">{{ dashboardStats.repositorySize }}</span>
+        </div>
+        <div class="stat-label">REPOSITORY SIZE</div>
+      </div>
+    </div>
+
+    <!-- Activity Statistics -->
+    <div class="activity-section">
+      <div class="section-header">
+        <h3>
+          <i class="fas fa-chart-line"></i>
+          Activity Statistics
+        </h3>
+        <div class="period-selector">
+          <button 
+            *ngFor="let period of activityPeriods" 
+            class="period-btn"
+            [class.active]="selectedActivityPeriod === period"
+            (click)="onActivityPeriodChange(period)">
+            {{ period }}
+          </button>
+        </div>
+      </div>
+
+      <div class="activity-stats">
+        <div class="activity-stat">
+          <span class="stat-label">Total Commits:</span>
+          <span class="stat-value">{{ activityStats.totalCommits }}</span>
+        </div>
+        <div class="activity-stat">
+          <span class="stat-label">Lines Added:</span>
+          <span class="stat-value added">+{{ activityStats.linesAdded }}</span>
+        </div>
+        <div class="activity-stat">
+          <span class="stat-label">Lines Deleted:</span>
+          <span class="stat-value deleted">-{{ activityStats.linesDeleted }}</span>
+        </div>
+      </div>
+
+      <!-- Daily Activity Chart -->
+      <div class="daily-activity">
+        <h4>Daily Activity</h4>
+        <div class="activity-chart">
+          <div class="chart-container">
+            <div class="chart-bar">
+              <div class="bar-line"></div>
+              <div class="activity-point active" style="left: 90%;">
+                <div class="point-value">1</div>
+              </div>
+            </div>
+            <div class="chart-labels">
+              <span class="chart-label">Jul/01</span>
+            </div>
+          </div>
         </div>
       </div>
     </div>
 
-    <!-- Languages -->
-    <div class="sidebar-section" *ngIf="repository.languages && getLanguagesList().length > 0">
-      <h3>Languages</h3>
-      <div class="languages-bar">
-        <div *ngFor="let lang of getLanguagesList()" 
-             class="language-segment" 
-             [style.width.%]="lang.percentage"
-             [style.background-color]="getLanguageColor(lang.name)"
-             [title]="lang.name + ' ' + lang.percentage + '%'">
-        </div>
-      </div>
-      <div class="languages-list">
-        <div *ngFor="let lang of getLanguagesList()" class="language-item">
-          <span class="language-dot" [style.background-color]="getLanguageColor(lang.name)"></span>
-          <span class="language-name">{{ lang.name }}</span>
-          <span class="language-percentage">{{ lang.percentage }}%</span>
-        </div>
-      </div>
-    </div>
-
-    <!-- Contributors -->
-    <div class="sidebar-section" *ngIf="repository.contributors && repository.contributors.length > 0">
-      <h3>Contributors <span class="count">{{ repository.contributors.length }}</span></h3>
-      <div class="contributors-grid">
-        <div *ngFor="let contributor of repository.contributors.slice(0, 8)" class="contributor">
-          <img [src]="contributor.avatarUrl" 
-               [alt]="contributor.name || contributor.login" 
-               class="contributor-avatar"
-               [title]="(contributor.name || contributor.login) + ' - ' + contributor.contributions + ' contributions'">
+    <!-- File Types Distribution -->
+    <div class="file-types-section">
+      <h3>
+        <i class="fas fa-folder"></i>
+        File Types Distribution
+      </h3>
+      <div class="file-types-chart">
+        <div class="file-type-item" *ngFor="let fileType of fileTypes">
+          <div class="file-type-color" [style.background-color]="fileType.color"></div>
+          <span class="file-type-name">{{ fileType.type }}</span>
+          <span class="file-type-percentage">{{ fileType.percentage }}%</span>
+          <div class="file-type-bar">
+            <div class="file-type-fill" 
+                 [style.width.%]="fileType.percentage" 
+                 [style.background-color]="fileType.color">
+            </div>
+          </div>
         </div>
       </div>
     </div>
