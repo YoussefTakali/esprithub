@@ -760,17 +760,23 @@ public class StudentServiceImpl implements StudentService {
                         // Create a detailed response with GitHub data
                         Map<String, Object> details = new HashMap<>();
                         details.put("id", repositoryId); // Use the provided ID
+                        details.put("githubId", githubData.getId());
                         details.put("name", githubData.getName());
                         details.put("fullName", githubData.getFullName());
                         details.put("description", githubData.getDescription());
+                        details.put("language", githubData.getLanguage());
                         details.put("url", githubData.getHtmlUrl());
+                        details.put("apiUrl", githubData.getUrl());
                         details.put("cloneUrl", githubData.getCloneUrl());
                         details.put("sshUrl", githubData.getSshUrl());
+                        details.put("gitUrl", githubData.getGitUrl());
                         details.put("isPrivate", githubData.getIsPrivate());
                         details.put("defaultBranch", githubData.getDefaultBranch());
                         details.put("isActive", true);
                         details.put("createdAt", githubData.getCreatedAt());
                         details.put("updatedAt", githubData.getUpdatedAt());
+                        details.put("pushedAt", githubData.getPushedAt());
+                        details.put("size", githubData.getSize());
                         
                         // Owner information from GitHub
                         if (githubData.getOwner() != null) {
@@ -785,19 +791,79 @@ public class StudentServiceImpl implements StudentService {
                         
                         // Repository statistics from GitHub
                         Map<String, Object> stats = new HashMap<>();
+                        stats.put("size", githubData.getSize());
                         stats.put("stars", githubData.getStargazersCount());
                         stats.put("forks", githubData.getForksCount());
                         stats.put("watchers", githubData.getWatchersCount());
-                        stats.put("issues", githubData.getOpenIssuesCount());
-                        stats.put("size", githubData.getSize());
+                        stats.put("openIssues", githubData.getOpenIssuesCount());
                         details.put("stats", stats);
+                        
+                        // Languages if available
+                        if (githubData.getLanguages() != null && !githubData.getLanguages().isEmpty()) {
+                            int totalBytes = githubData.getLanguages().values().stream().mapToInt(Integer::intValue).sum();
+                            Map<String, Object> languages = new HashMap<>();
+                            githubData.getLanguages().forEach((lang, bytes) -> {
+                                double percentage = totalBytes > 0 ? (double) bytes / totalBytes * 100 : 0;
+                                languages.put(lang, Math.round(percentage * 100.0) / 100.0);
+                            });
+                            details.put("languages", languages);
+                        } else {
+                            details.put("languages", new HashMap<>());
+                        }
+                        
+                        // Branches if available
+                        if (githubData.getBranches() != null) {
+                            details.put("branches", githubData.getBranches());
+                        }
+                        
+                        // Recent commits if available
+                        if (githubData.getRecentCommits() != null) {
+                            details.put("recentCommits", githubData.getRecentCommits());
+                        }
+                        
+                        // Contributors if available
+                        if (githubData.getContributors() != null) {
+                            details.put("contributors", githubData.getContributors());
+                        }
+                        
+                        // Releases if available
+                        if (githubData.getReleases() != null) {
+                            details.put("releases", githubData.getReleases());
+                        }
+                        
+                        // Files if available
+                        if (githubData.getFiles() != null) {
+                            details.put("files", githubData.getFiles());
+                        }
+                        
+                        // Access control information
+                        details.put("accessLevel", githubData.getAccessLevel() != null ? githubData.getAccessLevel() : "MEMBER");
+                        details.put("canPush", githubData.getCanPush() != null ? githubData.getCanPush() : true);
+                        details.put("canPull", githubData.getCanPull() != null ? githubData.getCanPull() : true);
                         
                         // Add indicators that this is live GitHub data
                         details.put("isGitHubDataAvailable", true);
                         details.put("dataSource", "GITHUB_LIVE");
-                        details.put("accessLevel", "MEMBER");
-                        details.put("canPush", true);
-                        details.put("canPull", true);
+                        
+                        // Now fetch additional GitHub data for a complete repository view
+                        try {
+                            String repoFullName = githubData.getFullName();
+                            String[] repoParts = repoFullName.split("/");
+                            String repoOwner = repoParts[0];
+                            String repositoryName = repoParts[1];
+                            
+                            // Fetch all dynamic GitHub data in parallel for better performance
+                            Map<String, Object> dynamicData = fetchDynamicRepositoryData(repoOwner, repositoryName, githubData.getDefaultBranch(), studentEmail);
+                            details.putAll(dynamicData);
+                            
+                        } catch (Exception e) {
+                            log.warn("Failed to fetch additional repository data for {}: {}", githubData.getFullName(), e.getMessage());
+                            // Don't fail the entire request if additional data fails
+                            details.put("branches", new ArrayList<>());
+                            details.put("recentCommits", new ArrayList<>());
+                            details.put("fileTree", new HashMap<>());
+                            details.put("rootFiles", new ArrayList<>());
+                        }
                         
                         log.info("Successfully created synthetic repository object for GitHub repo: {}", repositoryId);
                         return details;
@@ -818,21 +884,87 @@ public class StudentServiceImpl implements StudentService {
                 if (foundRepo != null && !foundRepo.isEmpty()) {
                     log.info("Found matching repository via GitHub ID search: {}", foundRepo.get("name"));
                     
-                    // Create a detailed response with GitHub data (similar to existing fallback logic)
+                    // Create a comprehensive response with all GitHub data
                     Map<String, Object> details = new HashMap<>();
+                    
+                    // Basic repository information
                     details.put("id", repositoryId); // Use the provided GitHub ID
+                    details.put("githubId", foundRepo.get("id"));
+                    details.put("nodeId", foundRepo.get("node_id"));
                     details.put("name", foundRepo.get("name"));
                     details.put("fullName", foundRepo.get("full_name"));
                     details.put("description", foundRepo.get("description"));
+                    details.put("homepage", foundRepo.get("homepage"));
+                    details.put("language", foundRepo.get("language"));
+                    details.put("isPrivate", foundRepo.get("private"));
+                    details.put("fork", foundRepo.get("fork"));
+                    details.put("archived", foundRepo.get("archived"));
+                    details.put("disabled", foundRepo.get("disabled"));
+                    details.put("isTemplate", foundRepo.get("is_template"));
+                    details.put("visibility", foundRepo.get("visibility"));
+                    
+                    // URLs and endpoints
                     details.put("url", foundRepo.get("html_url"));
+                    details.put("apiUrl", foundRepo.get("url"));
                     details.put("cloneUrl", foundRepo.get("clone_url"));
                     details.put("sshUrl", foundRepo.get("ssh_url"));
-                    details.put("isPrivate", foundRepo.get("private"));
+                    details.put("gitUrl", foundRepo.get("git_url"));
+                    details.put("svnUrl", foundRepo.get("svn_url"));
+                    
+                    // Branch information
                     details.put("defaultBranch", foundRepo.get("default_branch"));
-                    details.put("isActive", true);
+                    
+                    // Repository features and settings
+                    details.put("hasIssues", foundRepo.get("has_issues"));
+                    details.put("hasProjects", foundRepo.get("has_projects"));
+                    details.put("hasDownloads", foundRepo.get("has_downloads"));
+                    details.put("hasWiki", foundRepo.get("has_wiki"));
+                    details.put("hasPages", foundRepo.get("has_pages"));
+                    details.put("hasDiscussions", foundRepo.get("has_discussions"));
+                    details.put("allowForking", foundRepo.get("allow_forking"));
+                    details.put("webCommitSignoffRequired", foundRepo.get("web_commit_signoff_required"));
+                    
+                    // Merge settings
+                    details.put("allowSquashMerge", foundRepo.get("allow_squash_merge"));
+                    details.put("allowMergeCommit", foundRepo.get("allow_merge_commit"));
+                    details.put("allowRebaseMerge", foundRepo.get("allow_rebase_merge"));
+                    details.put("allowAutoMerge", foundRepo.get("allow_auto_merge"));
+                    details.put("deleteBranchOnMerge", foundRepo.get("delete_branch_on_merge"));
+                    details.put("allowUpdateBranch", foundRepo.get("allow_update_branch"));
+                    
+                    // Timestamps
                     details.put("createdAt", foundRepo.get("created_at"));
                     details.put("updatedAt", foundRepo.get("updated_at"));
-                    details.put("githubId", foundRepo.get("id"));
+                    details.put("pushedAt", foundRepo.get("pushed_at"));
+                    
+                    // Repository statistics
+                    Map<String, Object> stats = new HashMap<>();
+                    stats.put("size", foundRepo.get("size"));
+                    stats.put("stars", foundRepo.get("stargazers_count"));
+                    stats.put("forks", foundRepo.get("forks_count"));
+                    stats.put("watchers", foundRepo.get("watchers_count"));
+                    stats.put("openIssues", foundRepo.get("open_issues_count"));
+                    stats.put("networkCount", foundRepo.get("network_count"));
+                    stats.put("subscribersCount", foundRepo.get("subscribers_count"));
+                    details.put("stats", stats);
+                    
+                    // Topics (tags)
+                    details.put("topics", foundRepo.get("topics"));
+                    
+                    // License information
+                    Object licenseObj = foundRepo.get("license");
+                    if (licenseObj instanceof Map) {
+                        @SuppressWarnings("unchecked")
+                        Map<String, Object> licenseData = (Map<String, Object>) licenseObj;
+                        Map<String, Object> licenseInfo = new HashMap<>();
+                        licenseInfo.put("key", licenseData.get("key"));
+                        licenseInfo.put("name", licenseData.get("name"));
+                        licenseInfo.put("spdxId", licenseData.get("spdx_id"));
+                        licenseInfo.put("url", licenseData.get("url"));
+                        details.put("license", licenseInfo);
+                    } else {
+                        details.put("license", null);
+                    }
                     
                     // Owner information from GitHub
                     Object ownerObj = foundRepo.get("owner");
@@ -840,29 +972,140 @@ public class StudentServiceImpl implements StudentService {
                         @SuppressWarnings("unchecked")
                         Map<String, Object> ownerData = (Map<String, Object>) ownerObj;
                         Map<String, Object> ownerInfo = new HashMap<>();
+                        ownerInfo.put("id", ownerData.get("id"));
+                        ownerInfo.put("nodeId", ownerData.get("node_id"));
                         ownerInfo.put("login", ownerData.get("login"));
-                        ownerInfo.put("name", ownerData.get("name"));
                         ownerInfo.put("avatarUrl", ownerData.get("avatar_url"));
+                        ownerInfo.put("gravatarId", ownerData.get("gravatar_id"));
                         ownerInfo.put("type", ownerData.get("type"));
+                        ownerInfo.put("userViewType", ownerData.get("user_view_type"));
+                        ownerInfo.put("siteAdmin", ownerData.get("site_admin"));
                         ownerInfo.put("htmlUrl", ownerData.get("html_url"));
+                        ownerInfo.put("url", ownerData.get("url"));
+                        ownerInfo.put("followersUrl", ownerData.get("followers_url"));
+                        ownerInfo.put("followingUrl", ownerData.get("following_url"));
+                        ownerInfo.put("gistsUrl", ownerData.get("gists_url"));
+                        ownerInfo.put("starredUrl", ownerData.get("starred_url"));
+                        ownerInfo.put("subscriptionsUrl", ownerData.get("subscriptions_url"));
+                        ownerInfo.put("organizationsUrl", ownerData.get("organizations_url"));
+                        ownerInfo.put("reposUrl", ownerData.get("repos_url"));
+                        ownerInfo.put("eventsUrl", ownerData.get("events_url"));
+                        ownerInfo.put("receivedEventsUrl", ownerData.get("received_events_url"));
                         details.put("owner", ownerInfo);
                     }
                     
-                    // Repository statistics from GitHub
-                    Map<String, Object> stats = new HashMap<>();
-                    stats.put("stars", foundRepo.get("stargazers_count"));
-                    stats.put("forks", foundRepo.get("forks_count"));
-                    stats.put("watchers", foundRepo.get("watchers_count"));
-                    stats.put("issues", foundRepo.get("open_issues_count"));
-                    stats.put("size", foundRepo.get("size"));
-                    details.put("stats", stats);
+                    // Permissions from GitHub
+                    Object permissionsObj = foundRepo.get("permissions");
+                    if (permissionsObj instanceof Map) {
+                        @SuppressWarnings("unchecked")
+                        Map<String, Object> permissionsData = (Map<String, Object>) permissionsObj;
+                        Map<String, Object> permissions = new HashMap<>();
+                        permissions.put("admin", permissionsData.get("admin"));
+                        permissions.put("maintain", permissionsData.get("maintain"));
+                        permissions.put("push", permissionsData.get("push"));
+                        permissions.put("triage", permissionsData.get("triage"));
+                        permissions.put("pull", permissionsData.get("pull"));
+                        details.put("permissions", permissions);
+                        
+                        // Set access level based on permissions
+                        Boolean canPush = (Boolean) permissionsData.get("push");
+                        Boolean canPull = (Boolean) permissionsData.get("pull");
+                        Boolean isAdmin = (Boolean) permissionsData.get("admin");
+                        Boolean canMaintain = (Boolean) permissionsData.get("maintain");
+                        
+                        details.put("canPush", canPush != null ? canPush : false);
+                        details.put("canPull", canPull != null ? canPull : false);
+                        details.put("canAdmin", isAdmin != null ? isAdmin : false);
+                        details.put("canMaintain", canMaintain != null ? canMaintain : false);
+                        
+                        if (isAdmin != null && isAdmin) {
+                            details.put("accessLevel", "ADMIN");
+                        } else if (canMaintain != null && canMaintain) {
+                            details.put("accessLevel", "MAINTAIN");
+                        } else if (canPush != null && canPush) {
+                            details.put("accessLevel", "WRITE");
+                        } else if (canPull != null && canPull) {
+                            details.put("accessLevel", "READ");
+                        } else {
+                            details.put("accessLevel", "NONE");
+                        }
+                    } else {
+                        // Default permissions if not specified
+                        details.put("canPush", true);
+                        details.put("canPull", true);
+                        details.put("canAdmin", false);
+                        details.put("canMaintain", false);
+                        details.put("accessLevel", "MEMBER");
+                    }
+                    
+                    // GitHub API URLs for various operations
+                    Map<String, Object> apiUrls = new HashMap<>();
+                    apiUrls.put("forks", foundRepo.get("forks_url"));
+                    apiUrls.put("keys", foundRepo.get("keys_url"));
+                    apiUrls.put("collaborators", foundRepo.get("collaborators_url"));
+                    apiUrls.put("teams", foundRepo.get("teams_url"));
+                    apiUrls.put("hooks", foundRepo.get("hooks_url"));
+                    apiUrls.put("issueEvents", foundRepo.get("issue_events_url"));
+                    apiUrls.put("events", foundRepo.get("events_url"));
+                    apiUrls.put("assignees", foundRepo.get("assignees_url"));
+                    apiUrls.put("branches", foundRepo.get("branches_url"));
+                    apiUrls.put("tags", foundRepo.get("tags_url"));
+                    apiUrls.put("blobs", foundRepo.get("blobs_url"));
+                    apiUrls.put("gitTags", foundRepo.get("git_tags_url"));
+                    apiUrls.put("gitRefs", foundRepo.get("git_refs_url"));
+                    apiUrls.put("trees", foundRepo.get("trees_url"));
+                    apiUrls.put("statuses", foundRepo.get("statuses_url"));
+                    apiUrls.put("languages", foundRepo.get("languages_url"));
+                    apiUrls.put("stargazers", foundRepo.get("stargazers_url"));
+                    apiUrls.put("contributors", foundRepo.get("contributors_url"));
+                    apiUrls.put("subscribers", foundRepo.get("subscribers_url"));
+                    apiUrls.put("subscription", foundRepo.get("subscription_url"));
+                    apiUrls.put("commits", foundRepo.get("commits_url"));
+                    apiUrls.put("gitCommits", foundRepo.get("git_commits_url"));
+                    apiUrls.put("comments", foundRepo.get("comments_url"));
+                    apiUrls.put("issueComment", foundRepo.get("issue_comment_url"));
+                    apiUrls.put("contents", foundRepo.get("contents_url"));
+                    apiUrls.put("compare", foundRepo.get("compare_url"));
+                    apiUrls.put("merges", foundRepo.get("merges_url"));
+                    apiUrls.put("archive", foundRepo.get("archive_url"));
+                    apiUrls.put("downloads", foundRepo.get("downloads_url"));
+                    apiUrls.put("issues", foundRepo.get("issues_url"));
+                    apiUrls.put("pulls", foundRepo.get("pulls_url"));
+                    apiUrls.put("milestones", foundRepo.get("milestones_url"));
+                    apiUrls.put("notifications", foundRepo.get("notifications_url"));
+                    apiUrls.put("labels", foundRepo.get("labels_url"));
+                    apiUrls.put("releases", foundRepo.get("releases_url"));
+                    apiUrls.put("deployments", foundRepo.get("deployments_url"));
+                    details.put("apiUrls", apiUrls);
+                    
+                    // Temporary clone token (if available)
+                    details.put("tempCloneToken", foundRepo.get("temp_clone_token"));
                     
                     // Add indicators that this is live GitHub data
                     details.put("isGitHubDataAvailable", true);
                     details.put("dataSource", "GITHUB_LIVE");
-                    details.put("accessLevel", "MEMBER");
-                    details.put("canPush", true);
-                    details.put("canPull", true);
+                    details.put("isActive", true);
+                    
+                    // Fetch additional GitHub data for comprehensive repository view
+                    try {
+                        String repoFullName = (String) foundRepo.get("full_name");
+                        String[] repoParts = repoFullName.split("/");
+                        String repoOwner = repoParts[0];
+                        String repositoryName = repoParts[1];
+                        String defaultBranch = (String) foundRepo.get("default_branch");
+                        
+                        // Fetch all dynamic GitHub data efficiently
+                        Map<String, Object> dynamicData = fetchDynamicRepositoryData(repoOwner, repositoryName, defaultBranch, studentEmail);
+                        details.putAll(dynamicData);
+                        
+                    } catch (Exception e) {
+                        log.warn("Failed to fetch additional repository data for GitHub ID {}: {}", repositoryId, e.getMessage());
+                        // Don't fail the entire request if additional data fails
+                        details.put("branches", new ArrayList<>());
+                        details.put("recentCommits", new ArrayList<>());
+                        details.put("fileTree", new HashMap<>());
+                        details.put("rootFiles", new ArrayList<>());
+                    }
                     
                     log.info("Successfully created repository object from GitHub ID: {}", repositoryId);
                     return details;
@@ -2855,5 +3098,215 @@ public class StudentServiceImpl implements StudentService {
             log.error("Error searching user's GitHub repositories by ID {}: {}", targetGitHubId, e.getMessage());
             return null;
         }
+    }
+    
+    /**
+     * Get the complete file tree for a repository using GitHub's tree API
+     */
+    @Override
+    public Map<String, Object> getRepositoryFileTree(String owner, String repo, String branch, String studentEmail) {
+        User student = getStudentByEmail(studentEmail);
+        log.info("Getting repository file tree for {}/{} on branch: {} by student: {}", owner, repo, branch, studentEmail);
+        
+        if (student.getGithubToken() == null || student.getGithubToken().isBlank()) {
+            throw new BusinessException("GitHub token not found. Please connect your GitHub account first.");
+        }
+        
+        try {
+            // Get the full tree recursively using the default branch
+            String treeUrl = String.format("https://api.github.com/repos/%s/%s/git/trees/%s?recursive=1", owner, repo, branch);
+            
+            HttpHeaders headers = new HttpHeaders();
+            headers.setBearerAuth(student.getGithubToken());
+            headers.set("Accept", "application/vnd.github.v3+json");
+            headers.set("User-Agent", "EspritHub-Server");
+            HttpEntity<String> entity = new HttpEntity<>(headers);
+            
+            log.debug("Getting file tree from: {}", treeUrl);
+            ResponseEntity<Object> treeResponse = restTemplate.exchange(treeUrl, HttpMethod.GET, entity, Object.class);
+            
+            Map<String, Object> result = new HashMap<>();
+            if (treeResponse.getBody() instanceof Map) {
+                @SuppressWarnings("unchecked")
+                Map<String, Object> treeData = (Map<String, Object>) treeResponse.getBody();
+                
+                result.put("sha", treeData.get("sha"));
+                result.put("url", treeData.get("url"));
+                result.put("truncated", treeData.get("truncated"));
+                
+                if (treeData.get("tree") instanceof Object[]) {
+                    Object[] treeItems = (Object[]) treeData.get("tree");
+                    List<Map<String, Object>> files = new ArrayList<>();
+                    
+                    for (Object item : treeItems) {
+                        if (item instanceof Map) {
+                            @SuppressWarnings("unchecked")
+                            Map<String, Object> fileData = (Map<String, Object>) item;
+                            
+                            Map<String, Object> file = new HashMap<>();
+                            file.put("path", fileData.get("path"));
+                            file.put("mode", fileData.get("mode"));
+                            file.put("type", fileData.get("type"));
+                            file.put("sha", fileData.get("sha"));
+                            file.put("size", fileData.get("size"));
+                            file.put("url", fileData.get("url"));
+                            
+                            // Add enhanced file information
+                            String filePath = (String) fileData.get("path");
+                            String fileName = filePath != null && filePath.contains("/") ? 
+                                filePath.substring(filePath.lastIndexOf("/") + 1) : filePath;
+                            
+                            file.put("name", fileName);
+                            
+                            // Add file extension and category
+                            if (fileName != null && fileName.contains(".") && !"tree".equals(fileData.get("type"))) {
+                                String extension = fileName.substring(fileName.lastIndexOf(".") + 1).toLowerCase();
+                                file.put("extension", extension);
+                                file.put("category", getFileCategory(extension));
+                            } else {
+                                file.put("extension", "");
+                                file.put("category", "tree".equals(fileData.get("type")) ? "folder" : "unknown");
+                            }
+                            
+                            // Add depth level for frontend tree display
+                            int depth = filePath != null ? filePath.split("/").length - 1 : 0;
+                            file.put("depth", depth);
+                            
+                            files.add(file);
+                        }
+                    }
+                    
+                    result.put("tree", files);
+                    result.put("totalFiles", files.size());
+                } else {
+                    result.put("tree", new ArrayList<>());
+                    result.put("totalFiles", 0);
+                }
+            }
+            
+            log.info("Successfully retrieved file tree for {}/{} with {} items", owner, repo, result.get("totalFiles"));
+            return result;
+            
+        } catch (Exception e) {
+            log.error("Error getting repository file tree for {}/{}: {}", owner, repo, e.getMessage());
+            return new HashMap<>();
+        }
+    }
+
+    // Repository overview and file tree operations
+    @Override
+    public Map<String, Object> getRepositoryOverview(String owner, String repo, String branch, String studentEmail) {
+        User student = getStudentByEmail(studentEmail);
+        log.info("Getting comprehensive repository overview for {}/{} on branch: {} by student: {}", owner, repo, branch, studentEmail);
+        
+        if (student.getGithubToken() == null || student.getGithubToken().isBlank()) {
+            throw new BusinessException("GitHub token not found. Please connect your GitHub account first.");
+        }
+        
+        Map<String, Object> overview = new HashMap<>();
+        
+        try {
+            // Use the default branch if none specified
+            if (branch == null || branch.isBlank()) {
+                // Try to get repository info to determine default branch
+                try {
+                    String repoUrl = String.format("https://api.github.com/repos/%s/%s", owner, repo);
+                    HttpHeaders headers = new HttpHeaders();
+                    headers.setBearerAuth(student.getGithubToken());
+                    headers.set("Accept", "application/vnd.github.v3+json");
+                    headers.set("User-Agent", "EspritHub-Server");
+                    HttpEntity<String> entity = new HttpEntity<>(headers);
+                    
+                    ResponseEntity<Object> response = restTemplate.exchange(repoUrl, HttpMethod.GET, entity, Object.class);
+                    if (response.getBody() instanceof Map) {
+                        @SuppressWarnings("unchecked")
+                        Map<String, Object> repoData = (Map<String, Object>) response.getBody();
+                        branch = (String) repoData.get("default_branch");
+                    }
+                } catch (Exception e) {
+                    log.warn("Could not determine default branch, using 'main': {}", e.getMessage());
+                    branch = "main";
+                }
+            }
+            
+            // Fetch all dynamic data using our helper method
+            Map<String, Object> dynamicData = fetchDynamicRepositoryData(owner, repo, branch, studentEmail);
+            overview.putAll(dynamicData);
+            
+            // Add repository metadata
+            overview.put("owner", owner);
+            overview.put("repository", repo);
+            overview.put("currentBranch", branch);
+            overview.put("fullName", owner + "/" + repo);
+            
+            // Add action capabilities
+            Map<String, Object> capabilities = new HashMap<>();
+            capabilities.put("canViewFiles", true);
+            capabilities.put("canCreateFiles", true);
+            capabilities.put("canEditFiles", true);
+            capabilities.put("canDeleteFiles", true);
+            capabilities.put("canViewCommits", true);
+            capabilities.put("canViewBranches", true);
+            capabilities.put("canCreateBranch", true);
+            capabilities.put("canViewContributors", true);
+            capabilities.put("canDownloadCode", true);
+            capabilities.put("canClone", true);
+            overview.put("capabilities", capabilities);
+            
+            // Add API endpoints for frontend
+            Map<String, String> apiEndpoints = new HashMap<>();
+            String baseRepoPath = owner + "/" + repo;
+            apiEndpoints.put("files", "/api/student/github/" + baseRepoPath + "/files");
+            apiEndpoints.put("fileContent", "/api/student/github/" + baseRepoPath + "/file-content");
+            apiEndpoints.put("commits", "/api/student/github/" + baseRepoPath + "/commits");
+            apiEndpoints.put("branches", "/api/student/github/" + baseRepoPath + "/branches");
+            apiEndpoints.put("contributors", "/api/student/github/" + baseRepoPath + "/contributors");
+            apiEndpoints.put("fileTree", "/api/student/github/" + baseRepoPath + "/file-tree");
+            overview.put("apiEndpoints", apiEndpoints);
+            
+            log.info("Successfully retrieved comprehensive overview for {}/{}", owner, repo);
+            return overview;
+            
+        } catch (Exception e) {
+            log.error("Error getting repository overview for {}/{}: {}", owner, repo, e.getMessage());
+            throw new BusinessException("Failed to get repository overview: " + e.getMessage());
+        }
+    }
+
+    // Helper method to fetch all dynamic repository data efficiently
+    private Map<String, Object> fetchDynamicRepositoryData(String owner, String repositoryName, String defaultBranch, String studentEmail) {
+        Map<String, Object> dynamicData = new HashMap<>();
+        
+        try {
+            // Fetch branches
+            log.info("Fetching branches for repository: {}/{}", owner, repositoryName);
+            List<Map<String, Object>> branches = getRepositoryBranches(owner, repositoryName, studentEmail);
+            dynamicData.put("branches", branches);
+            
+            // Fetch recent commits
+            log.info("Fetching commits for repository: {}/{}", owner, repositoryName);
+            List<Map<String, Object>> commits = getRepositoryCommits(owner, repositoryName, defaultBranch, 1, 20, studentEmail);
+            dynamicData.put("recentCommits", commits);
+            
+            // Fetch repository file tree
+            log.info("Fetching file tree for repository: {}/{}", owner, repositoryName);
+            Map<String, Object> fileTree = getRepositoryFileTree(owner, repositoryName, defaultBranch, studentEmail);
+            dynamicData.put("fileTree", fileTree);
+            
+            // Fetch root directory files for quick access
+            log.info("Fetching root files for repository: {}/{}", owner, repositoryName);
+            List<Map<String, Object>> rootFiles = getRepositoryFiles(owner, repositoryName, "", defaultBranch, studentEmail);
+            dynamicData.put("rootFiles", rootFiles);
+            
+        } catch (Exception e) {
+            log.warn("Failed to fetch some dynamic repository data for {}/{}: {}", owner, repositoryName, e.getMessage());
+            // Provide empty fallbacks
+            dynamicData.put("branches", new ArrayList<>());
+            dynamicData.put("recentCommits", new ArrayList<>());
+            dynamicData.put("fileTree", new HashMap<>());
+            dynamicData.put("rootFiles", new ArrayList<>());
+        }
+        
+        return dynamicData;
     }
 }

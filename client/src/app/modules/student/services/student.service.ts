@@ -271,4 +271,89 @@ export class StudentService {
   markNotificationAsRead(notificationId: string): Observable<void> {
     return this.http.put<void>(`${this.apiUrl}/notifications/${notificationId}/read`, {});
   }
+
+  // GitHub Repository File Operations
+  getRepositoryFiles(owner: string, repo: string, path: string = '', branch: string = 'main'): Observable<any[]> {
+    const params = new URLSearchParams();
+    if (path) params.append('path', path);
+    if (branch) params.append('branch', branch);
+    
+    const url = `${this.apiUrl}/github/${owner}/${repo}/files?${params.toString()}`;
+    return this.http.get<any[]>(url);
+  }
+
+  getFileContent(owner: string, repo: string, path: string, branch: string = 'main'): Observable<any> {
+    const params = new URLSearchParams();
+    params.append('path', path);
+    if (branch) params.append('branch', branch);
+    
+    const url = `${this.apiUrl}/github/${owner}/${repo}/file-content?${params.toString()}`;
+    return this.http.get<any>(url);
+  }
+
+  getRepositoryCommits(owner: string, repo: string, branch: string = 'main', page: number = 1, perPage: number = 30): Observable<any[]> {
+    const params = new URLSearchParams();
+    if (branch) params.append('branch', branch);
+    params.append('page', page.toString());
+    params.append('per_page', perPage.toString());
+    
+    const url = `${this.apiUrl}/github/${owner}/${repo}/commits?${params.toString()}`;
+    return this.http.get<any[]>(url);
+  }
+
+  getRepositoryBranches(owner: string, repo: string): Observable<any[]> {
+    const url = `${this.apiUrl}/github/${owner}/${repo}/branches`;
+    return this.http.get<any[]>(url);
+  }
+
+  getRepositoryContributors(owner: string, repo: string): Observable<any[]> {
+    const url = `${this.apiUrl}/github/${owner}/${repo}/contributors`;
+    return this.http.get<any[]>(url);
+  }
+
+  getRepositoryOverview(owner: string, repo: string, branch?: string): Observable<any> {
+    let url = `${this.apiUrl}/github/${owner}/${repo}/overview`;
+    if (branch) {
+      url += `?branch=${branch}`;
+    }
+    return this.http.get<any>(url);
+  }
+
+  getRepositoryFileTree(owner: string, repo: string, branch?: string): Observable<any> {
+    let url = `${this.apiUrl}/github/${owner}/${repo}/file-tree`;
+    if (branch) {
+      url += `?branch=${branch}`;
+    }
+    return this.http.get<any>(url);
+  }
+
+  // File modification operations
+  createFile(owner: string, repo: string, path: string, content: string, message: string, branch: string = 'main'): Observable<any> {
+    const url = `${this.apiUrl}/github/${owner}/${repo}/files`;
+    const body = { path, content, message, branch };
+    return this.http.post<any>(url, body);
+  }
+
+  updateFile(owner: string, repo: string, path: string, content: string, message: string, sha: string, branch: string = 'main'): Observable<any> {
+    const url = `${this.apiUrl}/github/${owner}/${repo}/files`;
+    const body = { path, content, message, sha, branch };
+    return this.http.put<any>(url, body);
+  }
+
+  deleteFile(owner: string, repo: string, path: string, message: string, sha: string, branch: string = 'main'): Observable<any> {
+    const params = new URLSearchParams();
+    params.append('path', path);
+    params.append('message', message);
+    params.append('sha', sha);
+    params.append('branch', branch);
+    
+    const url = `${this.apiUrl}/github/${owner}/${repo}/files?${params.toString()}`;
+    return this.http.delete<any>(url);
+  }
+
+  createBranch(owner: string, repo: string, branchName: string, fromBranch: string = 'main'): Observable<any> {
+    const url = `${this.apiUrl}/github/${owner}/${repo}/branches`;
+    const body = { name: branchName, from: fromBranch };
+    return this.http.post<any>(url, body);
+  }
 }

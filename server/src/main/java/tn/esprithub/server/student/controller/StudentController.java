@@ -446,4 +446,40 @@ public class StudentController {
             return ResponseEntity.badRequest().body(Map.of("error", "GitHub debug failed: " + e.getMessage()));
         }
     }
+
+    // Get comprehensive repository overview with all dynamic data
+    @GetMapping("/github/{owner}/{repo}/overview")
+    public ResponseEntity<Map<String, Object>> getRepositoryOverview(
+            @PathVariable String owner,
+            @PathVariable String repo,
+            @RequestParam(value = "branch", required = false) String branch,
+            Authentication authentication) {
+        log.info("Fetching comprehensive overview for repository {}/{} by student: {}", owner, repo, authentication.getName());
+        
+        try {
+            Map<String, Object> overview = studentService.getRepositoryOverview(owner, repo, branch, authentication.getName());
+            return ResponseEntity.ok(overview);
+        } catch (Exception e) {
+            log.error("Error fetching repository overview: {}", e.getMessage());
+            return ResponseEntity.badRequest().body(Map.of("error", "Failed to fetch repository overview: " + e.getMessage()));
+        }
+    }
+
+    // Get repository file tree (complete structure)
+    @GetMapping("/github/{owner}/{repo}/file-tree")
+    public ResponseEntity<Map<String, Object>> getRepositoryFileTree(
+            @PathVariable String owner,
+            @PathVariable String repo,
+            @RequestParam(value = "branch", required = false) String branch,
+            Authentication authentication) {
+        log.info("Fetching file tree for repository {}/{} on branch: {} by student: {}", owner, repo, branch, authentication.getName());
+        
+        try {
+            Map<String, Object> fileTree = studentService.getRepositoryFileTree(owner, repo, branch, authentication.getName());
+            return ResponseEntity.ok(fileTree);
+        } catch (Exception e) {
+            log.error("Error fetching repository file tree: {}", e.getMessage());
+            return ResponseEntity.badRequest().body(Map.of("error", "Failed to fetch repository file tree: " + e.getMessage()));
+        }
+    }
 }

@@ -132,6 +132,11 @@ public interface StudentService {
     
     List<Map<String, Object>> getRepositoryContributors(String owner, String repo, String studentEmail);
     
+    // Repository overview and file tree operations
+    Map<String, Object> getRepositoryOverview(String owner, String repo, String branch, String studentEmail);
+    
+    Map<String, Object> getRepositoryFileTree(String owner, String repo, String branch, String studentEmail);
+    
     // Debug method to test GitHub access
     Map<String, Object> debugGitHubAccess(String studentEmail);
 }

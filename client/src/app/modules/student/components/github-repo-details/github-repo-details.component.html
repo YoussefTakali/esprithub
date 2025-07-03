@@ -52,8 +52,12 @@
     </div>
     <div class="branch-selector">
       <span>Branch:</span>
-      <select class="branch-dropdown">
-        <option>{{ repository.defaultBranch || 'main' }}</option>
+      <select class="branch-dropdown" [(ngModel)]="currentBranch" (change)="switchBranch(currentBranch)">
+        <option [value]="repository.defaultBranch || 'main'">{{ repository.defaultBranch || 'main' }}</option>
+        <option *ngFor="let branch of branches" [value]="branch.name" 
+                [selected]="branch.name === currentBranch">
+          {{ branch.name }}
+        </option>
       </select>
     </div>
   </div>
@@ -70,16 +74,36 @@
            role="button"
            style="cursor: pointer;" 
            title="View commit details"
-           [attr.aria-label]="'View commit details: ' + latestCommit.message">
+           [attr.aria-label]="'View commit details: ' + (latestCommit?.message || 'No commits')"
+           *ngIf="latestCommit">
         <div class="commit-icon">
           <i class="fas fa-circle"></i>
         </div>
         <div class="commit-info">
           <span class="commit-label">LATEST COMMIT:</span>
           <span class="commit-message">{{ latestCommit.message }}</span>
+          <span class="commit-author" *ngIf="latestCommit.author">by {{ latestCommit.author }}</span>
         </div>
-        <div class="commit-date">
-          {{ latestCommit.date }}
+        <div class="commit-details">
+          <img *ngIf="latestCommit.avatarUrl" 
+               [src]="latestCommit.avatarUrl" 
+               [alt]="latestCommit.author"
+               class="commit-avatar">
+          <div class="commit-meta">
+            <span class="commit-sha">{{ latestCommit.sha }}</span>
+            <span class="commit-date">{{ latestCommit.date }}</span>
+          </div>
+        </div>
+      </div>
+
+      <!-- No commits message -->
+      <div class="no-commits-banner" *ngIf="!latestCommit && !loading">
+        <div class="commit-icon">
+          <i class="fas fa-info-circle"></i>
+        </div>
+        <div class="commit-info">
+          <span class="commit-label">NO COMMITS YET</span>
+          <span class="commit-message">This repository doesn't have any commits yet.</span>
         </div>
       </div>
 
@@ -199,20 +223,37 @@
       <!-- About -->
       <div class="sidebar-section">
         <h3>About</h3>
-        <p class="description">repo for test</p>
+        <p class="description">{{ repository.description || 'No description available' }}</p>
         <div class="repo-stats-vertical">
           <div class="stat-row">
             <i class="far fa-star"></i>
-            <span>0 stars</span>
+            <span>{{ repository.stargazersCount || 0 }} stars</span>
           </div>
           <div class="stat-row">
             <i class="far fa-eye"></i>
-            <span>0 watching</span>
+            <span>{{ repository.watchersCount || 0 }} watching</span>
           </div>
           <div class="stat-row">
             <i class="fas fa-code-branch"></i>
-            <span>0 forks</span>
+            <span>{{ repository.forksCount || 0 }} forks</span>
           </div>
+        </div>
+        <!-- Repository Topics -->
+        <div class="repo-topics" *ngIf="repository.topics && repository.topics.length > 0">
+          <h4>Topics</h4>
+          <div class="topic-tags">
+            <span class="topic-tag" *ngFor="let topic of repository.topics">{{ topic }}</span>
+          </div>
+        </div>
+        <!-- Repository Language -->
+        <div class="repo-language" *ngIf="repository.language">
+          <h4>Primary Language</h4>
+          <span class="language-badge">{{ repository.language }}</span>
+        </div>
+        <!-- Repository License -->
+        <div class="repo-license" *ngIf="repository.license">
+          <h4>License</h4>
+          <span class="license-info">{{ repository.license.name || repository.license }}</span>
         </div>
       </div>
     </div>
@@ -310,19 +351,28 @@
       <!-- Daily Activity Chart -->
       <div class="daily-activity">
         <h4>Daily Activity</h4>
-        <div class="activity-chart">
+        <div class="activity-chart" *ngIf="commits.length > 0; else noActivityChart">
           <div class="chart-container">
             <div class="chart-bar">
               <div class="bar-line"></div>
-              <div class="activity-point active" style="left: 90%;">
-                <div class="point-value">1</div>
+              <div class="activity-point" 
+                   *ngFor="let commit of commits.slice(0, 7); let i = index"
+                   [style.left.%]="(i * 14) + 2">
+                <div class="point-value">{{ commits.slice(i, i+1).length }}</div>
               </div>
             </div>
             <div class="chart-labels">
-              <span class="chart-label">Jul/01</span>
+              <span class="chart-label" *ngFor="let commit of commits.slice(0, 7); let i = index">
+                {{ formatDate(commit.date).split(' ')[0] }}
+              </span>
             </div>
           </div>
         </div>
+        <ng-template #noActivityChart>
+          <div class="no-activity-chart">
+            <p><i class="fas fa-info-circle"></i> No recent activity data available</p>
+          </div>
+        </ng-template>
       </div>
     </div>
 
@@ -370,10 +420,11 @@
         <p class="clone-description">Use Git or checkout with SVN using the web URL.</p>
         <div class="clone-url-container">
           <input type="text" 
-                 value="git clone https://github.com/salmabm/test1.git" 
+                 [value]="repository.cloneUrl || 'https://github.com/' + (repository.owner?.login || repository.fullName?.split('/')[0]) + '/' + (repository.name || repository.fullName?.split('/')[1]) + '.git'" 
                  readonly 
                  class="clone-url-input">
-          <button class="copy-btn" (click)="copyToClipboard('git clone https://github.com/salmabm/test1.git')">
+          <button class="copy-btn" 
+                  (click)="copyToClipboard(repository.cloneUrl || 'https://github.com/' + (repository.owner?.login || repository.fullName?.split('/')[0]) + '/' + (repository.name || repository.fullName?.split('/')[1]) + '.git')">>
             <i class="fas fa-copy"></i>
             Copy
           </button>
@@ -384,7 +435,7 @@
         <h4><i class="fas fa-download"></i> Download ZIP</h4>
         <button class="download-zip-btn" (click)="downloadZip()">
           <i class="fas fa-download"></i>
-          Download ZIP (main branch)
+          Download ZIP ({{ currentBranch }} branch)
         </button>
         <p class="download-note">
           <i class="fas fa-info-circle"></i>
@@ -456,7 +507,7 @@
         <i class="fas fa-arrow-left"></i>
         Back to Commit History
       </button>
-      <div class="commit-info">
+      <div class="commit-info" *ngIf="selectedCommit">
         <h3 id="commit-modal-title">{{ getCommitDetails().message }}</h3>
         <div class="commit-meta">
           <span class="commit-author">{{ getCommitDetails().author }}</span>
@@ -466,7 +517,7 @@
       </div>
     </div>
     
-    <div class="commit-stats">
+    <div class="commit-stats" *ngIf="getCommitDetails().stats.changedFiles > 0">
       <span class="stat">{{ getCommitDetails().stats.changedFiles }} changed files</span>
       <span class="stat additions">+{{ getCommitDetails().stats.additions }} additions</span>
       <span class="stat deletions">-{{ getCommitDetails().stats.deletions }} deletions</span>
@@ -477,7 +528,7 @@
         <div class="change-header">
           <div class="file-status" [ngClass]="change.type">{{ change.type }}</div>
           <span class="change-file-name">{{ change.file }}</span>
-          <span class="change-stats" *ngIf="!change.isBinary">
+          <span class="change-stats" *ngIf="!change.isBinary && change.additions > 0 || change.deletions > 0">
             +{{ change.additions }} -{{ change.deletions }}
           </span>
           <span class="binary-note" *ngIf="change.isBinary">Binary file</span>
@@ -490,7 +541,9 @@
     </div>
     
     <div class="commit-footer">
-      <button class="view-on-github-btn">
+      <button class="view-on-github-btn" 
+              *ngIf="selectedCommit?.url"
+              (click)="window.open(selectedCommit.url, '_blank')">
         <i class="fas fa-external-link-alt"></i>
         View on GitHub
       </button>

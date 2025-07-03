@@ -1,7 +1,7 @@
 import { Component, OnInit } from '@angular/core';
 import { ActivatedRoute, Router } from '@angular/router';
 import { StudentService } from '../../services/student.service';
-import { GitHubService, GitHubRepositoryDetails } from '../../../../services/github.service';
+import { GitHubService } from '../../../../services/github.service';
 
 @Component({
   selector: 'app-github-repo-details',
@@ -9,21 +9,23 @@ import { GitHubService, GitHubRepositoryDetails } from '../../../../services/git
   styleUrls: ['./github-repo-details.component.css']
 })
 export class GitHubRepoDetailsComponent implements OnInit {
-  repository: GitHubRepositoryDetails | null = null;
+  window = window; // Add window reference for template access
+  repository: any = null;
   loading = true;
   error: string | null = null;
   selectedActivityPeriod = '30 days';
   activityPeriods = ['7 days', '30 days', '90 days'];
-  activeTab = 'code'; // Default to code tab to match the images
+  activeTab = 'code';
   showCloneModal = false;
   showFileContent = false;
   showCommitDetails = false;
   selectedFile: any = null;
   selectedCommit: any = null;
   fileContent = '';
-  currentPath: string[] = []; // For breadcrumb navigation
+  currentPath: string[] = [];
+  currentBranch: string = 'main';
   
-  // Real GitHub data properties
+  // Dynamic GitHub data properties
   dashboardStats: any = {
     totalCommits: 0,
     contributors: 0,
@@ -40,7 +42,10 @@ export class GitHubRepoDetailsComponent implements OnInit {
   fileTypes: any[] = [];
   repositoryFiles: any[] = [];
   contributors: any[] = [];
+  branches: any[] = [];
+  commits: any[] = [];
   latestCommit: any = null;
+  fileTree: any = {};
 
   constructor(
     private readonly route: ActivatedRoute,
@@ -65,17 +70,23 @@ export class GitHubRepoDetailsComponent implements OnInit {
     this.loading = true;
     this.error = null;
 
-    // Use the StudentService to fetch individual repository GitHub details
-    this.studentService.getRepositoryGitHubDetails(repoId).subscribe({
-      next: (githubData: any) => {
-        console.log('Received GitHub repository details:', githubData);
-        console.log('Repository name:', githubData.name);
-        console.log('Repository fullName:', githubData.fullName);
-        console.log('Repository owner:', githubData.owner);
+    // First get repository details to extract owner/repo information
+    this.studentService.getRepositoryDetails(repoId).subscribe({
+      next: (repoData: any) => {
+        console.log('Repository details:', repoData);
+        this.repository = repoData;
+        this.currentBranch = repoData.defaultBranch ?? 'main';
         
-        this.repository = githubData;
-        this.processGitHubData(githubData);
-        this.loading = false;
+        // Extract owner and repo name
+        const owner = repoData.owner?.login ?? repoData.fullName?.split('/')[0];
+        const repoName = repoData.name ?? repoData.fullName?.split('/')[1];
+        
+        if (owner && repoName) {
+          this.loadDynamicRepositoryData(owner, repoName);
+        } else {
+          this.error = 'Unable to determine repository owner and name';
+          this.loading = false;
+        }
       },
       error: (error) => {
         console.error('Error loading repository details:', error);
@@ -85,50 +96,107 @@ export class GitHubRepoDetailsComponent implements OnInit {
     });
   }
 
-  private processGitHubData(data: any): void {
+  private loadDynamicRepositoryData(owner: string, repo: string): void {
+    // Load comprehensive repository overview
+    this.studentService.getRepositoryOverview(owner, repo, this.currentBranch).subscribe({
+      next: (overview: any) => {
+        console.log('Repository overview:', overview);
+        this.processDynamicData(overview);
+        this.loadAdditionalData(owner, repo);
+      },
+      error: (error) => {
+        console.error('Error loading repository overview:', error);
+        // Fallback to individual API calls
+        this.loadDataSeparately(owner, repo);
+      }
+    });
+  }
+
+  private loadAdditionalData(owner: string, repo: string): void {
+    // Load commits with pagination
+    this.studentService.getRepositoryCommits(owner, repo, this.currentBranch, 1, 20).subscribe({
+      next: (commits: any[]) => {
+        this.commits = commits;
+        this.processCommitData(commits);
+      },
+      error: (error) => console.error('Error loading commits:', error)
+    });
+
+    // Load contributors
+    this.studentService.getRepositoryContributors(owner, repo).subscribe({
+      next: (contributors: any[]) => {
+        this.contributors = contributors.map(c => ({
+          name: c.login,
+          commits: c.contributions,
+          avatar: c.avatarUrl,
+          url: c.htmlUrl
+        }));
+      },
+      error: (error) => console.error('Error loading contributors:', error)
+    });
+
+    // Load branches
+    this.studentService.getRepositoryBranches(owner, repo).subscribe({
+      next: (branches: any[]) => {
+        this.branches = branches;
+      },
+      error: (error) => console.error('Error loading branches:', error)
+    });
+
+    this.loading = false;
+  }
+
+  private loadDataSeparately(owner: string, repo: string): void {
+    // Fallback method if overview API fails
+    this.studentService.getRepositoryFiles(owner, repo, '', this.currentBranch).subscribe({
+      next: (files: any[]) => {
+        this.repositoryFiles = this.processFileData(files);
+        this.loadAdditionalData(owner, repo);
+      },
+      error: (error) => {
+        console.error('Error loading repository files:', error);
+        this.error = 'Failed to load repository data';
+        this.loading = false;
+      }
+    });
+  }
+
+  private processDynamicData(data: any): void {
     // Update dashboard stats with real GitHub data
     this.dashboardStats = {
       totalCommits: data.recentCommits?.length ?? 0,
       contributors: data.contributors?.length ?? 0,
-      totalFiles: data.files?.length ?? 0,
-      repositorySize: this.formatRepositorySize(data.size ?? 0)
+      totalFiles: data.rootFiles?.length ?? 0,
+      repositorySize: this.formatRepositorySize(data.stats?.size ?? 0)
     };
 
-    // Process contributors
-    this.contributors = data.contributors?.map((contributor: any) => ({
-      name: contributor.login,
-      commits: contributor.contributions,
-      avatar: contributor.avatarUrl,
-      url: contributor.htmlUrl
-    })) ?? [];
+    // Process repository files from rootFiles and fileTree
+    if (data.rootFiles) {
+      this.repositoryFiles = this.processFileData(data.rootFiles);
+    }
+
+    // Process file tree for navigation
+    if (data.fileTree) {
+      this.fileTree = data.fileTree;
+    }
 
     // Process latest commit
     if (data.recentCommits && data.recentCommits.length > 0) {
       const latestCommit = data.recentCommits[0];
       this.latestCommit = {
         message: latestCommit.message,
-        author: latestCommit.authorName,
-        date: this.formatDate(latestCommit.date),
-        sha: latestCommit.sha.substring(0, 7), // Short SHA
-        url: latestCommit.htmlUrl
+        author: latestCommit.authorName ?? latestCommit.githubAuthorLogin,
+        date: this.formatDate(latestCommit.authorDate ?? latestCommit.committerDate),
+        sha: latestCommit.sha?.substring(0, 7) ?? 'unknown',
+        url: latestCommit.htmlUrl,
+        avatarUrl: latestCommit.githubAuthorAvatarUrl
       };
     }
 
-    // Process files for code view
-    this.repositoryFiles = data.files?.map((file: any) => ({
-      name: file.name,
-      type: file.type,
-      size: this.formatFileSize(file.size ?? 0),
-      lastModified: file.lastModified ? this.formatDate(file.lastModified) : 'Unknown',
-      message: file.lastCommitMessage ?? 'No commit message',
-      committer: file.lastCommitAuthor ?? 'Unknown',
-      path: file.path,
-      downloadUrl: file.downloadUrl,
-      htmlUrl: file.htmlUrl
-    })) ?? [];
-
     // Process languages for file types
-    this.processLanguages(data.languages ?? {});
+    if (data.languages) {
+      this.processLanguages(data.languages);
+    }
 
     // Update activity stats
     this.activityStats = {
@@ -138,7 +206,45 @@ export class GitHubRepoDetailsComponent implements OnInit {
     };
   }
 
-  private formatRepositorySize(sizeInKB: number): string {
+  private processFileData(files: any[]): any[] {
+    return files.map((file: any) => ({
+      name: file.name,
+      type: file.type === 'dir' ? 'folder' : 'file',
+      size: file.sizeFormatted ?? this.formatFileSize(file.size ?? 0),
+      lastModified: this.formatDate(file.lastModified) ?? 'Unknown',
+      message: file.lastCommitMessage ?? 'Initial commit',
+      committer: file.lastCommitAuthor ?? 'Unknown',
+      path: file.path,
+      downloadUrl: file.downloadUrl,
+      htmlUrl: file.htmlUrl,
+      sha: file.sha,
+      category: file.category,
+      extension: file.extension,
+      capabilities: file.capabilities
+    }));
+  }
+
+  private processCommitData(commits: any[]): void {
+    // Update commits array and extract latest commit if not already set
+    this.commits = commits.map(commit => ({
+      sha: commit.sha,
+      shortSha: commit.sha?.substring(0, 7) ?? 'unknown',
+      message: commit.message,
+      author: commit.authorName ?? commit.githubAuthorLogin,
+      authorEmail: commit.authorEmail,
+      date: this.formatDate(commit.authorDate ?? commit.committerDate),
+      url: commit.htmlUrl,
+      avatarUrl: commit.githubAuthorAvatarUrl
+    }));
+
+    // Set latest commit if not already set
+    if (!this.latestCommit && commits.length > 0) {
+      const latest = this.commits[0];
+      this.latestCommit = latest;
+    }
+  }
+
+  formatRepositorySize(sizeInKB: number): string {
     if (sizeInKB < 1024) {
       return `${sizeInKB} KB`;
     } else if (sizeInKB < 1024 * 1024) {
@@ -148,7 +254,7 @@ export class GitHubRepoDetailsComponent implements OnInit {
     }
   }
 
-  private formatFileSize(sizeInBytes: number): string {
+  formatFileSize(sizeInBytes: number): string {
     if (sizeInBytes < 1024) {
       return `${sizeInBytes} B`;
     } else if (sizeInBytes < 1024 * 1024) {
@@ -158,7 +264,9 @@ export class GitHubRepoDetailsComponent implements OnInit {
     }
   }
 
-  private formatDate(dateString: string): string {
+  formatDate(dateString: string): string {
+    if (!dateString) return 'Unknown';
+    
     const date = new Date(dateString);
     const now = new Date();
     const diffTime = Math.abs(now.getTime() - date.getTime());
@@ -216,13 +324,14 @@ export class GitHubRepoDetailsComponent implements OnInit {
         type: language.toLowerCase(),
         name: language,
         percentage: Math.round((bytes / total) * 100),
-        color: languageColors[language] || '#6c757d',
+        color: languageColors[language] ?? '#6c757d',
         size: this.formatFileSize(bytes)
       }))
       .sort((a, b) => b.percentage - a.percentage)
       .slice(0, 10); // Show top 10 languages
   }
 
+  // Navigation and UI methods
   goBack(): void {
     this.router.navigate(['/student/repositories']);
   }
@@ -260,8 +369,16 @@ export class GitHubRepoDetailsComponent implements OnInit {
   }
 
   downloadZip(): void {
-    // Implement download ZIP functionality
-    console.log('Downloading ZIP...');
+    if (this.repository) {
+      const owner = this.repository.owner?.login ?? this.repository.fullName?.split('/')[0];
+      const repoName = this.repository.name ?? this.repository.fullName?.split('/')[1];
+      
+      if (owner && repoName) {
+        // Use GitHub's download ZIP URL
+        const downloadUrl = `https://github.com/${owner}/${repoName}/archive/${this.currentBranch}.zip`;
+        window.open(downloadUrl, '_blank');
+      }
+    }
   }
 
   getFileIcon(type: string): string {
@@ -290,96 +407,56 @@ export class GitHubRepoDetailsComponent implements OnInit {
     return colors[extension ?? ''] ?? '#6c757d';
   }
 
-  // File navigation methods
+  // File operations
   onFileClick(file: any): void {
     if (file.type === 'folder') {
-      // Navigate into folder
-      this.currentPath.push(file.name);
-      // In a real implementation, you would load the folder contents
+      this.navigateToFolder(file.path);
     } else {
-      // Open file content view
-      this.selectedFile = file;
-      this.showFileContent = true;
-      this.loadFileContent(file);
+      this.openFileContent(file);
     }
   }
 
-  loadFileContent(file: any): void {
-    // Mock file content based on file type
-    const mockContent = this.getMockFileContent(file.name);
-    this.fileContent = mockContent;
+  navigateToFolder(path: string): void {
+    const owner = this.repository.owner?.login ?? this.repository.fullName?.split('/')[0];
+    const repoName = this.repository.name ?? this.repository.fullName?.split('/')[1];
+    
+    if (owner && repoName) {
+      this.studentService.getRepositoryFiles(owner, repoName, path, this.currentBranch).subscribe({
+        next: (files: any[]) => {
+          this.repositoryFiles = this.processFileData(files);
+          this.currentPath = path.split('/').filter(p => p.length > 0);
+        },
+        error: (error) => {
+          console.error('Error loading folder contents:', error);
+        }
+      });
+    }
   }
 
-  getMockFileContent(fileName: string): string {
-    const extension = fileName.split('.').pop()?.toLowerCase();
+  openFileContent(file: any): void {
+    const owner = this.repository.owner?.login ?? this.repository.fullName?.split('/')[0];
+    const repoName = this.repository.name ?? this.repository.fullName?.split('/')[1];
     
-    switch (extension) {
-      case 'py':
-        return `# Python File: ${fileName}
-def hello_world():
-    print("Hello, World!")
-    return "Hello from ${fileName}"
+    if (owner && repoName) {
+      this.studentService.getFileContent(owner, repoName, file.path, this.currentBranch).subscribe({
+        next: (content: any) => {
+          this.selectedFile = { ...file, ...content };
+          this.fileContent = this.decodeBase64Content(content.content);
+          this.showFileContent = true;
+        },
+        error: (error) => {
+          console.error('Error loading file content:', error);
+        }
+      });
+    }
+  }
 
-if __name__ == "__main__":
-    hello_world()
-`;
-      case 'txt':
-        return `This is a text file: ${fileName}
-
-Lorem ipsum dolor sit amet, consectetur adipiscing elit.
-Sed do eiusmod tempor incididunt ut labore et dolore magna aliqua.
-Ut enim ad minim veniam, quis nostrud exercitation.
-`;
-      case 'css':
-        return `/* CSS File: ${fileName} */
-.container {
-    max-width: 1200px;
-    margin: 0 auto;
-    padding: 20px;
-}
-
-.header {
-    background-color: #333;
-    color: white;
-    padding: 1rem;
-}
-`;
-      case 'gitignore':
-        return `# Git ignore file
-node_modules/
-dist/
-.env
-*.log
-.DS_Store
-target/
-`;
-      case 'gitattributes':
-        return `# Git attributes file
-* text=auto
-*.jpg binary
-*.png binary
-*.pdf binary
-`;
-      case 'jpg':
-        return `# Image File Preview
-File: ${fileName}
-Type: JPEG Image
-Size: 24 KB
-
-This is a binary image file. 
-You can download it to view the content.
-
-Log Information:
-2025-05-10T11:38:26.242+01:00  INFO 12046 --- [cyer1] [nio-8087-exec-4] o.s.web.servlet.DispatcherServlet
-2025-05-10T11:38:26.243+01:00  INFO 12046 --- [cyer1] [nio-8087-exec-4] o.s.web.servlet.DispatcherServlet
-2025-05-10T11:38:26.277+01:00  INFO 12046 --- [cyer1] [nio-8087-exec-4] t.e.f.controllers.aspects.LoggingAspect
-`;
-      default:
-        return `Content of ${fileName}
-
-This is a sample file content.
-In a real implementation, this would be loaded from the repository.
-`;
+  decodeBase64Content(base64Content: string): string {
+    try {
+      return atob(base64Content);
+    } catch (error) {
+      console.error('Error decoding base64 content:', error);
+      return 'Unable to decode file content';
     }
   }
 
@@ -390,17 +467,34 @@ In a real implementation, this would be loaded from the repository.
   }
 
   navigateToPath(index: number): void {
-    // Remove path segments after the clicked index
-    this.currentPath = this.currentPath.slice(0, index + 1);
-    // In a real implementation, reload the directory contents
+    const newPath = this.currentPath.slice(0, index + 1).join('/');
+    this.navigateToFolder(newPath);
   }
 
   navigateToRoot(): void {
     this.currentPath = [];
-    // In a real implementation, reload the root directory contents
+    const owner = this.repository.owner?.login ?? this.repository.fullName?.split('/')[0];
+    const repoName = this.repository.name ?? this.repository.fullName?.split('/')[1];
+    
+    if (owner && repoName) {
+      this.studentService.getRepositoryFiles(owner, repoName, '', this.currentBranch).subscribe({
+        next: (files: any[]) => {
+          this.repositoryFiles = this.processFileData(files);
+        },
+        error: (error) => {
+          console.error('Error loading root files:', error);
+        }
+      });
+    }
   }
 
-  // Commit details methods
+  // Branch operations
+  switchBranch(branchName: string): void {
+    this.currentBranch = branchName;
+    this.navigateToRoot(); // Reload files for new branch
+  }
+
+  // Commit operations
   showCommitDetailsView(commit: any): void {
     this.selectedCommit = commit;
     this.showCommitDetails = true;
@@ -411,45 +505,44 @@ In a real implementation, this would be loaded from the repository.
     this.selectedCommit = null;
   }
 
-  // Mock commit details
   getCommitDetails() {
+    if (!this.selectedCommit) {
+      return {
+        sha: 'unknown',
+        message: 'No commit selected',
+        author: 'Unknown',
+        date: 'Unknown',
+        changes: [],
+        stats: {
+          additions: 0,
+          deletions: 0,
+          changedFiles: 0
+        }
+      };
+    }
+    
     return {
-      sha: '24f1417',
-      message: 'Replace actualiser.png (updated)',
-      author: 'salmabm',
-      date: '27 days ago',
+      sha: this.selectedCommit.shortSha,
+      message: this.selectedCommit.message,
+      author: this.selectedCommit.author,
+      date: this.selectedCommit.date,
       changes: [
+        // This would be populated from actual commit diff data
+        // For now, using placeholder data since GitHub API doesn't provide
+        // file changes in the commits endpoint
         {
-          file: 'actualiser.png',
+          file: 'Files changed in this commit',
           type: 'modified',
           additions: 0,
           deletions: 0,
-          isBinary: true
-        },
-        {
-          file: 'src/main.py',
-          type: 'modified',
-          additions: 15,
-          deletions: 3,
           isBinary: false,
-          diff: `@@ -10,7 +10,10 @@ def main():
- def process_data():
--    data = load_data()
--    return process(data)
-+    try:
-+        data = load_data()
-+        return process(data)
-+    except Exception as e:
-+        print(f"Error processing data: {e}")
-+        return None
- 
- if __name__ == "__main__":`
+          diff: 'File diff information not available via GitHub API'
         }
       ],
       stats: {
-        additions: 15,
-        deletions: 3,
-        changedFiles: 2
+        additions: 0,
+        deletions: 0,
+        changedFiles: 0
       }
     };
   }
