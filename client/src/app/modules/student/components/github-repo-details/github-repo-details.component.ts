@@ -1,6 +1,7 @@
 import { Component, OnInit } from '@angular/core';
 import { ActivatedRoute, Router } from '@angular/router';
 import { StudentService } from '../../services/student.service';
+import { GitHubService, GitHubRepositoryDetails } from '../../../../services/github.service';
 
 @Component({
   selector: 'app-github-repo-details',
@@ -8,7 +9,7 @@ import { StudentService } from '../../services/student.service';
   styleUrls: ['./github-repo-details.component.css']
 })
 export class GitHubRepoDetailsComponent implements OnInit {
-  repository: any = null;
+  repository: GitHubRepositoryDetails | null = null;
   loading = true;
   error: string | null = null;
   selectedActivityPeriod = '30 days';
@@ -22,58 +23,30 @@ export class GitHubRepoDetailsComponent implements OnInit {
   fileContent = '';
   currentPath: string[] = []; // For breadcrumb navigation
   
-  // Mock data for demonstration - replace with real data from API
-  dashboardStats = {
-    totalCommits: 1,
-    contributors: 2,
-    totalFiles: 5,
-    repositorySize: '2.1 MB'
+  // Real GitHub data properties
+  dashboardStats: any = {
+    totalCommits: 0,
+    contributors: 0,
+    totalFiles: 0,
+    repositorySize: '0 KB'
   };
   
   activityStats = {
-    totalCommits: 1,
-    linesAdded: 57,
-    linesDeleted: 25
+    totalCommits: 0,
+    linesAdded: 0,
+    linesDeleted: 0
   };
   
-  fileTypes = [
-    { type: 'jpg', percentage: 61, color: '#f1e05a', size: '2 files' },
-    { type: 'css', percentage: 30, color: '#563d7c', size: '1 file' },
-    { type: 'gitignore', percentage: 30, color: '#6c757d', size: '1 file' },
-    { type: 'csv', percentage: 31, color: '#2b7489', size: '3 files' }
-  ];
-
-  // Mock file data for code view - matching the real repository structure from images
-  repositoryFiles = [
-    { name: 'actualiser.png', type: 'file', size: '24 KB', lastModified: '27 days ago', message: 'Replace actualiser.png (updated)', committer: 'salmabm' },
-    { name: 'editorconfig.txt', type: 'file', size: '24 KB', lastModified: '1 month ago', message: 'Replace icons8-facebook-nouveau-48.png (created)', committer: 'salmabm' },
-    { name: 'icons8-facebook-nouveau-48.png', type: 'file', size: '24 KB', lastModified: '1 month ago', message: 'test_push1 (created)', committer: 'salmabm' },
-    { name: 'esp_.png', type: 'file', size: '24 KB', lastModified: '1 month ago', message: 'test_push_1', committer: 'salmabm' },
-    { name: 'Loading files...', type: 'file', size: '', lastModified: '1 month ago', message: 'test_push', committer: 'salmabm' },
-    { name: 'Loading files...', type: 'file', size: '', lastModified: '1 month ago', message: 'hnh', committer: 'salmabm' },
-    { name: 'Loading files...', type: 'file', size: '', lastModified: '1 month ago', message: 'bgbg', committer: 'salmabm' },
-    { name: 'Loading files...', type: 'file', size: '', lastModified: '1 month ago', message: 'bgbg', committer: 'salmabm' },
-    { name: '1.jpg', type: 'file', size: '24 KB', lastModified: '1 month ago', message: 'bgbg', committer: 'salmabm' }
-  ];
-
-  // Contributors data
-  contributors = [
-    { name: 'salmabm', commits: 22, avatar: 'assets/avatar1.png' },
-    { name: 'salmabenmiled', commits: 16, avatar: 'assets/avatar2.png' }
-  ];
-
-  // Latest commit info
-  latestCommit = {
-    message: 'Replace actualiser.png (updated)',
-    author: 'salmabm',
-    date: '27 days ago',
-    sha: '24f1417'
-  };
+  fileTypes: any[] = [];
+  repositoryFiles: any[] = [];
+  contributors: any[] = [];
+  latestCommit: any = null;
 
   constructor(
     private readonly route: ActivatedRoute,
     private readonly router: Router,
-    private readonly studentService: StudentService
+    private readonly studentService: StudentService,
+    private readonly githubService: GitHubService
   ) {}
 
   ngOnInit(): void {
@@ -92,18 +65,11 @@ export class GitHubRepoDetailsComponent implements OnInit {
     this.loading = true;
     this.error = null;
 
-    this.studentService.getRepositoryDetails(repoId).subscribe({
-      next: (repository) => {
-        this.repository = repository;
-        // Update dashboard stats with real data if available
-        if (repository.stats) {
-          this.dashboardStats = {
-            totalCommits: repository.stats.commits ?? this.dashboardStats.totalCommits,
-            contributors: repository.contributors?.length ?? this.dashboardStats.contributors,
-            totalFiles: repository.stats.files ?? this.dashboardStats.totalFiles,
-            repositorySize: repository.stats.size ?? this.dashboardStats.repositorySize
-          };
-        }
+    // Use the StudentService to fetch real GitHub data
+    this.studentService.getRepositoryGitHubDetails(repoId).subscribe({
+      next: (githubData: GitHubRepositoryDetails) => {
+        this.repository = githubData;
+        this.processGitHubData(githubData);
         this.loading = false;
       },
       error: (error) => {
@@ -112,6 +78,144 @@ export class GitHubRepoDetailsComponent implements OnInit {
         this.loading = false;
       }
     });
+  }
+
+  private processGitHubData(data: GitHubRepositoryDetails): void {
+    // Update dashboard stats with real GitHub data
+    this.dashboardStats = {
+      totalCommits: data.recentCommits?.length || 0,
+      contributors: data.contributors?.length || 0,
+      totalFiles: data.files?.length || 0,
+      repositorySize: this.formatRepositorySize(data.size || 0)
+    };
+
+    // Process contributors
+    this.contributors = data.contributors?.map(contributor => ({
+      name: contributor.login,
+      commits: contributor.contributions,
+      avatar: contributor.avatarUrl,
+      url: contributor.htmlUrl
+    })) || [];
+
+    // Process latest commit
+    if (data.recentCommits && data.recentCommits.length > 0) {
+      const latestCommit = data.recentCommits[0];
+      this.latestCommit = {
+        message: latestCommit.message,
+        author: latestCommit.authorName,
+        date: this.formatDate(latestCommit.date),
+        sha: latestCommit.sha.substring(0, 7), // Short SHA
+        url: latestCommit.htmlUrl
+      };
+    }
+
+    // Process files for code view
+    this.repositoryFiles = data.files?.map(file => ({
+      name: file.name,
+      type: file.type,
+      size: this.formatFileSize(file.size || 0),
+      lastModified: file.lastModified ? this.formatDate(file.lastModified) : 'Unknown',
+      message: file.lastCommitMessage ?? 'No commit message',
+      committer: file.lastCommitAuthor ?? 'Unknown',
+      path: file.path,
+      downloadUrl: file.downloadUrl,
+      htmlUrl: file.htmlUrl
+    })) || [];
+
+    // Process languages for file types
+    this.processLanguages(data.languages || {});
+
+    // Update activity stats
+    this.activityStats = {
+      totalCommits: data.recentCommits?.length || 0,
+      linesAdded: 0, // This would need to be calculated from commit data
+      linesDeleted: 0 // This would need to be calculated from commit data
+    };
+  }
+
+  private formatRepositorySize(sizeInKB: number): string {
+    if (sizeInKB < 1024) {
+      return `${sizeInKB} KB`;
+    } else if (sizeInKB < 1024 * 1024) {
+      return `${(sizeInKB / 1024).toFixed(1)} MB`;
+    } else {
+      return `${(sizeInKB / (1024 * 1024)).toFixed(1)} GB`;
+    }
+  }
+
+  private formatFileSize(sizeInBytes: number): string {
+    if (sizeInBytes < 1024) {
+      return `${sizeInBytes} B`;
+    } else if (sizeInBytes < 1024 * 1024) {
+      return `${(sizeInBytes / 1024).toFixed(1)} KB`;
+    } else {
+      return `${(sizeInBytes / (1024 * 1024)).toFixed(1)} MB`;
+    }
+  }
+
+  private formatDate(dateString: string): string {
+    const date = new Date(dateString);
+    const now = new Date();
+    const diffTime = Math.abs(now.getTime() - date.getTime());
+    const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
+    
+    if (diffDays === 1) {
+      return '1 day ago';
+    } else if (diffDays < 30) {
+      return `${diffDays} days ago`;
+    } else if (diffDays < 365) {
+      const months = Math.floor(diffDays / 30);
+      return months === 1 ? '1 month ago' : `${months} months ago`;
+    } else {
+      const years = Math.floor(diffDays / 365);
+      return years === 1 ? '1 year ago' : `${years} years ago`;
+    }
+  }
+
+  private processLanguages(languages: { [key: string]: number }): void {
+    const total = Object.values(languages).reduce((sum, bytes) => sum + bytes, 0);
+    
+    if (total === 0) {
+      this.fileTypes = [];
+      return;
+    }
+
+    // Define colors for common languages
+    const languageColors: { [key: string]: string } = {
+      'JavaScript': '#f1e05a',
+      'TypeScript': '#3178c6',
+      'Python': '#3776ab',
+      'Java': '#b07219',
+      'C++': '#f34b7d',
+      'C': '#555555',
+      'HTML': '#e34c26',
+      'CSS': '#1572b6',
+      'PHP': '#4f5d95',
+      'Ruby': '#701516',
+      'Go': '#00add8',
+      'Rust': '#dea584',
+      'Swift': '#fa7343',
+      'Kotlin': '#a97bff',
+      'Dart': '#00b4ab',
+      'C#': '#239120',
+      'Shell': '#89e051',
+      'PowerShell': '#012456',
+      'Dockerfile': '#384d54',
+      'JSON': '#292929',
+      'YAML': '#cb171e',
+      'Markdown': '#083fa1'
+    };
+
+    this.fileTypes = Object.entries(languages)
+      .map(([language, bytes]) => ({
+        type: language.toLowerCase(),
+        name: language,
+        percentage: Math.round((bytes / total) * 100),
+        color: languageColors[language] || '#6c757d',
+        size: this.formatFileSize(bytes)
+      }))
+      .sort((a, b) => b.percentage - a.percentage)
+      .slice(0, 10); // Show top 10 languages
   }
 
   goBack(): void {

@@ -13,6 +13,94 @@ export interface GitHubAuthUrl {
   state: string;
 }
 
+// GitHub Repository Details interfaces
+export interface GitHubRepositoryDetails {
+  id: string;
+  name: string;
+  fullName: string;
+  description?: string;
+  url: string;
+  htmlUrl: string;
+  cloneUrl: string;
+  sshUrl: string;
+  gitUrl: string;
+  isPrivate: boolean;
+  defaultBranch: string;
+  size: number;
+  language?: string;
+  stargazersCount: number;
+  watchersCount: number;
+  forksCount: number;
+  openIssuesCount: number;
+  createdAt: string;
+  updatedAt: string;
+  pushedAt?: string;
+  owner: GitHubOwner;
+  branches: GitHubBranch[];
+  recentCommits: GitHubCommit[];
+  contributors: GitHubContributor[];
+  languages: { [key: string]: number };
+  releases: GitHubRelease[];
+  files: GitHubFile[];
+}
+
+export interface GitHubOwner {
+  login: string;
+  name: string;
+  avatarUrl: string;
+  type: string;
+  htmlUrl: string;
+}
+
+export interface GitHubBranch {
+  name: string;
+  sha: string;
+  isProtected: boolean;
+  lastCommit?: GitHubCommit;
+}
+
+export interface GitHubCommit {
+  sha: string;
+  message: string;
+  authorName: string;
+  authorEmail: string;
+  authorAvatarUrl?: string;
+  date: string;
+  htmlUrl: string;
+}
+
+export interface GitHubContributor {
+  login: string;
+  name: string;
+  avatarUrl: string;
+  contributions: number;
+  htmlUrl: string;
+}
+
+export interface GitHubRelease {
+  tagName: string;
+  name: string;
+  body: string;
+  isDraft: boolean;
+  isPrerelease: boolean;
+  publishedAt?: string;
+  htmlUrl: string;
+}
+
+export interface GitHubFile {
+  name: string;
+  path: string;
+  type: string; // "file" or "dir"
+  sha: string;
+  size: number;
+  downloadUrl?: string;
+  htmlUrl: string;
+  lastModified?: string;
+  lastCommitMessage?: string;
+  lastCommitSha?: string;
+  lastCommitAuthor?: string;
+}
+
 @Injectable({
   providedIn: 'root'
 })
@@ -60,5 +148,13 @@ export class GitHubService {
   // Check if GitHub token exists and is valid
   checkGitHubTokenStatus(): Observable<{ valid: boolean; hasToken: boolean }> {
     return this.http.get<{ valid: boolean; hasToken: boolean }>(`${this.API_URL}/auth/github/status`);
+  }
+
+  getRepositoryDetails(owner: string, repo: string): Observable<GitHubRepositoryDetails> {
+    return this.http.get<GitHubRepositoryDetails>(`${this.API_URL}/github/repositories/${owner}/${repo}`);
+  }
+
+  getRepositoryDetailsById(repositoryId: string): Observable<GitHubRepositoryDetails> {
+    return this.http.get<GitHubRepositoryDetails>(`${this.API_URL}/student/repositories/${repositoryId}/github-details`);
   }
 }

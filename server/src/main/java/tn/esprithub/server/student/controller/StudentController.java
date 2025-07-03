@@ -189,6 +189,22 @@ public class StudentController {
         return ResponseEntity.ok(repositoryDetails);
     }
 
+    // Get GitHub repository details
+    @GetMapping("/repositories/{repositoryId}/github-details")
+    public ResponseEntity<Map<String, Object>> getGitHubRepositoryDetails(
+            @PathVariable String repositoryId,
+            Authentication authentication) {
+        log.info("Fetching GitHub repository details for repository: {} by student: {}", repositoryId, authentication.getName());
+        
+        try {
+            Map<String, Object> githubDetails = studentService.getRepositoryDetails(repositoryId, authentication.getName());
+            return ResponseEntity.ok(githubDetails);
+        } catch (Exception e) {
+            log.error("Error fetching GitHub repository details: {}", e.getMessage());
+            return ResponseEntity.badRequest().body(Map.of("error", "Failed to fetch GitHub repository details: " + e.getMessage()));
+        }
+    }
+
     // Get student's weekly schedule
     @GetMapping("/schedule")
     public ResponseEntity<Map<String, Object>> getSchedule(Authentication authentication) {

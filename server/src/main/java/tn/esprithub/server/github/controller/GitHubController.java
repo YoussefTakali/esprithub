@@ -42,4 +42,25 @@ public class GitHubController {
             return ResponseEntity.badRequest().body(null);
         }
     }
+    
+    @GetMapping("/repository/{repositoryId}/details")
+    public ResponseEntity<GitHubRepositoryDetailsDto> getRepositoryDetailsByRepositoryId(
+            @PathVariable String repositoryId,
+            Authentication authentication) {
+        
+        log.info("Fetching GitHub repository details for repository ID: {} by user: {}", repositoryId, authentication.getName());
+        
+        try {
+            User user = userRepository.findByEmail(authentication.getName())
+                    .orElseThrow(() -> new BusinessException("User not found"));
+            
+            GitHubRepositoryDetailsDto details = gitHubRepositoryService.getRepositoryDetailsByRepositoryId(repositoryId, user);
+            
+            return ResponseEntity.ok(details);
+            
+        } catch (Exception e) {
+            log.error("Error fetching repository details for repository ID {}: {}", repositoryId, e.getMessage());
+            return ResponseEntity.badRequest().body(null);
+        }
+    }
 }

@@ -12,6 +12,7 @@ import org.springframework.stereotype.Service;
 import org.springframework.web.client.RestTemplate;
 import tn.esprithub.server.common.exception.BusinessException;
 import tn.esprithub.server.github.dto.GitHubRepositoryDetailsDto;
+import tn.esprithub.server.repository.repository.RepositoryEntityRepository;
 import tn.esprithub.server.user.entity.User;
 
 import java.time.LocalDateTime;
@@ -20,6 +21,7 @@ import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.UUID;
 
 @Service
 @RequiredArgsConstructor
@@ -29,6 +31,7 @@ public class GitHubRepositoryService {
     private static final String GITHUB_API_BASE = "https://api.github.com";
     private final RestTemplate restTemplate = new RestTemplate();
     private final ObjectMapper objectMapper = new ObjectMapper();
+    private final RepositoryEntityRepository repositoryRepository;
 
     public GitHubRepositoryDetailsDto getRepositoryDetails(String owner, String repo, User user) {
         if (user.getGithubToken() == null || user.getGithubToken().isBlank()) {
@@ -51,6 +54,36 @@ public class GitHubRepositoryService {
             
         } catch (Exception e) {
             log.error("Error fetching repository details for {}/{}: {}", owner, repo, e.getMessage());
+            throw new BusinessException("Failed to fetch repository details: " + e.getMessage());
+        }
+    }
+
+    public GitHubRepositoryDetailsDto getRepositoryDetailsByRepositoryId(String repositoryId, User user) {
+        if (user.getGithubToken() == null || user.getGithubToken().isBlank()) {
+            throw new BusinessException("GitHub token not found for user");
+        }
+
+        try {
+            // First, find the repository entity to get owner/repo information
+            tn.esprithub.server.repository.entity.Repository repository = repositoryRepository.findById(UUID.fromString(repositoryId))
+                    .orElseThrow(() -> new BusinessException("Repository not found"));
+            
+            // Extract owner and repo name from fullName (format: "owner/repo")
+            String[] parts = repository.getFullName().split("/");
+            if (parts.length != 2) {
+                throw new BusinessException("Invalid repository fullName format: " + repository.getFullName());
+            }
+            
+            String owner = parts[0];
+            String repo = parts[1];
+            
+            log.info("Fetching GitHub data for repository: {}/{}", owner, repo);
+            
+            // Use the existing method to get GitHub data
+            return getRepositoryDetails(owner, repo, user);
+            
+        } catch (Exception e) {
+            log.error("Error fetching repository details for repository ID {}: {}", repositoryId, e.getMessage());
             throw new BusinessException("Failed to fetch repository details: " + e.getMessage());
         }
     }

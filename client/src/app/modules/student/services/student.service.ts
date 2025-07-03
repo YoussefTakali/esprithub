@@ -245,6 +245,10 @@ export class StudentService {
     return this.http.get<any>(`${this.apiUrl}/repositories/${repositoryId}/details`);
   }
 
+  getRepositoryGitHubDetails(repositoryId: string): Observable<any> {
+    return this.http.get<any>(`${this.apiUrl}/repositories/${repositoryId}/github-details`);
+  }
+
   getSchedule(): Observable<StudentSchedule> {
     return this.http.get<StudentSchedule>(`${this.apiUrl}/schedule`);
   }
