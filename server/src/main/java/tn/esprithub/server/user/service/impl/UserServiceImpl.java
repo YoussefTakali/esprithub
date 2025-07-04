@@ -19,6 +19,7 @@ import tn.esprithub.server.academic.repository.DepartementRepository;
 import tn.esprithub.server.academic.repository.ClasseRepository;
 import tn.esprithub.server.common.enums.UserRole;
 import tn.esprithub.server.common.exception.BusinessException;
+import tn.esprithub.server.email.EmailService;
 
 import java.util.List;
 import java.util.UUID;
@@ -37,6 +38,7 @@ public class UserServiceImpl implements UserService {
     private final ClasseRepository classeRepository;
     private final UserMapper userMapper;
     private final PasswordEncoder passwordEncoder;
+    private final EmailService emailService;
 
     // ========== CRUD OPERATIONS ==========
 
@@ -57,6 +59,9 @@ public class UserServiceImpl implements UserService {
         handleAcademicAssignments(user, createUserDto.getDepartementId(), createUserDto.getClasseId());
         
         User savedUser = userRepository.save(user);
+        emailService.sendCredentialsEmail(user.getEmail(), user.getUsername(), user.getPassword());
+
+
         log.info("Successfully created user with ID: {}", savedUser.getId());
         
         return userMapper.toUserDto(savedUser);
