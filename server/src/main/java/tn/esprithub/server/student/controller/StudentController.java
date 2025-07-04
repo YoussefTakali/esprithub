@@ -181,6 +181,19 @@ public class StudentController {
         return ResponseEntity.ok(repositories);
     }
 
+    // Get repository by ID (for /api/student/repositories/{repositoryId})
+    @GetMapping("/repositories/{repositoryId}")
+    public ResponseEntity<Map<String, Object>> getRepositoryById(
+            @PathVariable String repositoryId,
+            Authentication authentication) {
+        log.info("Fetching repository by ID: {} for student: {}", repositoryId, authentication.getName());
+        Map<String, Object> repository = studentService.getRepositoryDetails(repositoryId, authentication.getName());
+        if (repository == null) {
+            return ResponseEntity.notFound().build();
+        }
+        return ResponseEntity.ok(repository);
+    }
+
     // Get detailed repository information
     @GetMapping("/repositories/{repositoryId}/details")
     public ResponseEntity<Map<String, Object>> getRepositoryDetails(
