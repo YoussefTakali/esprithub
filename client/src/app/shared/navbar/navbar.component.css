@@ -22,7 +22,7 @@
   }
   
   .n-title {
-    background: linear-gradient(to right, #42b1bc, #757575);
+  background: linear-gradient(135deg, #8b1538 0%, #c9190d 50%, #a71617 100%);
     background-clip: text;
     -webkit-background-clip: text;
     color: transparent;
@@ -43,9 +43,10 @@
     border-radius: 6px;
     display: none;
     flex-direction: column;
-    min-width: 120px;
+    min-width: 200px;
     box-shadow: 0 2px 8px rgba(0, 0, 0, 0.15);
     z-index: 10;
+    
   }
   
   .n-infos:hover .n-dropdown-menu {
@@ -61,7 +62,7 @@
   
   .n-dropdown-menu-item:hover {
     border-radius: 6px;
-    background-color: #041b2a;
+    background-color: #4b040e;
     color: white;
   }
   
@@ -79,7 +80,7 @@
   }
   
   .n-functionalities {
-    gap: 1rem;
+    gap: 3rem;
   }
   
   .n-row {
