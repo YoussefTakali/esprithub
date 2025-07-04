@@ -12,6 +12,8 @@ export class StudentProjectsComponent implements OnInit {
   error: string | null = null;
   searchTerm = '';
   filteredProjects: StudentProject[] = [];
+  selectedProject: StudentProject | null = null;
+  showDetails = false;
 
   constructor(private readonly studentService: StudentService) {}
 
@@ -57,21 +59,27 @@ export class StudentProjectsComponent implements OnInit {
     this.applyFilters();
   }
 
-  formatDate(date: Date): string {
-    return new Date(date).toLocaleDateString('en-US', {
-      month: 'short',
-      day: 'numeric',
-      year: 'numeric'
-    });
-  }
 
-  getDaysUntilDeadline(deadline: Date): number {
-    const now = new Date();
-    const due = new Date(deadline);
-    return Math.ceil((due.getTime() - now.getTime()) / (1000 * 60 * 60 * 24));
-  }
 
-  isOverdue(deadline: Date): boolean {
+getDaysUntilDeadline(deadline: string | Date): number {
+  // Convert to Date if it's a string
+  const deadlineDate = typeof deadline === 'string' ? new Date(deadline) : deadline;
+  const today = new Date();
+  const diffTime = deadlineDate.getTime() - today.getTime();
+  return Math.ceil(diffTime / (1000 * 60 * 60 * 24));
+}
+
+formatDate(date: string | Date): string {
+  // Convert to Date if it's a string
+  const dateObj = typeof date === 'string' ? new Date(date) : date;
+  return dateObj.toLocaleDateString('en-US', { 
+    year: 'numeric', 
+    month: 'long', 
+    day: 'numeric' 
+  });
+}
+
+  isOverdue(deadline: string): boolean {
     return new Date(deadline) < new Date();
   }
 
@@ -83,15 +91,18 @@ export class StudentProjectsComponent implements OnInit {
     this.studentService.getProjectDetails(projectId).subscribe({
       next: (project) => {
         console.log('Project details:', project);
-        const groupNames = project.groups.map(g => g.name).join(', ');
-        const taskCount = project.tasks.length;
-        const collaboratorNames = project.collaborators.map(c => `${c.firstName} ${c.lastName}`).join(', ');
-        alert(`Project: ${project.name}\nDescription: ${project.description}\nGroups: ${groupNames}\nTasks: ${taskCount}\nCollaborators: ${collaboratorNames}\nDeadline: ${this.formatDate(project.deadline)}`);
+        this.selectedProject = project;
+        this.showDetails = true;
       },
       error: (error) => {
         console.error('Error loading project details:', error);
         alert('Failed to load project details');
       }
     });
+  }
+
+  closeDetails(): void {
+    this.showDetails = false;
+    this.selectedProject = null;
   }
 }

@@ -67,13 +67,35 @@ export interface TasksResponse {
 export interface StudentGroup {
   id: string;
   name: string;
+  description: string | null;
   projectId: string;
   projectName: string;
+  projectDescription: string | null;
+  projectDeadline: string | null;
   classId: string;
   className: string;
-  members: GroupMember[];
-  repository?: Repository;
-  createdAt: Date;
+  members: GroupMember[] | null;
+  totalMembers: number;
+  myRole: string | null;
+  repositoryId: string | null;
+  repositoryName: string | null;
+  repositoryUrl: string | null;
+  repositoryCloneUrl: string | null;
+  hasRepository: boolean;
+  assignedTasks: any[] | null;
+  totalTasks: number;
+  completedTasks: number;
+  pendingTasks: number;
+  completionRate: number;
+  lastActivity: string | null;
+  currentStatus: string | null;
+  totalCommits: number;
+  myCommits: number;
+  mostActiveContributor: string | null;
+  recentAnnouncements: any[] | null;
+  hasUnreadMessages: boolean;
+  createdAt: string;
+  updatedAt: string | null;
 }
 
 export interface GroupMember {
@@ -97,12 +119,10 @@ export interface Repository {
   createdAt: Date;
   updatedAt: Date;
   ownerName: string;
-  // Group information
   groupId: string;
   groupName: string;
   projectId?: string;
   projectName?: string;
-  // Access information
   accessLevel: string;
   canPush: boolean;
   canPull: boolean;
@@ -112,14 +132,48 @@ export interface StudentProject {
   id: string;
   name: string;
   description: string;
-  deadline: Date;
-  createdBy: string;
-  createdByName: string;
-  collaborators: Collaborator[];
-  groups: StudentGroup[];
-  tasks: StudentTask[];
-  classes: ProjectClass[];
-  createdAt: Date;
+  deadline: Date | string;
+  daysLeft?: number;
+  teacherName: string;
+  teacherEmail: string | null;
+  teacherId: string;
+  classId: string | null;
+  className: string | null;
+  myGroupId: string | null;
+  myGroupName: string | null;
+  myGroupMembers: any[] | null;
+  myRole: string | null;
+  completionRate: number;
+  myGroupProgress: number;
+  currentPhase: string | null;
+  tasks: any[] | null;
+  totalTasks: number;
+  completedTasks: number;
+  myCompletedTasks: number;
+  repositoryId: string | null;
+  repositoryName: string | null;
+  repositoryUrl: string | null;
+  hasRepository: boolean;
+  totalGroups: number;
+  activeGroups: number;
+  allGroups: any[] | null;
+  recentActivities: any[] | null;
+  lastActivity: string | null;
+  submissionDate: string | null;
+  grade: number | null;
+  feedback: string | null;
+  createdAt: string | Date;
+  updatedAt: string | Date | null;
+  status: string | null;
+  graded: boolean;
+  overdue: boolean;
+  submitted: boolean;
+  // From second interface
+  createdBy?: string;
+  createdByName?: string;
+  collaborators?: Collaborator[];
+  groups?: StudentGroup[];
+  classes?: ProjectClass[];
 }
 
 export interface Collaborator {
@@ -153,26 +207,43 @@ export interface StudentSubmission {
 export interface SubmissionFile {
   id: string;
   fileName: string;
+  originalName?: string;
   fileSize: number;
-  fileType: string;
-  uploadDate: Date;
-  downloadUrl: string;
+  contentType?: string;
+  fileType?: string;
+  fileUrl?: string;
+  downloadUrl?: string;
+  uploadDate?: Date;
+  createdAt?: Date;
 }
 
 export interface StudentSchedule {
+  monday?: ScheduleItem[];
+  tuesday?: ScheduleItem[];
+  wednesday?: ScheduleItem[];
+  thursday?: ScheduleItem[];
+  friday?: ScheduleItem[];
+  saturday?: ScheduleItem[];
+  sunday?: ScheduleItem[];
   weeklySchedule: ScheduleItem[];
   upcomingEvents: ScheduleEvent[];
-  deadlines: TaskDeadline[];
+  deadlines?: TaskDeadline[];
 }
 
 export interface ScheduleItem {
   id: string;
-  day: string;
-  time: string;
-  subject: string;
-  teacher: string;
-  room: string;
-  type: 'COURSE' | 'TD' | 'TP';
+  title: string;
+  startTime?: string;
+  endTime?: string;
+  day?: string;
+  time?: string;
+  subject?: string;
+  type: 'CLASS' | 'LAB' | 'EXAM' | 'MEETING' | 'DEADLINE' | 'COURSE' | 'TD' | 'TP';
+  location?: string;
+  teacher?: string;
+  description?: string;
+  color?: string;
+  room?: string;
 }
 
 export interface ScheduleEvent {
@@ -192,14 +263,17 @@ export class StudentService {
 
   constructor(private readonly http: HttpClient) {}
 
+  // Dashboard methods
   getDashboard(): Observable<StudentDashboard> {
     return this.http.get<StudentDashboard>(`${this.apiUrl}/dashboard`);
   }
 
-  getTasks(): Observable<StudentTask[]> {
-    return this.http.get<TasksResponse>(`${this.apiUrl}/tasks`).pipe(
-      map(response => response.content)
-    );
+  // Task methods
+  getTasks(page: number = 0, size: number = 10): Observable<StudentTask[]> {
+    return this.http.get<TasksResponse>(`${this.apiUrl}/tasks?page=${page}&size=${size}`)
+      .pipe(
+        map(response => response.content || [])
+      );
   }
 
   getTaskDetails(taskId: string): Observable<StudentTask> {
@@ -210,10 +284,25 @@ export class StudentService {
     return this.http.put<void>(`${this.apiUrl}/tasks/${taskId}/status`, { status });
   }
 
-  submitTask(taskId: string, submission: any): Observable<void> {
-    return this.http.post<void>(`${this.apiUrl}/tasks/${taskId}/submit`, submission);
+  submitTask(taskId: string, submissionRequest: any): Observable<any> {
+    const formData = new FormData();
+    formData.append('repositoryId', submissionRequest.repositoryId);
+    formData.append('branch', submissionRequest.branch);
+    if (submissionRequest.commitHash) {
+      formData.append('commitHash', submissionRequest.commitHash);
+    }
+    formData.append('notes', submissionRequest.notes);
+    
+    if (submissionRequest.files && submissionRequest.files.length > 0) {
+      submissionRequest.files.forEach((file: File) => {
+        formData.append('files', file);
+      });
+    }
+    
+    return this.http.post<any>(`${this.apiUrl}/tasks/${taskId}/submit`, formData);
   }
 
+  // Group methods
   getGroups(): Observable<StudentGroup[]> {
     return this.http.get<StudentGroup[]>(`${this.apiUrl}/groups`);
   }
@@ -222,32 +311,69 @@ export class StudentService {
     return this.http.get<StudentGroup>(`${this.apiUrl}/groups/${groupId}`);
   }
 
+  getGroupRepositories(groupId: string): Observable<Repository[]> {
+    return this.http.get<Repository[]>(`${this.apiUrl}/groups/${groupId}/repositories`);
+  }
+
+  // Project methods
   getProjects(): Observable<StudentProject[]> {
-    return this.http.get<StudentProject[]>(`${this.apiUrl}/projects`);
+    return this.http.get<any[]>(`${this.apiUrl}/projects`).pipe(
+      map(projects =>
+        (projects ?? []).map(project => {
+          let tasks = project.tasks;
+          if (typeof tasks === 'string') {
+            try {
+              tasks = JSON.parse(tasks);
+            } catch {
+              tasks = [];
+            }
+          }
+          if (!Array.isArray(tasks)) {
+            tasks = [];
+          }
+          return {
+            ...project,
+            deadline: project.deadline ? new Date(project.deadline) : null,
+            createdAt: project.createdAt ? new Date(project.createdAt) : null,
+            collaborators: project.collaborators ?? [],
+            groups: project.groups ?? [],
+            tasks,
+            classes: project.classes ?? [],
+            createdByName: project.createdByName ?? project.createdBy ?? 'N/A',
+          };
+        })
+      )
+    );
   }
 
   getProjectDetails(projectId: string): Observable<StudentProject> {
     return this.http.get<StudentProject>(`${this.apiUrl}/projects/${projectId}`);
   }
 
-  getSubmissions(): Observable<StudentSubmission[]> {
-    return this.http.get<{ content: StudentSubmission[] }>(`${this.apiUrl}/submissions`).pipe(
-      map(response => response.content || [])
-    );
+  // Submission methods
+  getSubmissions(page: number = 0, size: number = 10): Observable<any> {
+    return this.http.get<any>(`${this.apiUrl}/submissions?page=${page}&size=${size}`);
   }
 
+  // Repository methods
   getRepositories(): Observable<Repository[]> {
-    return this.http.get<any[]>(`${this.apiUrl}/repositories`).pipe(
-      map(response => response || [])
-    );
+    return this.http.get<Repository[]>(`${this.apiUrl}/repositories`);
+  }
+
+  getStudentRepositories(): Observable<Repository[]> {
+    return this.http.get<Repository[]>(`${this.apiUrl}/repositories`);
   }
 
   getRepositoryDetails(repositoryId: string): Observable<any> {
-    return this.http.get<any>(`${this.apiUrl}/repositories/${repositoryId}/details`);
+    return this.http.get<any>(`${this.apiUrl}/repositories/${repositoryId}`);
   }
 
-  getRepositoryGitHubDetails(repositoryId: string): Observable<any> {
+  getGitHubRepositoryDetails(repositoryId: string): Observable<any> {
     return this.http.get<any>(`${this.apiUrl}/repositories/${repositoryId}/github-details`);
+  }
+
+  getRepositoryBranchesById(repositoryId: string): Observable<string[]> {
+    return this.http.get<string[]>(`${this.apiUrl}/repositories/${repositoryId}/branches`);
   }
 
   getAllGitHubRepositories(): Observable<any[]> {
@@ -256,10 +382,12 @@ export class StudentService {
     return this.http.get<any[]>(url);
   }
 
+  // Schedule methods
   getSchedule(): Observable<StudentSchedule> {
     return this.http.get<StudentSchedule>(`${this.apiUrl}/schedule`);
   }
 
+  // Profile methods
   getProfile(): Observable<any> { 
     return this.http.get<any>(`${this.apiUrl}/profile`);
   }
@@ -268,55 +396,34 @@ export class StudentService {
     return this.http.put<any>(`${this.apiUrl}/profile`, profileData);
   }
 
+  // Notification methods
   markNotificationAsRead(notificationId: string): Observable<void> {
     return this.http.put<void>(`${this.apiUrl}/notifications/${notificationId}/read`, {});
   }
 
-  // GitHub Repository File Operations
-  getRepositoryFiles(owner: string, repo: string, path: string = '', branch: string = 'main'): Observable<any[]> {
-    const params = new URLSearchParams();
-    if (path) params.append('path', path);
-    if (branch) params.append('branch', branch);
-    
-    const url = `${this.apiUrl}/github/${owner}/${repo}/files?${params.toString()}`;
-    return this.http.get<any[]>(url);
+  // GitHub Repository Operations
+  getRepositoryOverview(owner: string, repo: string, branch: string): Observable<any> {
+    return this.http.get<any>(`${this.apiUrl}/github/${owner}/${repo}/overview?branch=${branch}`);
   }
 
-  getFileContent(owner: string, repo: string, path: string, branch: string = 'main'): Observable<any> {
-    const params = new URLSearchParams();
-    params.append('path', path);
-    if (branch) params.append('branch', branch);
-    
-    const url = `${this.apiUrl}/github/${owner}/${repo}/file-content?${params.toString()}`;
-    return this.http.get<any>(url);
+  getRepositoryCommits(owner: string, repo: string, branch: string, page: number, size: number): Observable<any> {
+    return this.http.get<any>(`${this.apiUrl}/github/${owner}/${repo}/commits?branch=${branch}&page=${page}&size=${size}`);
   }
 
-  getRepositoryCommits(owner: string, repo: string, branch: string = 'main', page: number = 1, perPage: number = 30): Observable<any[]> {
-    const params = new URLSearchParams();
-    if (branch) params.append('branch', branch);
-    params.append('page', page.toString());
-    params.append('per_page', perPage.toString());
-    
-    const url = `${this.apiUrl}/github/${owner}/${repo}/commits?${params.toString()}`;
-    return this.http.get<any[]>(url);
+  getRepositoryContributors(owner: string, repo: string): Observable<any> {
+    return this.http.get<any>(`${this.apiUrl}/github/${owner}/${repo}/contributors`);
   }
 
-  getRepositoryBranches(owner: string, repo: string): Observable<any[]> {
-    const url = `${this.apiUrl}/github/${owner}/${repo}/branches`;
-    return this.http.get<any[]>(url);
+  getRepositoryBranches(owner: string, repo: string): Observable<any> {
+    return this.http.get<any>(`${this.apiUrl}/github/${owner}/${repo}/branches`);
   }
 
-  getRepositoryContributors(owner: string, repo: string): Observable<any[]> {
-    const url = `${this.apiUrl}/github/${owner}/${repo}/contributors`;
-    return this.http.get<any[]>(url);
+  getRepositoryFiles(owner: string, repo: string, path: string, branch: string): Observable<any> {
+    return this.http.get<any>(`${this.apiUrl}/github/${owner}/${repo}/files?path=${path}&branch=${branch}`);
   }
 
-  getRepositoryOverview(owner: string, repo: string, branch?: string): Observable<any> {
-    let url = `${this.apiUrl}/github/${owner}/${repo}/overview`;
-    if (branch) {
-      url += `?branch=${branch}`;
-    }
-    return this.http.get<any>(url);
+  getFileContent(owner: string, repo: string, path: string, branch: string): Observable<any> {
+    return this.http.get<any>(`${this.apiUrl}/github/${owner}/${repo}/file-content?path=${path}&branch=${branch}`);
   }
 
   getRepositoryFileTree(owner: string, repo: string, branch?: string): Observable<any> {
@@ -358,32 +465,23 @@ export class StudentService {
   }
 
   // File upload methods
-  uploadFile(owner: string, repo: string, file: File, path: string, message: string, branch?: string): Observable<any> {
-    const url = `${this.apiUrl}/github/${owner}/${repo}/upload`;
+  uploadFile(owner: string, repo: string, file: File, filePath: string, commitMessage: string, branch: string): Observable<any> {
     const formData = new FormData();
     formData.append('file', file);
-    formData.append('path', path);
-    formData.append('message', message);
-    if (branch) {
-      formData.append('branch', branch);
-    }
+    formData.append('filePath', filePath);
+    formData.append('commitMessage', commitMessage);
+    formData.append('branch', branch);
     
-    return this.http.post<any>(url, formData);
+    return this.http.post<any>(`${this.apiUrl}/github/${owner}/${repo}/upload-file`, formData);
   }
 
-  uploadMultipleFiles(owner: string, repo: string, files: File[], basePath: string, message: string, branch?: string): Observable<any> {
-    const url = `${this.apiUrl}/github/${owner}/${repo}/upload-multiple`;
+  uploadMultipleFiles(owner: string, repo: string, files: File[], basePath: string, commitMessage: string, branch: string): Observable<any> {
     const formData = new FormData();
-    
-    files.forEach(file => {
-      formData.append('files', file);
-    });
+    files.forEach(file => formData.append('files', file));
     formData.append('basePath', basePath);
-    formData.append('message', message);
-    if (branch) {
-      formData.append('branch', branch);
-    }
+    formData.append('commitMessage', commitMessage);
+    formData.append('branch', branch);
     
-    return this.http.post<any>(url, formData);
+    return this.http.post<any>(`${this.apiUrl}/github/${owner}/${repo}/upload-multiple-files`, formData);
   }
 }

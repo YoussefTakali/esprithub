@@ -51,17 +51,29 @@
 
     <!-- Projects Grid -->
     <div *ngIf="filteredProjects.length > 0" class="projects-grid">
-      <div *ngFor="let project of filteredProjects" class="project-card" [class.overdue]="isOverdue(project.deadline)">
+      <div *ngFor="let project of filteredProjects" class="project-card" [class.overdue]="project.overdue">
         
         <!-- Project Header -->
         <div class="project-header">
-          <h3>{{ project.name }}</h3>
-          <div class="project-status" [class.overdue]="isOverdue(project.deadline)">
+          <div class="header-top">
+            <h3>{{ project.name }}</h3>
+            <div class="project-badges">
+              <span class="status-badge" [class.overdue]="project.overdue" [class.active]="!project.overdue">
+                <i class="fas fa-circle"></i>
+                {{ project.overdue ? 'Overdue' : 'Active' }}
+              </span>
+              <span *ngIf="project.graded" class="graded-badge">
+                <i class="fas fa-check-circle"></i>
+                Graded
+              </span>
+            </div>
+          </div>
+          <div class="project-status" [class.overdue]="project.overdue">
             <i class="fas fa-clock"></i>
-            <ng-container *ngIf="!isOverdue(project.deadline)">
+            <ng-container *ngIf="!project.overdue">
               {{ getDaysUntilDeadline(project.deadline) }} days left
             </ng-container>
-            <ng-container *ngIf="isOverdue(project.deadline)">
+            <ng-container *ngIf="project.overdue">
               Overdue
             </ng-container>
           </div>
@@ -75,38 +87,56 @@
           <div class="project-stats">
             <div class="stat-item">
               <i class="fas fa-users"></i>
-              <span>{{ project.groups.length }} Groups</span>
+              <span>{{ project.totalGroups }} Groups</span>
             </div>
             <div class="stat-item">
               <i class="fas fa-tasks"></i>
-              <span>{{ project.tasks.length }} Tasks</span>
+              <span>{{ project.totalTasks }} Tasks</span>
             </div>
             <div class="stat-item">
-              <i class="fas fa-graduation-cap"></i>
-              <span>{{ project.classes.length }} Classes</span>
+              <i class="fas fa-check-circle"></i>
+              <span>{{ project.completedTasks }} Completed</span>
             </div>
           </div>
 
-          <!-- Collaborators -->
-          <div *ngIf="project.collaborators.length > 0" class="collaborators">
-            <h4>Collaborators:</h4>
-            <div class="collaborator-list">
-              <div *ngFor="let collaborator of project.collaborators" class="collaborator">
-                <i class="fas fa-user"></i>
-                <span>{{ collaborator.firstName }} {{ collaborator.lastName }}</span>
-              </div>
+          <!-- Teacher Info -->
+          <div class="teacher-info">
+            <h4>Teacher:</h4>
+            <div class="teacher-item">
+              <i class="fas fa-user-tie"></i>
+              <span>{{ project.teacherName }}</span>
             </div>
           </div>
 
-          <!-- Groups -->
-          <div *ngIf="project.groups.length > 0" class="project-groups">
-            <h4>My Groups:</h4>
-            <div class="group-list">
-              <div *ngFor="let group of project.groups" class="group-item">
-                <i class="fas fa-users"></i>
-                <span>{{ group.name }}</span>
-                <small>({{ group.members.length }} members)</small>
-              </div>
+          <!-- My Group -->
+          <div *ngIf="project.myGroupName" class="my-group">
+            <h4>My Group:</h4>
+            <div class="group-item">
+              <i class="fas fa-users"></i>
+              <span>{{ project.myGroupName }}</span>
+              <small *ngIf="project.myRole">({{ project.myRole }})</small>
+            </div>
+          </div>
+
+          <!-- Progress Info -->
+          <div class="progress-info">
+            <h4>Progress:</h4>
+            <div class="progress-bar">
+              <div class="progress-fill" [style.width.%]="project.completionRate"></div>
+              <span class="progress-text">{{ project.completionRate }}%</span>
+            </div>
+            <small>{{ project.myCompletedTasks }} of {{ project.totalTasks }} tasks completed</small>
+          </div>
+
+          <!-- Repository Info -->
+          <div *ngIf="project.hasRepository" class="repository-info">
+            <h4>Repository:</h4>
+            <div class="repository-item">
+              <i class="fab fa-github"></i>
+              <span>{{ project.repositoryName }}</span>
+              <a *ngIf="project.repositoryUrl" [href]="project.repositoryUrl" target="_blank" class="repo-link">
+                <i class="fas fa-external-link-alt"></i>
+              </a>
             </div>
           </div>
         </div>
@@ -128,7 +158,109 @@
         <!-- Creator info -->
         <div class="creator-info">
           <i class="fas fa-user-tie"></i>
-          <span>Created by {{ project.createdByName }}</span>
+          <span>Created by {{ project.teacherName }}</span>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Project Details Modal -->
+  <div *ngIf="showDetails && selectedProject" class="modal-overlay" (click)="closeDetails()" (keydown.escape)="closeDetails()">
+    <div class="modal-content" (click)="$event.stopPropagation()" (keydown)="$event.stopPropagation()">
+      <div class="modal-header">
+        <h2>{{ selectedProject.name }}</h2>
+        <button class="close-btn" (click)="closeDetails()">
+          <i class="fas fa-times"></i>
+        </button>
+      </div>
+      
+      <div class="modal-body">
+        <div class="project-details-grid">
+          <!-- Basic Info -->
+          <div class="detail-section">
+            <h3>Project Information</h3>
+            <div class="detail-item">
+              <strong>Description:</strong>
+              <p>{{ selectedProject.description }}</p>
+            </div>
+            <div class="detail-item">
+              <strong>Teacher:</strong>
+              <p>{{ selectedProject.teacherName }}</p>
+            </div>
+            <div class="detail-item">
+              <strong>Deadline:</strong>
+              <p>{{ formatDate(selectedProject.deadline) }}</p>
+            </div>
+            <div class="detail-item">
+              <strong>Status:</strong>
+              <p class="status-text" [class.overdue]="selectedProject.overdue">
+                {{ selectedProject.overdue ? 'Overdue' : 'Active' }}
+              </p>
+            </div>
+          </div>
+
+          <!-- Progress -->
+          <div class="detail-section">
+            <h3>Progress</h3>
+            <div class="detail-progress">
+              <div class="progress-bar-large">
+                <div class="progress-fill" [style.width.%]="selectedProject.completionRate"></div>
+                <span class="progress-text">{{ selectedProject.completionRate }}%</span>
+              </div>
+              <div class="progress-stats">
+                <div class="stat">
+                  <span class="stat-value">{{ selectedProject.myCompletedTasks }}</span>
+                  <span class="stat-label">My Completed Tasks</span>
+                </div>
+                <div class="stat">
+                  <span class="stat-value">{{ selectedProject.totalTasks }}</span>
+                  <span class="stat-label">Total Tasks</span>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <!-- Group Info -->
+          <div *ngIf="selectedProject.myGroupName" class="detail-section">
+            <h3>My Group</h3>
+            <div class="detail-item">
+              <strong>Group Name:</strong>
+              <p>{{ selectedProject.myGroupName }}</p>
+            </div>
+            <div *ngIf="selectedProject.myRole" class="detail-item">
+              <strong>My Role:</strong>
+              <p>{{ selectedProject.myRole }}</p>
+            </div>
+          </div>
+
+          <!-- Repository -->
+          <div *ngIf="selectedProject.hasRepository" class="detail-section">
+            <h3>Repository</h3>
+            <div class="detail-item">
+              <strong>Repository:</strong>
+              <div class="repository-link">
+                <i class="fab fa-github"></i>
+                <span>{{ selectedProject.repositoryName }}</span>
+                <a *ngIf="selectedProject.repositoryUrl" [href]="selectedProject.repositoryUrl" target="_blank" class="external-link">
+                  <i class="fas fa-external-link-alt"></i>
+                  Open Repository
+                </a>
+              </div>
+            </div>
+          </div>
+
+          <!-- Grades -->
+          <div *ngIf="selectedProject.graded" class="detail-section">
+            <h3>Grading</h3>
+            <div class="detail-item">
+              <strong>Grade:</strong>
+              <p>{{ selectedProject.grade || 'Not yet graded' }}</p>
+            </div>
+            <div *ngIf="selectedProject.feedback" class="detail-item">
+              <strong>Feedback:</strong>
+              <p>{{ selectedProject.feedback }}</p>
+            </div>
+          </div>
         </div>
       </div>
     </div>

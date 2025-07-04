@@ -1,4 +1,5 @@
 import { Component, OnInit } from '@angular/core';
+import { Router } from '@angular/router';
 import { StudentService, StudentGroup } from '../../services/student.service';
 
 @Component({
@@ -12,8 +13,13 @@ export class StudentGroupsComponent implements OnInit {
   error: string | null = null;
   searchTerm = '';
   filteredGroups: StudentGroup[] = [];
+  selectedGroup: StudentGroup | null = null;
+  showDetails = false;
 
-  constructor(private readonly studentService: StudentService) {}
+  constructor(
+    private readonly studentService: StudentService,
+    private readonly router: Router
+  ) {}
 
   ngOnInit(): void {
     this.loadGroups();
@@ -54,7 +60,7 @@ export class StudentGroupsComponent implements OnInit {
     this.applyFilters();
   }
 
-  formatDate(date: Date): string {
+  formatDate(date: string): string {
     return new Date(date).toLocaleDateString('en-US', {
       month: 'short',
       day: 'numeric',
@@ -70,14 +76,34 @@ export class StudentGroupsComponent implements OnInit {
     this.studentService.getGroupDetails(groupId).subscribe({
       next: (group) => {
         console.log('Group details:', group);
-        const memberNames = group.members.map(m => `${m.firstName} ${m.lastName}`).join(', ');
-        const repoInfo = group.repository ? `\nRepository: ${group.repository.name}` : '\nNo repository assigned';
-        alert(`Group: ${group.name}\nProject: ${group.projectName}\nClass: ${group.className}\nMembers: ${memberNames}${repoInfo}`);
+        this.selectedGroup = group;
+        this.showDetails = true;
       },
       error: (error) => {
         console.error('Error loading group details:', error);
-        alert('Failed to load group details');
+        this.error = 'Failed to load group details';
       }
     });
+  }
+
+  closeDetails(): void {
+    this.showDetails = false;
+    this.selectedGroup = null;
+  }
+
+  navigateToRepository(repositoryId: string | null): void {
+    if (repositoryId) {
+      this.router.navigate(['/student/repositories', repositoryId]);
+    } else {
+      console.warn('No repository ID provided');
+    }
+  }
+
+  openRepositoryUrl(url: string | null): void {
+    if (url) {
+      window.open(url, '_blank');
+    } else {
+      console.warn('No repository URL provided');
+    }
   }
 }
