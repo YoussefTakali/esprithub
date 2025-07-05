@@ -5,14 +5,16 @@
       <h1>User Management</h1>
       <p>Manage all users, roles, and access in the system.</p>
     </div>
-    <button class="refresh-btn" (click)="loadData()" [disabled]="loading">
-      <i class="fas fa-sync-alt" [class.spinning]="loading"></i>
-      Refresh
-    </button>
-    <button class="create-btn" (click)="onCreateUser()" [disabled]="saving">
-      <i class="fas fa-user-plus"></i>
-      Create User
-    </button>
+    <div class="header-actions">
+      <button class="create-btn" (click)="onCreateUser()" [disabled]="saving">
+        <i class="fas fa-user-plus"></i>
+        Add User
+      </button>
+      <button class="refresh-btn" (click)="loadData()" [disabled]="loading">
+        <i class="fas fa-sync-alt" [class.spinning]="loading"></i>
+        Refresh
+      </button>
+    </div>
   </div>
 
   <!-- Loading State -->

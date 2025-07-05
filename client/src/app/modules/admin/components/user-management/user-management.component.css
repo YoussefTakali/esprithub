@@ -15,6 +15,23 @@
   border-radius: 12px;
   box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
 }
+
+/* Modern theme for User Management header and buttons */
+.create-btn {
+  background: #dc3545;
+  color: #fff;
+  border: none;
+  padding: 12px 24px;
+  border-radius: 8px;
+  font-size: 14px;
+  font-weight: 600;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  box-shadow: 0 2px 8px rgba(220, 53, 69, 0.08);
+  transition: background 0.2s, box-shadow 0.2s;
+}
 .header-content h1 {
   font-size: 2.2rem;
   font-weight: 700;
@@ -106,58 +123,77 @@
 }
 
 /* Form Overlay */
+/* Modernized modal overlay and container */
+/* Modal overlay with neutral background */
 .form-overlay {
   position: fixed;
   top: 0;
   left: 0;
   right: 0;
   bottom: 0;
-  background: rgba(0, 0, 0, 0.5);
+  background: rgba(0, 0, 0, 0.18);
   display: flex;
   align-items: center;
   justify-content: center;
   z-index: 1000;
   padding: 1rem;
+  animation: fadeIn 0.25s cubic-bezier(0.4,0,0.2,1);
+}
+
+@keyframes fadeIn {
+  from { opacity: 0; }
+  to { opacity: 1; }
 }
 
 .form-container {
-  background: white;
-  border-radius: 12px;
-  box-shadow: 0 4px 25px rgba(0, 0, 0, 0.15);
+  background: #fff;
+  border-radius: 16px;
+  box-shadow: 0 8px 32px rgba(220, 53, 69, 0.18), 0 2px 8px rgba(0,0,0,0.08);
   width: 100%;
   max-width: 700px;
   max-height: 90vh;
   overflow-y: auto;
+  animation: modalPop 0.25s cubic-bezier(0.4,0,0.2,1);
 }
 
+@keyframes modalPop {
+  from { transform: scale(0.96) translateY(24px); opacity: 0; }
+  to { transform: scale(1) translateY(0); opacity: 1; }
+}
+
+/* Modernized modal header and close button */
 .form-header {
   display: flex;
   justify-content: space-between;
   align-items: center;
-  padding: 1.5rem;
-  border-bottom: 1px solid #e9ecef;
+  padding: 1.5rem 1.5rem 1rem 1.5rem;
+  border-bottom: 1px solid #f1f3f4;
+  background: #fff;
+  border-top-left-radius: 12px;
+  border-top-right-radius: 12px;
 }
 
 .form-header h2 {
   margin: 0;
-  color: #2c3e50;
-  font-size: 1.5rem;
+  color: #dc3545;
+  font-size: 1.4rem;
+  font-weight: 700;
 }
 
 .close-btn {
   background: none;
   border: none;
   font-size: 1.5rem;
-  color: #6c757d;
+  color: #dc3545;
   cursor: pointer;
-  padding: 0.25rem;
-  border-radius: 4px;
-  transition: all 0.2s ease;
+  padding: 0.25rem 0.5rem;
+  border-radius: 6px;
+  transition: background 0.2s, color 0.2s;
 }
 
 .close-btn:hover {
-  background: #f8f9fa;
-  color: #495057;
+  background: #ffeaea;
+  color: #b71c2b;
 }
 
 .user-form {
@@ -214,35 +250,43 @@
   border-top: 1px solid #e9ecef;
 }
 
+/* Modernized cancel button: subtle gray */
 .cancel-btn {
   padding: 0.75rem 1.5rem;
-  background: #6c757d;
-  color: white;
+  background: #f1f3f4;
+  color: #495057;
   border: none;
-  border-radius: 6px;
+  border-radius: 8px;
+  font-weight: 500;
+  font-size: 1rem;
   cursor: pointer;
-  transition: background 0.2s ease;
+  transition: background 0.2s;
 }
 
 .cancel-btn:hover:not(:disabled) {
-  background: #545b62;
+  background: #e0e0e0;
 }
 
+/* Modernized submit button: red theme */
 .submit-btn {
   display: flex;
   align-items: center;
   gap: 0.5rem;
   padding: 0.75rem 1.5rem;
-  background: #3498db;
+  background: #dc3545;
   color: white;
   border: none;
-  border-radius: 6px;
+  border-radius: 8px;
+  font-weight: 600;
+  font-size: 1rem;
+  box-shadow: 0 2px 8px rgba(220, 53, 69, 0.08);
   cursor: pointer;
-  transition: background 0.2s ease;
+  transition: background 0.2s, box-shadow 0.2s;
 }
 
 .submit-btn:hover:not(:disabled) {
-  background: #2980b9;
+  background: #b71c2b;
+  box-shadow: 0 4px 16px rgba(220, 53, 69, 0.15);
 }
 
 .submit-btn:disabled {
@@ -500,5 +544,10 @@
   
   .action-buttons {
     flex-direction: column;
+    align-items: stretch  ;
   }
 }
+  .header-actions {
+    flex-direction: column;
+    align-items: stretch;
+  }
