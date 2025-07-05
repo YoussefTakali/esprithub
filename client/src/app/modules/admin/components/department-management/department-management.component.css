@@ -1,6 +1,6 @@
 /* Modern Add Button (Create Department) */
 .create-btn {
-  background: #27ae60;
+  background: #dc3545;
   color: #fff;
   border: none;
   padding: 12px 24px;
@@ -299,7 +299,7 @@
 }
 
 .submit-btn:hover:not(:disabled) {
-  background: #2980b9;
+  background: #d31c1c;
 }
 
 .submit-btn:disabled {

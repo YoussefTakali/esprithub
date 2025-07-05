@@ -143,7 +143,7 @@
 }
 
 .course-dialog-submit-btn:hover:not(:disabled) {
-  background: #2980b9;
+  background: #d31c1c;
 }
 
 .course-dialog-submit-btn:disabled {

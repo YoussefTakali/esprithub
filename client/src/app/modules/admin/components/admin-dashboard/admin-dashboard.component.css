@@ -9,6 +9,7 @@
   justify-content: space-between;
   align-items: center;
   margin-bottom: 2rem;
+  
 }
 
 .dashboard-header h1 {
@@ -23,7 +24,7 @@
   align-items: center;
   gap: 0.5rem;
   padding: 0.75rem 1.5rem;
-  background: #3498db;
+  background: #a71617;
   color: white;
   border: none;
   border-radius: 6px;
@@ -33,7 +34,7 @@
 }
 
 .refresh-btn:hover:not(:disabled) {
-  background: #2980b9;
+  background: #d31c1c;
   transform: translateY(-1px);
 }
 
@@ -137,19 +138,19 @@
 }
 
 .stat-card.users .stat-icon {
-  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  background: linear-gradient(135deg, #8b1538 0%, #f84c40 50%, #a71617 100%);
 }
 
 .stat-card.departments .stat-icon {
-  background: linear-gradient(135deg, #f093fb 0%, #f5576c 100%);
+background: linear-gradient(135deg, #8b1538 0%, #e9372a 50%, #dd1010 100%);
 }
 
 .stat-card.levels .stat-icon {
-  background: linear-gradient(135deg, #4facfe 0%, #00f2fe 100%);
+background: linear-gradient(135deg, #8b1538 0%, #c9190d 50%, #a71617 100%);
 }
 
 .stat-card.classes .stat-icon {
-  background: linear-gradient(135deg, #43e97b 0%, #38f9d7 100%);
+background: linear-gradient(135deg, #8b1538 0%, #ee3c2f 50%, #dd1010 100%);
 }
 
 .stat-content h3 {
@@ -218,7 +219,7 @@
 
 .role-count {
   font-weight: 600;
-  color: #3498db;
+  color: #a71617;
 }
 
 .role-bar {

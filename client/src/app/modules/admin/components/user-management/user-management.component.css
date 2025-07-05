@@ -409,7 +409,7 @@
 }
 
 .email-status.verified {
-  color: #27ae60;
+  color: #dc3545;
 }
 
 .email-status.unverified {
@@ -496,7 +496,7 @@
 }
 
 .action-btn.edit:hover:not(:disabled) {
-  background: #2980b9;
+  background: #d31c1c;
 }
 
 .action-btn.delete {
