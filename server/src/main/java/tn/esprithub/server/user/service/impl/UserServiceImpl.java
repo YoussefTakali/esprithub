@@ -53,13 +53,14 @@ public class UserServiceImpl implements UserService {
         
         // Convert to entity and encode password
         User user = userMapper.toUserEntity(createUserDto);
+        String pass = user.getPassword();
         user.setPassword(passwordEncoder.encode(createUserDto.getPassword()));
-        
+             user.setIsEmailVerified(true);
+
         // Handle academic assignments
         handleAcademicAssignments(user, createUserDto.getDepartementId(), createUserDto.getClasseId());
-        
         User savedUser = userRepository.save(user);
-        emailService.sendCredentialsEmail(user.getEmail(), user.getUsername(), user.getPassword());
+        emailService.sendCredentialsEmail(user.getEmail(), user.getUsername(), pass);
 
 
         log.info("Successfully created user with ID: {}", savedUser.getId());

@@ -68,7 +68,7 @@ public class User extends BaseEntity implements UserDetails {
 
     @Column(name = "is_email_verified")
     @Builder.Default
-    private Boolean isEmailVerified = false;
+    private Boolean isEmailVerified = true;
 
     @Column(name = "last_login")
     private LocalDateTime lastLogin;
