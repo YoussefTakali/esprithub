@@ -18,7 +18,7 @@
 
 /* Modern theme for User Management header and buttons */
 .create-btn {
-  background: #dc3545;
+  background: #a71617;
   color: #fff;
   border: none;
   padding: 12px 24px;
@@ -36,7 +36,7 @@
   font-size: 2.2rem;
   font-weight: 700;
   margin-bottom: 8px;
-  color: #dc3545;
+  color: #a71617;
 }
 .header-content p {
   font-size: 1.1rem;
@@ -44,7 +44,7 @@
   margin: 0;
 }
 .refresh-btn {
-  background: #dc3545;
+  background: #a71617;
   color: white;
   border: none;
   padding: 12px 24px;
@@ -72,7 +72,7 @@
   width: 40px;
   height: 40px;
   border: 3px solid #f3f3f3;
-  border-top: 3px solid #dc3545;
+  border-top: 3px solid #a71617;
   border-radius: 50%;
   animation: spin 1s linear infinite;
   margin-bottom: 1rem;
@@ -175,7 +175,7 @@
 
 .form-header h2 {
   margin: 0;
-  color: #dc3545;
+  color: #a71617;
   font-size: 1.4rem;
   font-weight: 700;
 }
@@ -184,7 +184,7 @@
   background: none;
   border: none;
   font-size: 1.5rem;
-  color: #dc3545;
+  color: #a71617;
   cursor: pointer;
   padding: 0.25rem 0.5rem;
   border-radius: 6px;
@@ -273,7 +273,7 @@
   align-items: center;
   gap: 0.5rem;
   padding: 0.75rem 1.5rem;
-  background: #dc3545;
+  background: #a71617;
   color: white;
   border: none;
   border-radius: 8px;
@@ -409,7 +409,7 @@
 }
 
 .email-status.verified {
-  color: #dc3545;
+  color: #a71617;
 }
 
 .email-status.unverified {
@@ -548,6 +548,7 @@
   }
 }
   .header-actions {
-    flex-direction: column;
-    align-items: stretch;
+  display: flex;
+  gap: 1rem;
+  align-items: center;
   }

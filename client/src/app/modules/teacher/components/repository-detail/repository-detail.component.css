@@ -340,7 +340,7 @@
 }
 
 .delete-btn {
-  background: #dc3545;
+  background: #a71617;
   color: white;
   border: none;
   padding: 4px 8px;
@@ -574,7 +574,7 @@
 
 /* Delete Repository */
 .delete-rep h2 {
-  color: #dc3545;
+  color: #a71617;
   margin-bottom: 1rem;
 }
 
@@ -583,7 +583,7 @@
   color: #721c24;
   padding: 1rem;
   border-radius: 4px;
-  border-left: 4px solid #dc3545;
+  border-left: 4px solid #a71617;
   margin-bottom: 1.5rem;
 }
 
@@ -604,12 +604,12 @@
 
 .delete-form input:focus {
   outline: none;
-  border-color: #dc3545;
+  border-color: #a71617;
   box-shadow: 0 0 0 3px rgba(220, 53, 69, 0.1);
 }
 
 .danger {
-  background: #dc3545;
+  background: #a71617;
   color: white;
   border: none;
   padding: 0.75rem 1.5rem;
@@ -648,7 +648,7 @@
   color: #721c24;
   padding: 0.75rem;
   border-radius: 4px;
-  border-left: 4px solid #dc3545;
+  border-left: 4px solid #a71617;
   margin: 1rem 0;
   display: flex;
   align-items: center;
@@ -928,7 +928,7 @@
 }
 
 .error-msg .fas {
-  color: #dc3545;
+  color: #a71617;
   margin-right: 8px;
 }
 

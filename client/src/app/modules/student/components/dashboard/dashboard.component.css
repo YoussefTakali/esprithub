@@ -21,7 +21,7 @@
   font-size: 2.2rem;
   font-weight: 700;
   margin-bottom: 8px;
-  color: #dc3545;
+  color: #a71617;
 }
 
 .header-content p {
@@ -31,7 +31,7 @@
 }
 
 .refresh-btn {
-  background: #dc3545;
+  background: #a71617;
   color: white;
   border: none;
   padding: 12px 24px;
@@ -74,7 +74,7 @@
 
 .loading-spinner {
   text-align: center;
-  color: #dc3545;
+  color: #a71617;
 }
 
 .loading-spinner i {
@@ -98,11 +98,11 @@
 .error-message i {
   font-size: 3rem;
   margin-bottom: 16px;
-  color: #dc3545;
+  color: #a71617;
 }
 
 .retry-btn {
-  background: #dc3545;
+  background: #a71617;
   color: white;
   border: none;
   padding: 12px 24px;
@@ -152,7 +152,7 @@
 }
 
 .tasks-stat .stat-icon {
-  background: linear-gradient(135deg, #dc3545, #e74c3c);
+  background: linear-gradient(135deg, #a71617, #e74c3c);
 }
 
 .projects-stat .stat-icon {
@@ -171,7 +171,7 @@
   font-size: 2rem;
   font-weight: 700;
   margin: 0 0 4px 0;
-  color: #dc3545;
+  color: #a71617;
 }
 
 .stat-content p {
@@ -202,7 +202,7 @@
 }
 
 .card-header {
-  background: linear-gradient(135deg, #dc3545, #e74c3c);
+  background: linear-gradient(135deg, #a71617, #e74c3c);
   color: white;
   padding: 20px 24px;
   border-bottom: 1px solid #dee2e6;
@@ -267,7 +267,7 @@
 
 .deadline-type {
   margin: 0 0 8px 0;
-  color: #dc3545;
+  color: #a71617;
   font-size: 0.9rem;
   font-weight: 500;
 }
@@ -384,7 +384,7 @@
 .unread-indicator {
   width: 8px;
   height: 8px;
-  background: #dc3545;
+  background: #a71617;
   border-radius: 50%;
 }
 
@@ -411,7 +411,7 @@
 
 .progress-value {
   font-weight: 600;
-  color: #dc3545;
+  color: #a71617;
 }
 
 .progress-bar {
@@ -423,7 +423,7 @@
 
 .progress-fill {
   height: 100%;
-  background: linear-gradient(90deg, #dc3545, #e74c3c);
+  background: linear-gradient(90deg, #a71617, #e74c3c);
   border-radius: 4px;
   transition: width 0.3s ease;
 }
@@ -437,8 +437,8 @@
 
 .action-btn {
   background: white;
-  border: 2px solid #dc3545;
-  color: #dc3545;
+  border: 2px solid #a71617;
+  color: #a71617;
   padding: 16px;
   border-radius: 8px;
   text-decoration: none;
@@ -451,7 +451,7 @@
 }
 
 .action-btn:hover {
-  background: #dc3545;
+  background: #a71617;
   color: white;
   transform: translateY(-2px);
   box-shadow: 0 4px 16px rgba(220, 53, 69, 0.3);

@@ -575,7 +575,7 @@ StudentProject ..> StudentProjectDto : "maps to"
 SecurityConfig ..> StudentController : "protects"
 StudentSecurityRules ..> StudentController : "applies to"
 
-note top of StudentModule : "Angular Lazy-Loaded Module\nRed Theme (#dc3545)\nMaterial Design Components"
+note top of StudentModule : "Angular Lazy-Loaded Module\nRed Theme (#a71617)\nMaterial Design Components"
 
 note top of StudentController : "REST API Endpoints\n@RequestMapping('/api/student')\n@PreAuthorize('hasRole('STUDENT')')"
 

@@ -20,7 +20,7 @@
 }
 
 .error-card {
-  border-left: 4px solid #dc3545;
+  border-left: 4px solid #a71617;
 }
 
 /* Loading Content */
@@ -77,11 +77,11 @@
 
 .error-icon {
   font-size: 3rem;
-  color: #dc3545;
+  color: #a71617;
 }
 
 .error-content h2 {
-  color: #dc3545;
+  color: #a71617;
   font-size: 1.6rem;
   font-weight: 600;
   margin: 0;

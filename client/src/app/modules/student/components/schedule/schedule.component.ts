@@ -55,7 +55,7 @@ export class StudentScheduleComponent implements OnInit {
 
   getTypeColor(type: string): string {
     switch (type) {
-      case 'task': return '#dc3545';
+      case 'task': return '#a71617';
       case 'project': return '#28a745';
       case 'deadline': return '#ffc107';
       case 'event': return '#17a2b8';

@@ -52,7 +52,7 @@
 .search-icon { position: absolute!important; left: 20rem!important; color: #6c757d; font-size: 16px; }
 .search-input { padding: 12px 12px 12px 35px; border: 1px solid #ced4da; border-radius: 6px; font-size: 16px; width: 300px!important; }
 .search-input:focus { outline: none; border-color: #007bff; box-shadow: 0 0 0 2px rgba(0, 123, 255, 0.25); }
-.add-task-btn { background-color: #dc3545; color: white; border: none; padding: 12px 22px; border-radius: 6px; font-size: 16px; font-weight: 500; cursor: pointer; display: flex; align-items: center; gap: 8px; transition: background-color 0.2s ease; }
+.add-task-btn { background-color: #a71617; color: white; border: none; padding: 12px 22px; border-radius: 6px; font-size: 16px; font-weight: 500; cursor: pointer; display: flex; align-items: center; gap: 8px; transition: background-color 0.2s ease; }
 .add-task-btn:hover { background-color: #c82333; }
 .task-grid {
   display: grid;
@@ -134,8 +134,8 @@
 }
 .task-status-dropdown.status-closed {
   background: #f8d7da;
-  color: #dc3545;
-  border-color: #dc3545;
+  color: #a71617;
+  border-color: #a71617;
 }
 .status-dropdown {
   position: absolute;
@@ -200,7 +200,7 @@
 .task-actions { display: flex; gap: 10px; }
 .action-btn { padding: 8px 14px; border: 1px solid #ced4da; border-radius: 4px; background-color: white; font-size: 14px; cursor: pointer; display: flex; align-items: center; gap: 5px; transition: all 0.2s ease; }
 .edit-btn:hover { background-color: #007bff; color: white; border-color: #007bff; }
-.delete-btn:hover { background-color: #dc3545; color: white; border-color: #dc3545; }
+.delete-btn:hover { background-color: #a71617; color: white; border-color: #a71617; }
 @media (max-width: 1024px) { .task-grid { grid-template-columns: repeat(2, 1fr); } }
 @media (max-width: 768px) { .task-management-container { flex-direction: column; } .sidebar { width: 100%; max-height: 300px; } }
 /* --- End copied styles --- */
@@ -444,7 +444,7 @@
   padding: 12px;
   background-color: #f8f9fa;
   border-radius: 4px;
-  border-left: 4px solid #dc3545;
+  border-left: 4px solid #a71617;
 }
 
 .repository-deletion-option label {
@@ -454,14 +454,14 @@
   cursor: pointer;
   margin: 0;
   font-weight: 500;
-  color: #dc3545;
+  color: #a71617;
 }
 
 .repository-deletion-option input[type="checkbox"] {
   margin: 0;
   width: 16px;
   height: 16px;
-  accent-color: #dc3545;
+  accent-color: #a71617;
 }
 
 .repository-deletion-info {

@@ -21,7 +21,7 @@
   font-size: 2.2rem;
   font-weight: 700;
   margin-bottom: 8px;
-  color: #dc3545;
+  color: #a71617;
 }
 
 .header-content p {
@@ -31,7 +31,7 @@
 }
 
 .refresh-btn {
-  background: #dc3545;
+  background: #a71617;
   color: white;
   border: none;
   padding: 12px 24px;
@@ -97,7 +97,7 @@
 
 .search-box input:focus {
   outline: none;
-  border-color: #dc3545;
+  border-color: #a71617;
 }
 
 /* Loading & Error States */
@@ -110,7 +110,7 @@
 
 .loading-spinner {
   text-align: center;
-  color: #dc3545;
+  color: #a71617;
 }
 
 .loading-spinner i {
@@ -134,11 +134,11 @@
 .error-message i {
   font-size: 3rem;
   margin-bottom: 16px;
-  color: #dc3545;
+  color: #a71617;
 }
 
 .retry-btn {
-  background: #dc3545;
+  background: #a71617;
   color: white;
   border: none;
   padding: 12px 24px;
@@ -165,7 +165,7 @@
 .empty-state i {
   font-size: 4rem;
   margin-bottom: 24px;
-  color: #dc3545;
+  color: #a71617;
 }
 
 .empty-state h3 {
@@ -196,12 +196,12 @@
 }
 
 .project-card.overdue {
-  border-left: 4px solid #dc3545;
+  border-left: 4px solid #a71617;
 }
 
 /* Project Header */
 .project-header {
-  background: linear-gradient(135deg, #dc3545, #e74c3c);
+  background: linear-gradient(135deg, #a71617, #e74c3c);
   color: white;
   padding: 24px;
   margin-bottom: 16px;
@@ -317,7 +317,7 @@
 }
 
 .stat-item i {
-  color: #dc3545;
+  color: #a71617;
 }
 
 /* Collaborators */
@@ -350,7 +350,7 @@
 }
 
 .collaborator i {
-  color: #dc3545;
+  color: #a71617;
 }
 
 /* Project Groups */
@@ -382,7 +382,7 @@
 }
 
 .group-item i {
-  color: #dc3545;
+  color: #a71617;
 }
 
 .group-item small {
@@ -408,7 +408,7 @@
 }
 
 .deadline-info i {
-  color: #dc3545;
+  color: #a71617;
 }
 
 .project-actions {
@@ -431,7 +431,7 @@
 }
 
 .view-btn {
-  background: #dc3545;
+  background: #a71617;
   color: white;
 }
 
@@ -455,7 +455,7 @@
 }
 
 .creator-info i {
-  color: #dc3545;
+  color: #a71617;
 }
 
 /* Progress Bar Styles */
@@ -481,7 +481,7 @@
 
 .progress-fill {
   height: 100%;
-  background: linear-gradient(90deg, #dc3545, #e74c3c);
+  background: linear-gradient(90deg, #a71617, #e74c3c);
   transition: width 0.3s ease;
   border-radius: 10px;
 }
@@ -521,7 +521,7 @@
   padding: 8px 12px;
   background: #f8f9fa;
   border-radius: 6px;
-  border-left: 3px solid #dc3545;
+  border-left: 3px solid #a71617;
 }
 
 .repository-item i.fab {
@@ -537,7 +537,7 @@
 }
 
 .repo-link {
-  color: #dc3545;
+  color: #a71617;
   text-decoration: none;
   padding: 4px;
   border-radius: 3px;
@@ -545,7 +545,7 @@
 }
 
 .repo-link:hover {
-  background: #dc3545;
+  background: #a71617;
   color: white;
 }
 
@@ -592,7 +592,7 @@
   align-items: center;
   padding: 24px;
   border-bottom: 1px solid #e9ecef;
-  background: linear-gradient(135deg, #dc3545, #e74c3c);
+  background: linear-gradient(135deg, #a71617, #e74c3c);
   color: white;
   border-radius: 12px 12px 0 0;
 }
@@ -632,14 +632,14 @@
   background: #f8f9fa;
   padding: 20px;
   border-radius: 8px;
-  border-left: 4px solid #dc3545;
+  border-left: 4px solid #a71617;
 }
 
 .detail-section h3 {
   margin: 0 0 16px 0;
   font-size: 1.2rem;
   font-weight: 600;
-  color: #dc3545;
+  color: #a71617;
 }
 
 .detail-item {
@@ -694,7 +694,7 @@
 
 .progress-bar-large .progress-fill {
   height: 100%;
-  background: linear-gradient(90deg, #dc3545, #e74c3c);
+  background: linear-gradient(90deg, #a71617, #e74c3c);
   transition: width 0.3s ease;
   border-radius: 15px;
 }
@@ -724,7 +724,7 @@
 .stat-value {
   font-size: 2rem;
   font-weight: 700;
-  color: #dc3545;
+  color: #a71617;
   margin-bottom: 4px;
 }
 
@@ -762,7 +762,7 @@
   display: flex;
   align-items: center;
   gap: 6px;
-  color: #dc3545;
+  color: #a71617;
   text-decoration: none;
   font-size: 12px;
   font-weight: 600;
@@ -774,7 +774,7 @@
 }
 
 .external-link:hover {
-  background: #dc3545;
+  background: #a71617;
   color: white;
 }
 

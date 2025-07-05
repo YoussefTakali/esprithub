@@ -108,7 +108,7 @@ export class StudentTasksComponent implements OnInit {
 
   getPriorityColor(priority: 'high' | 'medium' | 'low'): string {
     switch (priority) {
-      case 'high': return '#dc3545';
+      case 'high': return '#a71617';
       case 'medium': return '#fd7e14';
       case 'low': return '#28a745';
       default: return '#6c757d';

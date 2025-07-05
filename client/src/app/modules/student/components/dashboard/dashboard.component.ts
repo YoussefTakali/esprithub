@@ -52,7 +52,7 @@ export class StudentDashboardComponent implements OnInit {
 
   getPriorityColor(priority: 'high' | 'medium' | 'low'): string {
     switch (priority) {
-      case 'high': return '#dc3545';
+      case 'high': return '#a71617';
       case 'medium': return '#fd7e14';
       case 'low': return '#28a745';
       default: return '#6c757d';
@@ -74,7 +74,7 @@ export class StudentDashboardComponent implements OnInit {
       case 'info': return '#17a2b8';
       case 'warning': return '#ffc107';
       case 'success': return '#28a745';
-      case 'error': return '#dc3545';
+      case 'error': return '#a71617';
       default: return '#6c757d';
     }
   }

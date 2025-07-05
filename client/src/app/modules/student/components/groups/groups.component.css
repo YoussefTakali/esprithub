@@ -20,7 +20,7 @@
   font-size: 2.2rem;
   font-weight: 700;
   margin-bottom: 8px;
-  color: #dc3545;
+  color: #a71617;
 }
 
 .header-content p {
@@ -30,7 +30,7 @@
 }
 
 .refresh-btn {
-  background: #dc3545;
+  background: #a71617;
   color: white;
   border: none;
   padding: 12px 24px;
@@ -89,7 +89,7 @@
 
 .search-box input:focus {
   outline: none;
-  border-color: #dc3545;
+  border-color: #a71617;
 }
 
 .loading-container, .error-container {
@@ -101,7 +101,7 @@
 
 .loading-spinner {
   text-align: center;
-  color: #dc3545;
+  color: #a71617;
 }
 
 .loading-spinner i {
@@ -119,7 +119,7 @@
 }
 
 .retry-btn {
-  background: #dc3545;
+  background: #a71617;
   color: white;
   border: none;
   padding: 12px 24px;
@@ -140,7 +140,7 @@
 .empty-state i {
   font-size: 4rem;
   margin-bottom: 24px;
-  color: #dc3545;
+  color: #a71617;
 }
 
 .groups-grid {
@@ -162,7 +162,7 @@
 }
 
 .group-header {
-  background: linear-gradient(135deg, #dc3545, #e74c3c);
+  background: linear-gradient(135deg, #a71617, #e74c3c);
   color: white;
   padding: 20px;
 }
@@ -199,7 +199,7 @@
 }
 
 .members-section h4 i, .repository-section h4 i {
-  color: #dc3545;
+  color: #a71617;
 }
 
 .members-list {
@@ -219,7 +219,7 @@
 }
 
 .member-item i {
-  color: #dc3545;
+  color: #a71617;
 }
 
 .repo-link {
@@ -230,7 +230,7 @@
   border: 1px solid #e9ecef;
   border-radius: 6px;
   padding: 8px 12px;
-  color: #dc3545;
+  color: #a71617;
   text-decoration: none;
   font-weight: 500;
   transition: all 0.2s ease;
@@ -238,9 +238,9 @@
 }
 
 .repo-link:hover {
-  background: #dc3545;
+  background: #a71617;
   color: white;
-  border-color: #dc3545;
+  border-color: #a71617;
 }
 
 .repo-link:disabled {
@@ -274,7 +274,7 @@
 }
 
 .created-date i {
-  color: #dc3545;
+  color: #a71617;
 }
 
 .action-btn {
@@ -288,7 +288,7 @@
   align-items: center;
   gap: 6px;
   text-decoration: none;
-  background: #dc3545;
+  background: #a71617;
   color: white;
 }
 
@@ -317,7 +317,7 @@
 }
 
 .stat-item i {
-  color: #dc3545;
+  color: #a71617;
   font-size: 12px;
 }
 
@@ -343,7 +343,7 @@
 
 .progress-fill {
   height: 100%;
-  background: linear-gradient(90deg, #dc3545, #e74c3c);
+  background: linear-gradient(90deg, #a71617, #e74c3c);
   transition: width 0.3s ease;
   border-radius: 10px;
 }
@@ -374,7 +374,7 @@
 .role-badge {
   display: inline-block;
   padding: 4px 12px;
-  background: #dc3545;
+  background: #a71617;
   color: white;
   border-radius: 12px;
   font-size: 11px;
@@ -425,7 +425,7 @@
   justify-content: space-between;
   align-items: flex-start;
   padding: 24px;
-  background: linear-gradient(135deg, #dc3545, #e74c3c);
+  background: linear-gradient(135deg, #a71617, #e74c3c);
   color: white;
   border-radius: 16px 16px 0 0;
 }
@@ -477,14 +477,14 @@
   background: #f8f9fa;
   border-radius: 12px;
   padding: 20px;
-  border-left: 4px solid #dc3545;
+  border-left: 4px solid #a71617;
 }
 
 .detail-section h3 {
   margin: 0 0 16px 0;
   font-size: 1.2rem;
   font-weight: 600;
-  color: #dc3545;
+  color: #a71617;
   display: flex;
   align-items: center;
   gap: 8px;
@@ -529,7 +529,7 @@
 
 .progress-bar-large .progress-fill {
   height: 100%;
-  background: linear-gradient(90deg, #dc3545, #e74c3c);
+  background: linear-gradient(90deg, #a71617, #e74c3c);
   transition: width 0.3s ease;
   border-radius: 12px;
 }
@@ -563,7 +563,7 @@
 .stat-value {
   font-size: 2rem;
   font-weight: 700;
-  color: #dc3545;
+  color: #a71617;
   margin-bottom: 4px;
 }
 
@@ -621,7 +621,7 @@
 }
 
 .repo-stat i {
-  color: #dc3545;
+  color: #a71617;
   font-size: 16px;
 }
 
@@ -646,7 +646,7 @@
 }
 
 .btn-primary {
-  background: #dc3545;
+  background: #a71617;
   color: white;
 }
 
@@ -672,7 +672,7 @@
 .no-repo-message i {
   font-size: 48px;
   margin-bottom: 16px;
-  color: #dc3545;
+  color: #a71617;
   opacity: 0.5;
 }
 
@@ -732,7 +732,7 @@
 }
 
 .message-indicator.unread {
-  color: #dc3545;
+  color: #a71617;
   font-weight: 600;
 }
 

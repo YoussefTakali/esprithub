@@ -16,7 +16,7 @@
   align-items: center;
   padding: 24px;
   border-bottom: 1px solid #e9ecef;
-  background: linear-gradient(135deg, #dc3545, #e74c3c);
+  background: linear-gradient(135deg, #a71617, #e74c3c);
   color: white;
   border-radius: 12px 12px 0 0;
 }
@@ -154,7 +154,7 @@
 }
 
 .detail-label i {
-  color: #dc3545;
+  color: #a71617;
   width: 14px;
 }
 
@@ -219,7 +219,7 @@
 
 .copy-btn {
   padding: 8px;
-  background: #dc3545;
+  background: #a71617;
   color: white;
   border: none;
   cursor: pointer;
@@ -258,7 +258,7 @@
 }
 
 .permission-item i {
-  color: #dc3545;
+  color: #a71617;
 }
 
 .permission-item.allowed i {
@@ -305,7 +305,7 @@
 }
 
 .action-btn.primary {
-  background: #dc3545;
+  background: #a71617;
   color: white;
 }
 

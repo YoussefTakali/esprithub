@@ -20,7 +20,7 @@
   font-size: 2.2rem;
   font-weight: 700;
   margin-bottom: 8px;
-  color: #dc3545;
+  color: #a71617;
 }
 
 .header-content p {
@@ -30,7 +30,7 @@
 }
 
 .refresh-btn {
-  background: #dc3545;
+  background: #a71617;
   color: white;
   border: none;
   padding: 12px 24px;
@@ -66,7 +66,7 @@
 
 .loading-spinner {
   text-align: center;
-  color: #dc3545;
+  color: #a71617;
 }
 
 .loading-spinner i {
@@ -84,7 +84,7 @@
 }
 
 .retry-btn {
-  background: #dc3545;
+  background: #a71617;
   color: white;
   border: none;
   padding: 12px 24px;
@@ -105,7 +105,7 @@
 .empty-state i {
   font-size: 4rem;
   margin-bottom: 24px;
-  color: #dc3545;
+  color: #a71617;
 }
 
 .repositories-grid {
@@ -127,7 +127,7 @@
 }
 
 .repository-header {
-  background: linear-gradient(135deg, #dc3545, #e74c3c);
+  background: linear-gradient(135deg, #a71617, #e74c3c);
   color: white;
   padding: 20px;
   display: flex;
@@ -189,7 +189,7 @@
 }
 
 .meta-item i {
-  color: #dc3545;
+  color: #a71617;
   width: 16px;
 }
 
@@ -245,7 +245,7 @@
 }
 
 .view-btn {
-  background: #dc3545;
+  background: #a71617;
   color: white;
 }
 

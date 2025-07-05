@@ -51,7 +51,7 @@
 
 .folder-icon {
   color: #ffffff;
-  background-color: #dc3545;
+  background-color: #a71617;
   padding: 4px;
   border-radius: 3px;
   font-size: 14px;
@@ -70,8 +70,9 @@
 }
 
 .header-actions {
-  display: flex;
-  gap: 8px;
+display: flex;
+  gap: 1rem;
+  align-items: center;
 }
 
 .btn-add-file, .btn-code {
@@ -90,9 +91,9 @@
 }
 
 .btn-add-file {
-  background-color: #dc3545;
+  background-color: #a71617;
   color: white;
-  border-color: #dc3545;
+  border-color: #a71617;
   margin-right: 8px;
 }
 
@@ -102,9 +103,9 @@
 }
 
 .btn-code {
-  background-color: #dc3545;
+  background-color: #a71617;
   color: white;
-  border-color: #dc3545;
+  border-color: #a71617;
 }
 
 .btn-code:hover {
@@ -148,7 +149,7 @@
 .nav-tab.active {
   color: #24292f;
   background: transparent;
-  border-bottom: 2px solid #dc3545;
+  border-bottom: 2px solid #a71617;
   font-weight: 600;
 }
 
@@ -196,7 +197,7 @@
 .refresh-btn {
   margin-left: auto;
   padding: 8px 16px;
-  background-color: #dc3545;
+  background-color: #a71617;
   border: none;
   border-radius: 6px;
   color: #ffffff;
@@ -223,7 +224,7 @@
 
 .stat-card {
   background-color: #ffffff;
-  border: 2px solid #dc3545;
+  border: 2px solid #a71617;
   border-radius: 8px;
   padding: 20px;
   text-align: center;
@@ -238,7 +239,7 @@
   font-size: 36px;
   font-weight: 700;
   color: #ffffff;
-  background-color: #dc3545;
+  background-color: #a71617;
   width: 60px;
   height: 60px;
   line-height: 60px;
@@ -303,8 +304,8 @@
 }
 
 .period-btn.active {
-  background-color: #dc3545;
-  border-color: #dc3545;
+  background-color: #a71617;
+  border-color: #a71617;
   color: #ffffff;
 }
 
@@ -336,7 +337,7 @@
 }
 
 .activity-stat .stat-value.deleted {
-  color: #dc3545;
+  color: #a71617;
 }
 
 /* Daily Activity Chart */
@@ -371,7 +372,7 @@
   left: 0;
   right: 0;
   height: 2px;
-  background-color: #dc3545;
+  background-color: #a71617;
 }
 
 .activity-point {
@@ -695,7 +696,7 @@
 
 .loading-spinner i {
   font-size: 48px;
-  color: #dc3545;
+  color: #a71617;
   animation: spin 1s linear infinite;
 }
 
@@ -714,7 +715,7 @@
 
 .error-icon i {
   font-size: 48px;
-  color: #dc3545;
+  color: #a71617;
   margin-bottom: 16px;
 }
 
@@ -731,7 +732,7 @@
 }
 
 .btn-retry {
-  background: linear-gradient(135deg, #dc3545 0%, #c82333 100%);
+  background: linear-gradient(135deg, #a71617 0%, #c82333 100%);
   color: white;
   border: none;
   padding: 12px 24px;
@@ -1306,8 +1307,8 @@ img.commit-avatar{
   align-items: center;
   gap: 8px;
   padding: 8px 16px;
-  background-color: #dc3545;
-  border: 1px solid #dc3545;
+  background-color: #a71617;
+  border: 1px solid #a71617;
   border-radius: 6px;
   color: white;
   font-size: 14px;
@@ -1364,12 +1365,12 @@ img.commit-avatar{
 }
 
 .btn-edit {
-  border-color: #dc3545;
-  color: #dc3545;
+  border-color: #a71617;
+  color: #a71617;
 }
 
 .btn-edit:hover {
-  background-color: #dc3545;
+  background-color: #a71617;
   color: white;
 }
 
@@ -1394,12 +1395,12 @@ img.commit-avatar{
 }
 
 .btn-delete {
-  border-color: #dc3545;
-  color: #dc3545;
+  border-color: #a71617;
+  color: #a71617;
 }
 
 .btn-delete:hover {
-  background-color: #dc3545;
+  background-color: #a71617;
   color: white;
 }
 
@@ -1456,7 +1457,7 @@ img.commit-avatar{
 }
 
 .commit-stats .stat.deletions {
-  color: #dc3545;
+  color: #a71617;
   font-weight: 600;
 }
 
@@ -1502,7 +1503,7 @@ img.commit-avatar{
 }
 
 .file-status.deleted {
-  background-color: #dc3545;
+  background-color: #a71617;
   color: white;
 }
 
@@ -1571,7 +1572,7 @@ img.commit-avatar{
 
 .diff-content .diff-line.deletion::before {
   content: "-";
-  color: #dc3545;
+  color: #a71617;
   font-weight: bold;
   margin-right: 8px;
 }

@@ -18,7 +18,7 @@
   margin: 0;
 }
 .add-repo-btn {
-  background-color: #dc3545 !important;
+  background-color: #a71617 !important;
   color: #fff !important;
   border-radius: 6px;
   font-weight: 500;
@@ -51,7 +51,7 @@
   display: flex;
   flex-direction: column;
   transition: box-shadow 0.2s;
-  border: 1.5px solid #dc3545;
+  border: 1.5px solid #a71617;
 }
 .repo-card:hover {
   box-shadow: 0 4px 24px rgba(220,53,69,0.18);
@@ -66,14 +66,14 @@
 .repo-name {
   font-size: 1.3rem;
   font-weight: 600;
-  color: #dc3545;
+  color: #a71617;
 }
 .repo-visibility {
   display: flex;
   align-items: center;
   font-size: 0.95rem;
   color: #fff;
-  background: #dc3545;
+  background: #a71617;
   border-radius: 4px;
   padding: 2px 10px 2px 6px;
   font-weight: 500;
@@ -116,7 +116,7 @@
   align-items: center;
   justify-content: center;
   margin-top: 60px;
-  color: #dc3545;
+  color: #a71617;
 }
 .empty-state mat-icon {
   font-size: 60px;
