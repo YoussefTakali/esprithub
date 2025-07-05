@@ -119,4 +119,34 @@ export class CourseManagementComponent implements OnInit {
       this.loading = false;
     }
   }
+
+  reload(): void {
+    this.loadDepartments();
+  }
+
+  openEditDialog(course: Course): void {
+    // TODO: Implement edit dialog
+    if (this.snackbarService) {
+      this.snackbarService.showSuccess('Edit dialog not implemented yet.');
+    }
+  }
+
+  deleteCourse(course: Course): void {
+    // TODO: Implement delete logic
+    if (this.snackbarService) {
+      this.snackbarService.showSuccess('Delete not implemented yet.');
+    }
+  }
+
+  getNiveauName(niveauId: string): string {
+    if (!this.niveaux) return '';
+    const niveau = this.niveaux.find((n: any) => n.id === niveauId);
+    return niveau ? niveau.nom : '';
+  }
+
+  getDepartmentName(): string {
+    if (!this.departments) return '';
+    const dept = this.departments.find((d: any) => d.id === this.selectedDepartmentId);
+    return dept ? dept.nom : '';
+  }
 }

@@ -1,70 +1,77 @@
-.user-management {
-  padding: 1.5rem;
-  max-width: 1400px;
-  margin: 0 auto;
-}
 
-.header {
+/* Copied from student dashboard for admin UI consistency */
+.student-dashboard {
+  padding: 32px;
+  background-color: #f8f9fa;
+  min-height: 100vh;
+}
+.dashboard-header {
   display: flex;
   justify-content: space-between;
   align-items: center;
-  margin-bottom: 2rem;
+  margin-bottom: 32px;
+  background: white;
+  padding: 24px;
+  border-radius: 12px;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
 }
-
-.header h1 {
-  color: #2c3e50;
+.header-content h1 {
+  font-size: 2.2rem;
+  font-weight: 700;
+  margin-bottom: 8px;
+  color: #dc3545;
+}
+.header-content p {
+  font-size: 1.1rem;
+  color: #555;
   margin: 0;
-  font-size: 2rem;
-  font-weight: 600;
 }
-
-.create-btn {
-  display: flex;
-  align-items: center;
-  gap: 0.5rem;
-  padding: 0.75rem 1.5rem;
-  background: #27ae60;
+.refresh-btn {
+  background: #dc3545;
   color: white;
   border: none;
-  border-radius: 6px;
-  cursor: pointer;
-  transition: all 0.3s ease;
-  font-size: 0.9rem;
+  padding: 12px 24px;
+  border-radius: 8px;
+  font-size: 14px;
   font-weight: 500;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  transition: all 0.2s ease;
 }
-
-.create-btn:hover:not(:disabled) {
-  background: #219a52;
+.refresh-btn:hover:not(:disabled) {
+  background: #c0392b;
   transform: translateY(-1px);
 }
-
-.create-btn:disabled {
+.refresh-btn:disabled {
   opacity: 0.6;
   cursor: not-allowed;
 }
-
-/* Loading and Error States */
-.loading-container {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  justify-content: center;
-  min-height: 300px;
-  gap: 1rem;
+.refresh-btn .spinning {
+  animation: spin 1s linear infinite;
 }
-
-.spinner {
+.loading-spinner {
   width: 40px;
   height: 40px;
   border: 3px solid #f3f3f3;
-  border-top: 3px solid #3498db;
+  border-top: 3px solid #dc3545;
   border-radius: 50%;
   animation: spin 1s linear infinite;
+  margin-bottom: 1rem;
 }
-
 @keyframes spin {
   0% { transform: rotate(0deg); }
   100% { transform: rotate(360deg); }
+}
+.error-container {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  min-height: 300px;
+}
+.error-message {
+  text-align: center;
 }
 
 .error-container {

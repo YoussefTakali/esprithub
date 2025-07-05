@@ -1,11 +1,15 @@
-<div class="user-management">
-  <div class="header">
-    <h1>User Management</h1>
-    <button 
-      class="create-btn" 
-      (click)="onCreateUser()" 
-      [disabled]="saving"
-      title="Create new user">
+<div class="user-management student-dashboard">
+  <!-- Header -->
+  <div class="dashboard-header">
+    <div class="header-content">
+      <h1>User Management</h1>
+      <p>Manage all users, roles, and access in the system.</p>
+    </div>
+    <button class="refresh-btn" (click)="loadData()" [disabled]="loading">
+      <i class="fas fa-sync-alt" [class.spinning]="loading"></i>
+      Refresh
+    </button>
+    <button class="create-btn" (click)="onCreateUser()" [disabled]="saving">
       <i class="fas fa-user-plus"></i>
       Create User
     </button>
@@ -13,8 +17,10 @@
 
   <!-- Loading State -->
   <div *ngIf="loading" class="loading-container">
-    <div class="spinner"></div>
-    <p>Loading users...</p>
+    <div class="loading-spinner">
+      <i class="fas fa-spinner fa-spin"></i>
+      <p>Loading users...</p>
+    </div>
   </div>
 
   <!-- Error State -->

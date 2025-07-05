@@ -1,20 +1,28 @@
-<div class="department-management">
-  <div class="header">
-    <h1>Department Management</h1>
-    <button 
-      class="create-btn" 
-      (click)="onCreateDepartment()" 
-      [disabled]="saving"
-      title="Create new department">
-      <i class="fas fa-plus"></i>
-      Create Department
-    </button>
+<div class="department-management student-dashboard">
+  <!-- Header -->
+  <div class="dashboard-header">
+    <div class="header-content">
+      <h1>Department Management</h1>
+      <p>Manage all academic departments and their specialities.</p>
+    </div>
+    <div style="display: flex; gap: 0.5rem; align-items: center;">
+      <button class="refresh-btn" (click)="loadData()" [disabled]="loading">
+        <i class="fas fa-sync-alt" [class.spinning]="loading"></i>
+        Refresh
+      </button>
+      <button class="create-btn" (click)="onCreateDepartment()" [disabled]="saving">
+        <i class="fas fa-plus"></i>
+        Create Department
+      </button>
+    </div>
   </div>
 
   <!-- Loading State -->
   <div *ngIf="loading" class="loading-container">
-    <div class="spinner"></div>
-    <p>Loading departments...</p>
+    <div class="loading-spinner">
+      <i class="fas fa-spinner fa-spin"></i>
+      <p>Loading departments...</p>
+    </div>
   </div>
 
   <!-- Error State -->
