@@ -10,6 +10,9 @@ import org.springframework.stereotype.Service;
 import org.springframework.util.StringUtils;
 import org.springframework.http.*;
 import org.springframework.web.client.HttpClientErrorException;
+
+import com.nimbusds.oauth2.sdk.util.CollectionUtils;
+
 import tn.esprithub.server.common.exception.BusinessException;
 import tn.esprithub.server.project.entity.Task;
 import tn.esprithub.server.project.enums.TaskStatus;
@@ -31,9 +34,7 @@ import java.time.DayOfWeek;
 import java.time.LocalDateTime;
 import java.time.temporal.ChronoUnit;
 import java.util.*;
-import java.util.Comparator;
 import java.util.stream.Collectors;
-import java.util.Base64;
 
 @Service
 @RequiredArgsConstructor
@@ -118,28 +119,92 @@ public class StudentServiceImpl implements StudentService {
         log.info("Task {} submitted by student {} with notes: {}", taskId, studentEmail, notes);
     }
 
-    @Override
-    public List<StudentGroupDto> getStudentGroups(String studentEmail) {
-        User student = getStudentByEmail(studentEmail);
-        
-        List<tn.esprithub.server.project.entity.Group> groups = groupRepository.findGroupsByStudentId(student.getId());
-        
-        return groups.stream()
-                .map(group -> StudentGroupDto.builder()
-                        .id(group.getId())
-                        .name(group.getName())
-                        .projectId(group.getProject() != null ? group.getProject().getId() : null)
-                        .projectName(group.getProject() != null ? group.getProject().getName() : "No Project")
-                        .classId(group.getClasse() != null ? group.getClasse().getId() : null)
-                        .className(group.getClasse() != null ? group.getClasse().getNom() : "No Class")
-                        .totalMembers(group.getStudents() != null ? group.getStudents().size() : 0)
-                        .repositoryName(group.getRepository() != null ? group.getRepository().getName() : null)
-                        .repositoryUrl(group.getRepository() != null ? group.getRepository().getCloneUrl() : null)
-                        .hasRepository(group.getRepository() != null)
-                        .createdAt(group.getCreatedAt())
-                        .build())
-                .toList();
+   @Override
+public List<StudentGroupDto> getStudentGroups(String studentEmail) {
+    User student = getStudentByEmail(studentEmail);
+    if (student == null) {
+        return Collections.emptyList();
     }
+
+    List<tn.esprithub.server.project.entity.Group> groups = groupRepository.findGroupsByStudentId(student.getId());
+    if (CollectionUtils.isEmpty(groups)) {
+        return Collections.emptyList();
+    }
+
+    return groups.stream().map(group -> {
+        Set<Task> allTasks = new HashSet<>();
+        
+        // 1. Group tasks
+        if (group.getTasks() != null) {
+            allTasks.addAll(group.getTasks());
+        }
+        
+        // 2. Class tasks
+        if (group.getClasse() != null) {
+            List<Task> classTasks = taskRepository.findByAssignedToClasses_Id(group.getClasse().getId());
+            if (classTasks != null) {
+                allTasks.addAll(classTasks);
+            }
+        }
+        
+        // 3. Project tasks
+        if (group.getProject() != null) {
+            List<Task> projectTasks = taskRepository.findByProjects_Id(group.getProject().getId());
+            if (projectTasks != null) {
+                allTasks.addAll(projectTasks);
+            }
+        }
+        
+        // 4. Individual student tasks
+        if (group.getStudents() != null) {
+            for (User groupStudent : group.getStudents()) {
+                List<Task> studentTasks = taskRepository.findByAssignedToStudents_Id(groupStudent.getId());
+                if (studentTasks != null) {
+                    allTasks.addAll(studentTasks);
+                }
+            }
+        }
+
+        List<StudentGroupDto.GroupTaskDto> assignedTasks = allTasks.stream()
+            .map(task -> StudentGroupDto.GroupTaskDto.builder()
+                .id(task.getId())
+                .title(task.getTitle())
+                .description(task.getDescription())
+                .dueDate(task.getDueDate())
+                .status(task.getStatus() != null ? task.getStatus().name() : null)
+                .isOverdue(task.getDueDate() != null && task.getDueDate().isBefore(LocalDateTime.now()))
+                .daysLeft(task.getDueDate() != null ? 
+                    (int) ChronoUnit.DAYS.between(LocalDateTime.now(), task.getDueDate()) : 0)
+                .isCompleted(task.getStatus() == TaskStatus.COMPLETED)
+                .progressPercentage(0.0)
+                .build())
+            .toList();
+
+        int totalTasks = assignedTasks.size();
+        int completedTasks = (int) assignedTasks.stream()
+            .filter(StudentGroupDto.GroupTaskDto::isCompleted)
+            .count();
+        
+        return StudentGroupDto.builder()
+            .id(group.getId())
+            .name(group.getName())
+            .projectId(group.getProject() != null ? group.getProject().getId() : null)
+            .projectName(group.getProject() != null ? group.getProject().getName() : "No Project")
+            .classId(group.getClasse() != null ? group.getClasse().getId() : null)
+            .className(group.getClasse() != null ? group.getClasse().getNom() : "No Class")
+            .totalMembers(group.getStudents() != null ? group.getStudents().size() : 0)
+            .repositoryName(group.getRepository() != null ? group.getRepository().getName() : null)
+            .repositoryUrl(group.getRepository() != null ? group.getRepository().getCloneUrl() : null)
+            .hasRepository(group.getRepository() != null)
+            .createdAt(group.getCreatedAt())
+            .assignedTasks(assignedTasks)
+            .totalTasks(totalTasks)
+            .completedTasks(completedTasks)
+            .pendingTasks(totalTasks - completedTasks)
+            .completionRate(totalTasks > 0 ? (completedTasks * 100.0 / totalTasks) : 0.0)
+            .build();
+    }).toList();
+}
 
     @Override
     public StudentGroupDto getGroupDetails(UUID groupId, String studentEmail) {
@@ -1705,19 +1770,32 @@ public class StudentServiceImpl implements StudentService {
 
     private List<Task> getAllTasksForStudent(User student) {
         List<Task> allTasks = new ArrayList<>();
-        
-        // Get tasks assigned directly to the student
+
+        // 1. Tasks assigned directly to the student
         List<Task> directTasks = taskRepository.findByAssignedToStudents_Id(student.getId());
         allTasks.addAll(directTasks);
-        
-        // Get tasks assigned to groups that the student is a member of
+
+        // 2. Tasks assigned to groups that the student is a member of
         List<Task> groupTasks = taskRepository.findTasksAssignedToStudentGroups(student.getId());
         allTasks.addAll(groupTasks);
-        
-        // Get tasks assigned to the student's class
+
+        // 3. Tasks assigned to the student's class
         List<Task> classTasks = taskRepository.findTasksAssignedToStudentClass(student.getId());
         allTasks.addAll(classTasks);
-        
+
+        // 4. Tasks assigned to the student's projects (via their groups)
+        List<tn.esprithub.server.project.entity.Group> studentGroups = groupRepository.findGroupsByStudentId(student.getId());
+        if (studentGroups != null) {
+            for (tn.esprithub.server.project.entity.Group group : studentGroups) {
+                if (group.getProject() != null) {
+                    List<Task> projectTasks = taskRepository.findByProjects_Id(group.getProject().getId());
+                    if (projectTasks != null) {
+                        allTasks.addAll(projectTasks);
+                    }
+                }
+            }
+        }
+
         return allTasks.stream()
                 .distinct()
                 .filter(Task::isVisible)
