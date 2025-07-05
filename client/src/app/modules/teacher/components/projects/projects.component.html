@@ -1,7 +1,7 @@
 <div class="projects-main-container">
   <div class="projects-cards-center">
     <div *ngFor="let project of projects" class="project-card-centered">
-      <div class="project-card-icon" [style.background]="'#680f0a'">
+      <div class="project-card-icon" [style.background]="'#e74c3c'">
         <span class="material-icons">rocket_launch</span>
       </div>
       <div class="project-title">{{ project.name }}</div>
@@ -24,7 +24,7 @@
       </div>
       <div class="project-progress-label">Progress</div>
       <div class="project-progress-bar">
-        <div class="progress-inner" [style.width]="'75%'" style="background:#680f0a"></div>
+        <div class="progress-inner" [style.width]="'75%'" style="background:#e74c3c"></div>
       </div>
       <div class="project-card-actions">
         <button class="icon-btn" title="View" (click)="openDetailsModal(project, $event)"><i class="fa fa-eye"></i></button>
@@ -41,7 +41,7 @@
   <div class="modal-backdrop" *ngIf="showCreateModal" (click)="closeCreateModal()"></div>
   <div class="modal" *ngIf="showCreateModal">
     <div class="modal-content" (click)="$event.stopPropagation()">
-      <h3 style="color:#680f0a">Create New Project</h3>
+      <h3 style="color:#e74c3c">Create New Project</h3>
       <form (ngSubmit)="createProject()" #projectForm="ngForm">
         <label for="projectName">Project Name</label>
         <input id="projectName" [(ngModel)]="newProject.name" name="name" required placeholder="Project Name" />
@@ -80,7 +80,7 @@
   <div class="modal-backdrop" *ngIf="showDetailsModal" (click)="closeDetailsModal()"></div>
   <div class="modal" *ngIf="showDetailsModal">
     <div class="modal-content" (click)="$event.stopPropagation()">
-      <h3 style="color:#680f0a">Project Details</h3>
+      <h3 style="color:#e74c3c">Project Details</h3>
       <div *ngIf="detailsProject">
         <div><b>Name:</b> {{ detailsProject.name }}</div>
         <div><b>Description:</b> {{ detailsProject.description }}</div>
@@ -104,7 +104,7 @@
   <div class="modal-backdrop" *ngIf="showEditModal" (click)="closeEditModal()"></div>
   <div class="modal" *ngIf="showEditModal">
     <div class="modal-content" (click)="$event.stopPropagation()">
-      <h3 style="color:#680f0a">Edit Project</h3>
+      <h3 style="color:#e74c3c">Edit Project</h3>
       <form (ngSubmit)="saveEditProject()" #editProjectForm="ngForm">
         <label for="editProjectName">Project Name</label>
         <input id="editProjectName" [(ngModel)]="editProject.name" name="editProjectName" required />
@@ -143,7 +143,7 @@
   <div class="modal-backdrop" *ngIf="showDeleteDialog" (click)="cancelDeleteProject()"></div>
   <div class="modal" *ngIf="showDeleteDialog">
     <div class="modal-content" (click)="$event.stopPropagation()">
-      <h3 style="color:#680f0a">Confirm Delete</h3>
+      <h3 style="color:#e74c3c">Confirm Delete</h3>
       <div style="margin-bottom: 16px;">Are you sure you want to delete the project <b>{{ projectToDelete?.name }}</b>?</div>
       <div class="modal-actions">
         <button class="create-btn-red" (click)="deleteProjectConfirmed()">Delete</button>
@@ -158,7 +158,7 @@
   top: 32px;
   right: 32px;
   z-index: 1000;
-  background: #680f0a;
+  background: #e74c3c;
   color: #fff;
   border: none;
   border-radius: 50px;

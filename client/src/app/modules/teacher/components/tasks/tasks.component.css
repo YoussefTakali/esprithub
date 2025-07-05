@@ -109,7 +109,7 @@
   transition: border 0.2s, background 0.2s;
 }
 .task-status-dropdown:hover, .task-status-dropdown:focus {
-  border-color: #680f0a;
+  border-color: #e74c3c;
   background: #fff6f6;
 }
 .task-status-dropdown.status-pending {
@@ -169,7 +169,7 @@
 .task-visibility {
   margin-left: 6px;
   font-size: 20px;
-  color: #680f0a;
+  color: #e74c3c;
   background: #f8fafc;
   border-radius: 50%;
   padding: 7px 10px;
@@ -181,13 +181,13 @@
   justify-content: center;
 }
 .task-visibility:hover, .task-visibility:focus {
-  border-color: #680f0a;
+  border-color: #e74c3c;
   background: #fff6f6;
 }
 .task-assigned-to, .task-scope {
   display: block;
   font-size: 16px;
-  color: #680f0a;
+  color: #e74c3c;
   font-weight: 600;
   margin-bottom: 0.3rem;
   margin-top: 0.3rem;
@@ -259,14 +259,14 @@
 ::ng-deep .modal-content textarea:focus,
 ::ng-deep .modal-content select:focus {
   outline: none;
-  border-color: #680f0a;
+  border-color: #e74c3c;
   box-shadow: 0 0 0 2px rgba(231,76,60,0.13);
   background: #fff;
 }
 ::ng-deep .modal-content label {
   font-weight: 600;
   margin-bottom: 0.2rem;
-  color: #680f0a;
+  color: #e74c3c;
   letter-spacing: 0.01em;
 }
 
@@ -284,7 +284,7 @@
 }
 .modal-input:focus {
   outline: none;
-  border-color: #680f0a;
+  border-color: #e74c3c;
   box-shadow: 0 0 0 2px rgba(231,76,60,0.13);
   background: #fff;
 }
@@ -296,7 +296,7 @@
   margin-top: 1.5rem;
 }
 .create-btn-red {
-  background: #680f0a;
+  background: #e74c3c;
   color: #fff;
   border: none;
   border-radius: 8px;
@@ -323,7 +323,7 @@
 /* Dropdown suggestion list improvements */
 .autocomplete-list {
   background: #fff;
-  border: 1.5px solid #680f0a;
+  border: 1.5px solid #e74c3c;
   border-radius: 10px;
   box-shadow: 0 4px 16px rgba(231,76,60,0.10);
   margin: 0;
@@ -356,7 +356,7 @@
   background: #ffeaea;
 }
 .autocomplete-list .no-match {
-  color: #680f0a;
+  color: #e74c3c;
   padding: 14px 20px;
   font-size: 16px;
   text-align: center;
@@ -425,13 +425,13 @@
   transition: border 0.2s, background 0.2s;
 }
 .task-status-dropdown:hover, .task-status-dropdown:focus {
-  border-color: #680f0a;
+  border-color: #e74c3c;
   background: #fff6f6;
 }
 .task-assigned-to, .task-scope {
   display: block;
   font-size: 16px;
-  color: #680f0a;
+  color: #e74c3c;
   font-weight: 600;
   margin-bottom: 0.3rem;
   margin-top: 0.3rem;

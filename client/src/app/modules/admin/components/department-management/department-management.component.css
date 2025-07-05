@@ -15,7 +15,7 @@
   margin-left: 0.5rem;
 }
 .create-btn:hover:not(:disabled) {
-  background: #219150;
+  background: #b71c1c;
   transform: translateY(-1px) scale(1.03);
 }
 .create-btn:disabled {
@@ -425,7 +425,7 @@
   background: #217dbb;
 }
 .action-btn.delete {
-  background: #680f0a;
+  background: #e74c3c;
   color: #fff;
 }
 .action-btn.delete:hover:not(:disabled) {

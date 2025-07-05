@@ -29,21 +29,21 @@
   transition: background 0.2s, color 0.2s;
 }
 .btn-edit {
-  background: #350401;
+  background: #3498db;
   color: #fff;
 }
 .btn-edit:hover:not(:disabled) {
   background: #217dbb;
 }
 .btn-delete {
-  background: #680f0a;
+  background: #e74c3c;
   color: #fff;
 }
 .btn-delete:hover:not(:disabled) {
-  background: #680f0a;
+  background: #c0392b;
 }
 .btn-assign {
-  background: #680f0a;
+  background: #c0392b;
   color: #fff;
   font-size: 0.95rem;
   font-weight: 500;
@@ -155,7 +155,7 @@
   transition: all 0.2s ease;
 }
 .refresh-btn:hover:not(:disabled) {
-  background: #680f0a;
+  background: #c0392b;
   transform: translateY(-1px);
 }
 .refresh-btn:disabled {
@@ -548,7 +548,7 @@
 .form-select:focus,
 .form-textarea:focus {
   outline: none;
-  border-color: #350401;
+  border-color: #3498db;
   box-shadow: 0 0 0 3px rgba(52, 152, 219, 0.1);
 }
 
@@ -705,7 +705,7 @@
 .level-year {
   display: inline-block;
   padding: 0.25rem 0.75rem;
-  background: #350401;
+  background: #3498db;
   color: white;
   border-radius: 20px;
   font-size: 0.75rem;
@@ -730,7 +730,7 @@
 }
 
 .action-btn.edit {
-  background: #350401;
+  background: #3498db;
   color: white;
 }
 
@@ -739,12 +739,12 @@
 }
 
 .action-btn.delete {
-  background: #680f0a;
+  background: #e74c3c;
   color: white;
 }
 
 .action-btn.delete:hover:not(:disabled) {
-  background: #680f0a;
+  background: #c0392b;
 }
 
 .action-btn:disabled {

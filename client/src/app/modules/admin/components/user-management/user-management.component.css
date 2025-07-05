@@ -413,7 +413,7 @@
 }
 
 .email-status.unverified {
-  color: #680f0a;
+  color: #e74c3c;
 }
 
 /* Badges */
@@ -500,7 +500,7 @@
 }
 
 .action-btn.delete {
-  background: #680f0a;
+  background: #e74c3c;
   color: white;
 }
 

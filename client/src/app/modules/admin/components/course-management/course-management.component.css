@@ -156,7 +156,7 @@
   background: #217dbb;
 }
 .btn-delete {
-  background: #680f0a;
+  background: #e74c3c;
   color: #fff;
 }
 .btn-delete:hover:not(:disabled) {

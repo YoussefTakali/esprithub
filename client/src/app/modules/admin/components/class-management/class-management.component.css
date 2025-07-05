@@ -36,7 +36,7 @@
   background: #217dbb;
 }
 .btn-delete {
-  background: #680f0a;
+  background: #e74c3c;
   color: #fff;
 }
 .btn-delete:hover:not(:disabled) {
@@ -159,7 +159,8 @@
   white-space: nowrap;
 }
 .create-btn:hover:not(:disabled) {
-  background: #219a52;
+
+  background: #c23333;
   transform: translateY(-1px);
 }
 .create-btn:disabled {
@@ -829,7 +830,7 @@
 }
 
 .action-btn.delete {
-  background: #680f0a;
+  background: #e74c3c;
   color: white;
 }
 
@@ -899,7 +900,7 @@
 }
 
 .capacity-info .percentage.full {
-  color: #680f0a;
+  color: #e74c3c;
 }
 
 .status-badge {
