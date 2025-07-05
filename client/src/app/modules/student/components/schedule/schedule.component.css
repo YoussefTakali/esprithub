@@ -45,7 +45,7 @@
 }
 
 .refresh-btn:hover:not(:disabled) {
-  background: #c0392b;
+  background: #680f0a;
 }
 
 .refresh-btn .spinning {
@@ -167,7 +167,7 @@
 }
 
 .schedule-header {
-  background: linear-gradient(135deg, #a71617, #e74c3c);
+  background: linear-gradient(135deg, #a71617, #680f0a);
   color: white;
   padding: 16px 20px;
   display: flex;
@@ -244,7 +244,7 @@
 }
 
 .action-btn:hover {
-  background: #c0392b;
+  background: #680f0a;
 }
 
 /* Timeline connector lines */

@@ -4,9 +4,9 @@
 skinparam {
   ClassBackgroundColor #ffffff
   ClassBorderColor #2c3e50
-  ClassHeaderBackgroundColor #3498db
+  ClassHeaderBackgroundColor #350401
   ClassHeaderFontColor #ffffff
-  ArrowColor #e74c3c
+  ArrowColor #680f0a
   ArrowFontSize 11
   ClassFontSize 11
   PackageFontSize 13

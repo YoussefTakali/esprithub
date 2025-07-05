@@ -46,7 +46,7 @@
 }
 
 .refresh-btn:hover:not(:disabled) {
-  background: #c0392b;
+  background: #680f0a;
   transform: translateY(-1px);
 }
 
@@ -113,7 +113,7 @@
 }
 
 .retry-btn:hover {
-  background: #c0392b;
+  background: #680f0a;
 }
 
 /* Stats Grid */
@@ -152,15 +152,15 @@
 }
 
 .tasks-stat .stat-icon {
-  background: linear-gradient(135deg, #a71617, #e74c3c);
+  background: linear-gradient(135deg, #a71617, #680f0a);
 }
 
 .projects-stat .stat-icon {
-  background: linear-gradient(135deg, #e74c3c, #c0392b);
+  background: linear-gradient(135deg, #680f0a, #680f0a);
 }
 
 .groups-stat .stat-icon {
-  background: linear-gradient(135deg, #c0392b, #a93226);
+  background: linear-gradient(135deg, #680f0a, #a93226);
 }
 
 .progress-stat .stat-icon {
@@ -202,7 +202,7 @@
 }
 
 .card-header {
-  background: linear-gradient(135deg, #a71617, #e74c3c);
+  background: linear-gradient(135deg, #a71617, #680f0a);
   color: white;
   padding: 20px 24px;
   border-bottom: 1px solid #dee2e6;
@@ -423,7 +423,7 @@
 
 .progress-fill {
   height: 100%;
-  background: linear-gradient(90deg, #a71617, #e74c3c);
+  background: linear-gradient(90deg, #a71617, #680f0a);
   border-radius: 4px;
   transition: width 0.3s ease;
 }

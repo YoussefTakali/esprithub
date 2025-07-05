@@ -29,21 +29,21 @@
   transition: background 0.2s, color 0.2s;
 }
 .btn-edit {
-  background: #3498db;
+  background: #350401;
   color: #fff;
 }
 .btn-edit:hover:not(:disabled) {
   background: #217dbb;
 }
 .btn-delete {
-  background: #e74c3c;
+  background: #680f0a;
   color: #fff;
 }
 .btn-delete:hover:not(:disabled) {
-  background: #c0392b;
+  background: #680f0a;
 }
 .btn-assign {
-  background: #c0392b;
+  background: #680f0a;
   color: #fff;
   font-size: 0.95rem;
   font-weight: 500;
@@ -133,7 +133,7 @@
   transition: all 0.2s ease;
 }
 .refresh-btn:hover:not(:disabled) {
-  background: #c0392b;
+  background: #680f0a;
   transform: translateY(-1px);
 }
 .refresh-btn:disabled {
@@ -321,7 +321,7 @@
 .form-select:focus,
 .form-textarea:focus {
   outline: none;
-  border-color: #3498db;
+  border-color: #350401;
   box-shadow: 0 0 0 3px rgba(52, 152, 219, 0.1);
 }
 .form-input:disabled,
@@ -359,7 +359,7 @@
   align-items: center;
   gap: 0.5rem;
   padding: 0.75rem 1.5rem;
-  background: #3498db;
+  background: #350401;
   color: white;
   border: none;
   border-radius: 6px;
@@ -454,7 +454,7 @@
 .department-filter:focus,
 .level-filter:focus {
   outline: none;
-  border-color: #3498db;
+  border-color: #350401;
   box-shadow: 0 0 0 3px rgba(52, 152, 219, 0.1);
 }
 
@@ -504,7 +504,7 @@
   width: 40px;
   height: 40px;
   border: 3px solid #f3f3f3;
-  border-top: 3px solid #3498db;
+  border-top: 3px solid #350401;
   border-radius: 50%;
   animation: spin 1s linear infinite;
 }
@@ -637,7 +637,7 @@
 .form-select:focus,
 .form-textarea:focus {
   outline: none;
-  border-color: #3498db;
+  border-color: #350401;
   box-shadow: 0 0 0 3px rgba(52, 152, 219, 0.1);
 }
 
@@ -795,7 +795,7 @@
 .class-capacity {
   display: inline-block;
   padding: 0.25rem 0.75rem;
-  background: #3498db;
+  background: #350401;
   color: white;
   border-radius: 20px;
   font-size: 0.75rem;
@@ -820,7 +820,7 @@
 }
 
 .action-btn.edit {
-  background: #3498db;
+  background: #350401;
   color: white;
 }
 
@@ -829,12 +829,12 @@
 }
 
 .action-btn.delete {
-  background: #e74c3c;
+  background: #680f0a;
   color: white;
 }
 
 .action-btn.delete:hover:not(:disabled) {
-  background: #c0392b;
+  background: #680f0a;
 }
 
 .action-btn:disabled {
@@ -877,7 +877,7 @@
 }
 
 .capacity-info .current {
-  color: #3498db;
+  color: #350401;
   font-weight: 600;
 }
 
@@ -899,7 +899,7 @@
 }
 
 .capacity-info .percentage.full {
-  color: #e74c3c;
+  color: #680f0a;
 }
 
 .status-badge {
@@ -965,7 +965,7 @@
 .student-tag {
   display: inline-block;
   padding: 0.25rem 0.75rem;
-  background: #3498db;
+  background: #350401;
   color: white;
   border-radius: 20px;
   font-size: 0.75rem;

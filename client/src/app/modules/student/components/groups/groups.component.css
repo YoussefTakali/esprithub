@@ -45,7 +45,7 @@
 }
 
 .refresh-btn:hover:not(:disabled) {
-  background: #c0392b;
+  background: #680f0a;
 }
 
 .refresh-btn .spinning {
@@ -162,7 +162,7 @@
 }
 
 .group-header {
-  background: linear-gradient(135deg, #a71617, #e74c3c);
+  background: linear-gradient(135deg, #a71617, #680f0a);
   color: white;
   padding: 20px;
 }
@@ -293,7 +293,7 @@
 }
 
 .action-btn:hover {
-  background: #c0392b;
+  background: #680f0a;
 }
 
 /* Group Stats */
@@ -343,7 +343,7 @@
 
 .progress-fill {
   height: 100%;
-  background: linear-gradient(90deg, #a71617, #e74c3c);
+  background: linear-gradient(90deg, #a71617, #680f0a);
   transition: width 0.3s ease;
   border-radius: 10px;
 }
@@ -425,7 +425,7 @@
   justify-content: space-between;
   align-items: flex-start;
   padding: 24px;
-  background: linear-gradient(135deg, #a71617, #e74c3c);
+  background: linear-gradient(135deg, #a71617, #680f0a);
   color: white;
   border-radius: 16px 16px 0 0;
 }
@@ -529,7 +529,7 @@
 
 .progress-bar-large .progress-fill {
   height: 100%;
-  background: linear-gradient(90deg, #a71617, #e74c3c);
+  background: linear-gradient(90deg, #a71617, #680f0a);
   transition: width 0.3s ease;
   border-radius: 12px;
 }
@@ -651,7 +651,7 @@
 }
 
 .btn-primary:hover {
-  background: #c0392b;
+  background: #680f0a;
 }
 
 .btn-secondary {

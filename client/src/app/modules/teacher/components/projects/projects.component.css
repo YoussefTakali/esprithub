@@ -13,7 +13,7 @@
   position: fixed;
   top: 2rem;
   left: 2rem;
-  background: #e74c3c;
+  background: #680f0a;
   color: #fff;
   border: none;
   border-radius: 50px;
@@ -26,7 +26,7 @@
   transition: background 0.2s;
 }
 .add-project-fab:hover {
-  background: #c0392b;
+  background: #680f0a;
 }
 
 .projects-cards-center {
@@ -72,7 +72,7 @@
   font-weight: 700;
   font-size: 1.35rem;
   margin-bottom: 0.2rem;
-  color: #e74c3c;
+  color: #680f0a;
   text-align: center;
 }
 .project-meta {
@@ -92,7 +92,7 @@
   height: 36px;
   border-radius: 50%;
   background: #ffeaea;
-  color: #e74c3c;
+  color: #680f0a;
   display: flex;
   align-items: center;
   justify-content: center;
@@ -102,7 +102,7 @@
   box-shadow: 0 1px 4px rgba(231,76,60,0.08);
 }
 .avatar-more {
-  color: #e74c3c;
+  color: #680f0a;
   font-size: 1.1rem;
   margin-left: 0.3rem;
 }
@@ -123,7 +123,7 @@
 .progress-inner {
   height: 100%;
   border-radius: 6px;
-  background: #e74c3c;
+  background: #680f0a;
   transition: width 0.3s;
 }
 .project-card-actions {
@@ -141,25 +141,25 @@
   align-items: center;
   justify-content: center;
   box-shadow: 0 1px 4px rgba(231,76,60,0.08);
-  color: #e74c3c;
+  color: #680f0a;
   font-size: 1.3rem;
   cursor: pointer;
   transition: background 0.15s, color 0.15s;
 }
 .icon-btn:hover {
   background: #ffeaea;
-  color: #c0392b;
+  color: #680f0a;
 }
 .icon-btn.delete:hover {
   background: #ffeaea;
-  color: #c0392b;
+  color: #680f0a;
 }
 .project-deadline {
   position: absolute;
   bottom: 1.2rem;
   right: 2rem;
   font-size: 0.98rem;
-  color: #e74c3c;
+  color: #680f0a;
   background: #fff6f6;
   padding: 0.2rem 0.8rem;
   border-radius: 8px;
@@ -171,13 +171,13 @@
   right: 18px;
   background: none;
   border: none;
-  color: #e74c3c;
+  color: #680f0a;
   font-size: 1.5rem;
   cursor: pointer;
   transition: color 0.2s;
 }
 .delete-btn-red:hover {
-  color: #c0392b;
+  color: #680f0a;
 }
 
 /* Modal styles */
@@ -202,7 +202,7 @@
 .modal-content h3 {
   margin-bottom: 1.2rem;
   font-size: 1.3rem;
-  color: #e74c3c;
+  color: #680f0a;
 }
 .modal-content label {
   display: block;
@@ -224,7 +224,7 @@
 .modal-content textarea:focus,
 .modal-content select:focus {
   outline: none;
-  border-color: #e74c3c;
+  border-color: #680f0a;
 }
 .modal-actions {
   display: flex;
@@ -233,7 +233,7 @@
   justify-content: flex-end;
 }
 .create-btn-red {
-  background: #e74c3c;
+  background: #680f0a;
   color: #fff;
   border: none;
   border-radius: 6px;
@@ -248,12 +248,12 @@
   cursor: not-allowed;
 }
 .create-btn-red:hover:not(:disabled) {
-  background: #c0392b;
+  background: #680f0a;
 }
 .cancel-btn {
   background: #fff;
-  color: #e74c3c;
-  border: 1.5px solid #e74c3c;
+  color: #680f0a;
+  border: 1.5px solid #680f0a;
   border-radius: 6px;
   padding: 0.6rem 1.5rem;
   font-weight: 600;
@@ -262,7 +262,7 @@
   transition: background 0.2s, color 0.2s;
 }
 .cancel-btn:hover {
-  background: #e74c3c;
+  background: #680f0a;
   color: #fff;
 }
 
@@ -274,7 +274,7 @@
 }
 .selected-collaborators span {
   background: #ffeaea;
-  color: #e74c3c;
+  color: #680f0a;
   border-radius: 12px;
   padding: 0.2rem 0.8rem 0.2rem 0.6rem;
   font-size: 0.98rem;
@@ -285,18 +285,18 @@
 .selected-collaborators button {
   background: none;
   border: none;
-  color: #e74c3c;
+  color: #680f0a;
   font-size: 1.1rem;
   cursor: pointer;
   margin-left: 0.2rem;
 }
 .selected-collaborators button:hover {
-  color: #c0392b;
+  color: #680f0a;
 }
 
 .autocomplete-list {
   background: #fff;
-  border: 1.5px solid #e74c3c;
+  border: 1.5px solid #680f0a;
   border-radius: 6px;
   margin: 0.2rem 0 0.5rem 0;
   padding: 0;
@@ -310,7 +310,7 @@
 .autocomplete-list li {
   padding: 0.5rem 1rem;
   cursor: pointer;
-  color: #e74c3c;
+  color: #680f0a;
   font-weight: 500;
   background: #fff;
   transition: background 0.15s;
@@ -333,11 +333,11 @@
   align-items: flex-start;
 }
 .details-header h2 {
-  color: #e74c3c;
+  color: #680f0a;
   margin-bottom: 1.2rem;
 }
 .save-btn {
-  background: #e74c3c;
+  background: #680f0a;
   color: #fff;
   border: none;
   border-radius: 6px;
@@ -353,10 +353,10 @@
   cursor: not-allowed;
 }
 .save-btn:hover:not(:disabled) {
-  background: #c0392b;
+  background: #680f0a;
 }
 .collaborators-section h3 {
-  color: #e74c3c;
+  color: #680f0a;
   margin-top: 1.5rem;
 }
 .collaborators-list {
@@ -369,7 +369,7 @@
   align-items: center;
   gap: 0.7rem;
   background: #ffeaea;
-  color: #e74c3c;
+  color: #680f0a;
   border-radius: 10px;
   padding: 0.3rem 1rem;
   margin-bottom: 0.3rem;
@@ -377,13 +377,13 @@
 .remove-collab-btn {
   background: none;
   border: none;
-  color: #e74c3c;
+  color: #680f0a;
   font-size: 1.1rem;
   cursor: pointer;
   margin-left: 0.2rem;
 }
 .remove-collab-btn:hover {
-  color: #c0392b;
+  color: #680f0a;
 }
 .add-collab-form {
   display: flex;

@@ -46,7 +46,7 @@
 }
 
 .refresh-btn:hover:not(:disabled) {
-  background: #c0392b;
+  background: #680f0a;
   transform: translateY(-1px);
 }
 
@@ -149,7 +149,7 @@
 }
 
 .retry-btn:hover {
-  background: #c0392b;
+  background: #680f0a;
 }
 
 /* Empty State */
@@ -201,7 +201,7 @@
 
 /* Project Header */
 .project-header {
-  background: linear-gradient(135deg, #a71617, #e74c3c);
+  background: linear-gradient(135deg, #a71617, #680f0a);
   color: white;
   padding: 24px;
   margin-bottom: 16px;
@@ -436,7 +436,7 @@
 }
 
 .view-btn:hover {
-  background: #c0392b;
+  background: #680f0a;
 }
 
 /* Creator Info */
@@ -481,7 +481,7 @@
 
 .progress-fill {
   height: 100%;
-  background: linear-gradient(90deg, #a71617, #e74c3c);
+  background: linear-gradient(90deg, #a71617, #680f0a);
   transition: width 0.3s ease;
   border-radius: 10px;
 }
@@ -592,7 +592,7 @@
   align-items: center;
   padding: 24px;
   border-bottom: 1px solid #e9ecef;
-  background: linear-gradient(135deg, #a71617, #e74c3c);
+  background: linear-gradient(135deg, #a71617, #680f0a);
   color: white;
   border-radius: 12px 12px 0 0;
 }
@@ -694,7 +694,7 @@
 
 .progress-bar-large .progress-fill {
   height: 100%;
-  background: linear-gradient(90deg, #a71617, #e74c3c);
+  background: linear-gradient(90deg, #a71617, #680f0a);
   transition: width 0.3s ease;
   border-radius: 15px;
 }

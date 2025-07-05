@@ -66,7 +66,7 @@
   width: 40px;
   height: 40px;
   border: 3px solid #f3f3f3;
-  border-top: 3px solid #3498db;
+  border-top: 3px solid #350401;
   border-radius: 50%;
   animation: spin 1s linear infinite;
 }
@@ -236,19 +236,19 @@ background: linear-gradient(135deg, #8b1538 0%, #ee3c2f 50%, #dd1010 100%);
 }
 
 .role-fill[data-role="ADMIN"] {
-  background: linear-gradient(90deg, #667eea 0%, #764ba2 100%);
+  background: linear-gradient(90deg, #f85047 0%, #764ba2 100%);
 }
 
 .role-fill[data-role="CHIEF"] {
-  background: linear-gradient(90deg, #f093fb 0%, #f5576c 100%);
+  background: linear-gradient(90deg, #fd3f38 0%, #f5576c 100%);
 }
 
 .role-fill[data-role="TEACHER"] {
-  background: linear-gradient(90deg, #4facfe 0%, #00f2fe 100%);
+  background: linear-gradient(90deg, #6d211d 0%, #00f2fe 100%);
 }
 
 .role-fill[data-role="STUDENT"] {
-  background: linear-gradient(90deg, #43e97b 0%, #38f9d7 100%);
+  background: linear-gradient(90deg, #fc0f07 0%, #38f9d7 100%);
 }
 
 /* Table Container */
@@ -312,22 +312,22 @@ background: linear-gradient(135deg, #8b1538 0%, #ee3c2f 50%, #dd1010 100%);
 }
 
 .role-badge[data-role="ADMIN"] {
-  background: #667eea;
+  background: #f85047;
   color: white;
 }
 
 .role-badge[data-role="CHIEF"] {
-  background: #f093fb;
+  background: #350401;
   color: white;
 }
 
 .role-badge[data-role="TEACHER"] {
-  background: #4facfe;
+  background: #6d211d;
   color: white;
 }
 
 .role-badge[data-role="STUDENT"] {
-  background: #43e97b;
+  background: #350401;
   color: white;
 }
 
@@ -398,8 +398,8 @@ background: linear-gradient(135deg, #8b1538 0%, #ee3c2f 50%, #dd1010 100%);
 
 .action-card:hover {
   background: white;
-  border-color: #3498db;
-  color: #3498db;
+  border-color: #350401;
+  color: #350401;
   transform: translateY(-2px);
   box-shadow: 0 4px 15px rgba(52, 152, 219, 0.2);
 }

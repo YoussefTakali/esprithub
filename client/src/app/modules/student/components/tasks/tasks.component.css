@@ -46,7 +46,7 @@
 }
 
 .refresh-btn:hover:not(:disabled) {
-  background: #c0392b;
+  background: #680f0a;
   transform: translateY(-1px);
 }
 
@@ -208,7 +208,7 @@
 }
 
 .retry-btn:hover {
-  background: #c0392b;
+  background: #680f0a;
 }
 
 /* Empty State */
@@ -400,7 +400,7 @@
 }
 
 .start-btn:hover {
-  background: #c0392b;
+  background: #680f0a;
 }
 
 .complete-btn {

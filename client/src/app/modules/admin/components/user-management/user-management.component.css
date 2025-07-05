@@ -58,7 +58,7 @@
   transition: all 0.2s ease;
 }
 .refresh-btn:hover:not(:disabled) {
-  background: #c0392b;
+  background: #680f0a;
   transform: translateY(-1px);
 }
 .refresh-btn:disabled {
@@ -231,7 +231,7 @@
 .form-input:focus,
 .form-select:focus {
   outline: none;
-  border-color: #3498db;
+  border-color: #350401;
   box-shadow: 0 0 0 3px rgba(52, 152, 219, 0.1);
 }
 
@@ -413,7 +413,7 @@
 }
 
 .email-status.unverified {
-  color: #e74c3c;
+  color: #680f0a;
 }
 
 /* Badges */
@@ -427,22 +427,22 @@
 }
 
 .role-badge[data-role="ADMIN"] {
-  background: #667eea;
+  background: #f85047;
   color: white;
 }
 
 .role-badge[data-role="CHIEF"] {
-  background: #f093fb;
+  background: #350401;
   color: white;
 }
 
 .role-badge[data-role="TEACHER"] {
-  background: #4facfe;
+  background: #6d211d;
   color: white;
 }
 
 .role-badge[data-role="STUDENT"] {
-  background: #43e97b;
+  background: #fc0f07;
   color: white;
 }
 
@@ -491,7 +491,7 @@
 }
 
 .action-btn.edit {
-  background: #3498db;
+  background: #350401;
   color: white;
 }
 
@@ -500,12 +500,12 @@
 }
 
 .action-btn.delete {
-  background: #e74c3c;
+  background: #680f0a;
   color: white;
 }
 
 .action-btn.delete:hover:not(:disabled) {
-  background: #c0392b;
+  background: #680f0a;
 }
 
 .action-btn:disabled {

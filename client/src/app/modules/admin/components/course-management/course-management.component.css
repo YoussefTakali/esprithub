@@ -149,18 +149,18 @@
   transition: background 0.2s, color 0.2s;
 }
 .btn-edit {
-  background: #3498db;
+  background: #350401;
   color: #fff;
 }
 .btn-edit:hover:not(:disabled) {
   background: #217dbb;
 }
 .btn-delete {
-  background: #e74c3c;
+  background: #680f0a;
   color: #fff;
 }
 .btn-delete:hover:not(:disabled) {
-  background: #c0392b;
+  background: #680f0a;
 }
 .card-content {
   padding: 1rem 1.5rem;
