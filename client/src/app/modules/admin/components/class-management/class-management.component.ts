@@ -180,35 +180,41 @@ export class ClassManagementComponent implements OnInit {
     }
   }
 
-  async onDepartmentSelectedForCreate(departmentId: string): Promise<void> {
-    this.createFormDepartmentId = departmentId;
-    this.createFormLevelId = '';
-    this.createForm.niveauId = '';
-    
-    if (departmentId) {
-      try {
-        this.loading = true;
-        const levels = await firstValueFrom(
-          this.academicService.getNiveauxByDepartement(departmentId)
-        );
-        this.createFormLevels = levels ?? [];
-      } catch (error) {
-        console.error('Error loading levels for create form:', error);
-        this.snackbarService.showError('Failed to load levels for selected department.');
-        this.error = 'Failed to load levels for selected department.';
-        this.createFormLevels = [];
-      } finally {
-        this.loading = false;
-      }
-    } else {
-      this.createFormLevels = [];
-    }
-  }
 
-  onLevelSelectedForCreate(levelId: string): void {
-    this.createFormLevelId = levelId;
-    this.createForm.niveauId = levelId;
+
+onDepartmentSelectedForCreate(eventOrId: Event | string): void {
+  let value: string;
+  if (typeof eventOrId === 'string') {
+    value = eventOrId;
+  } else {
+    value = (eventOrId.target as HTMLSelectElement).value;
   }
+  this.createFormDepartmentId = value;
+  this.createFormLevelId = '';
+  this.createForm.niveauId = '';
+  if (value) {
+    this.loadLevelsForDepartment(value);
+  } else {
+    this.createFormLevels = [];
+  }
+}
+
+private async loadLevelsForDepartment(departmentId: string): Promise<void> {
+  try {
+    this.loading = true;
+    const levels = await firstValueFrom(
+      this.academicService.getNiveauxByDepartement(departmentId)
+    );
+    this.createFormLevels = levels ?? [];
+  } catch (error) {
+    console.error('Error loading levels for create form:', error);
+    this.snackbarService.showError('Failed to load levels for selected department.');
+    this.error = 'Failed to load levels for selected department.';
+    this.createFormLevels = [];
+  } finally {
+    this.loading = false;
+  }
+}
 
   onEditClass(classe: Classe): void {
     this.editingClass = classe;
@@ -236,7 +242,7 @@ export class ClassManagementComponent implements OnInit {
   }
 
   async onSubmitForm(): Promise<void> {
-    if (!this.createForm.nom.trim() || !this.createFormDepartmentId || !this.createFormLevelId) {
+    if (!this.createForm.nom.trim() || !this.createFormDepartmentId || !this.createForm.niveauId) {
       this.snackbarService.showError('Class name, department, and level are required.');
       this.error = 'Class name, department, and level are required.';
       return;
@@ -263,7 +269,7 @@ export class ClassManagementComponent implements OnInit {
         await firstValueFrom(
           this.academicService.createClasseForNiveau(
             this.createFormDepartmentId, 
-            this.createFormLevelId, 
+            this.createForm.niveauId, 
             createClasseData
           )
         );
