@@ -161,7 +161,7 @@
     </div>
  
     <div class="commit-changes">
-      <div class="change-item" *ngFor="let change of getCommitDetails().changes">
+      <div class="change-item" *ngFor="let change of commitChanges">
         <div class="change-header" (click)="toggleFileDiff(change)">
           <div class="file-info">
             <i class="fas fa-file-code"></i>
@@ -244,5 +244,4 @@
     </div>
   </div>
 </div>
- 
  

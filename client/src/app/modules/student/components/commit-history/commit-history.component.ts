@@ -21,6 +21,7 @@ export class CommitHistoryComponent implements OnInit {
   // Modal for commit details
   showCommitDetails = false;
   selectedCommit: any = null;
+  commitChanges: any[] = []; // Store changes to maintain expanded state
  
   // Contributors filtering
   allCommits: any[] = []; // Store all commits for filtering
@@ -186,6 +187,24 @@ export class CommitHistoryComponent implements OnInit {
           });
         }
  
+        // Process files into changes format and store them
+        this.commitChanges = (commitDetails.files || []).map((file: any, index: number) => {
+          const change = {
+            file: file.filename || file.name || 'Unknown file',
+            type: file.status || 'modified',
+            additions: file.additions || 0,
+            deletions: file.deletions || 0,
+            isBinary: file.binary || false,
+            expanded: false,
+            diff: file.patch || 'No diff available',
+            size: file.size || 0
+          };
+ 
+          console.log(`Change ${index}:`, change);
+          return change;
+        });
+ 
+        console.log('Stored commitChanges:', this.commitChanges);
         this.showCommitDetails = true;
       },
       error: (error) => {
@@ -452,4 +471,3 @@ export class CommitHistoryComponent implements OnInit {
     return contributor ? contributor.name : this.selectedContributor;
   }
 }
- 
