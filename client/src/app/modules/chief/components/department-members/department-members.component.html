@@ -1,0 +1,28 @@
+<div class="department-members">
+  <h2>Department Members</h2>
+  
+  <!-- Loading State -->
+  <div *ngIf="loading" class="loading-container">
+    <div class="spinner"></div>
+    <p>Loading members...</p>
+  </div>
+
+  <!-- Error State -->
+  <div *ngIf="error && !loading" class="error-container">
+    <div class="error-message">
+      <i class="fas fa-exclamation-triangle"></i>
+      <p>{{ error }}</p>
+      <button class="retry-btn" (click)="loadMembers()">Try Again</button>
+    </div>
+  </div>
+
+  <!-- Members List -->
+  <div *ngIf="!loading && !error" class="members-list">
+    <div *ngFor="let member of members" class="member-card">
+      <h3>{{ member.fullName }}</h3>
+      <p>Email: {{ member.email }}</p>
+      <p>Role: {{ member.role }}</p>
+      <p>Status: {{ member.isActive ? 'Active' : 'Inactive' }}</p>
+    </div>
+  </div>
+</div>

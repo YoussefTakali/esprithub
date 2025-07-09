@@ -1,0 +1,46 @@
+/* Modern theme for User Management header and buttons */
+.create-btn {
+  background: #a71617;
+  color: #fff;
+  border: none;
+  padding: 12px 24px;
+  border-radius: 8px;
+  font-size: 14px;
+  font-weight: 600;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  box-shadow: 0 2px 8px rgba(220, 53, 69, 0.08);
+  transition: background 0.2s, box-shadow 0.2s;
+}
+.create-btn:hover:not(:disabled) {
+  background: #b71c2b;
+  box-shadow: 0 4px 16px rgba(220, 53, 69, 0.15);
+}
+.create-btn:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
+.dashboard-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 24px;
+  background: #fff;
+  padding: 24px 32px;
+  border-radius: 16px;
+  box-shadow: 0 2px 8px rgba(0,0,0,0.08);
+  margin-bottom: 32px;
+}
+
+.header-content {
+  flex: 1 1 auto;
+}
+
+.header-actions {
+display: flex;
+  gap: 1rem;
+  align-items: center;
+}

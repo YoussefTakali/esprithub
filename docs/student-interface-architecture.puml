@@ -1,0 +1,590 @@
+@startuml Student Interface Architecture
+
+!theme plain
+skinparam {
+  ClassBackgroundColor #ffffff
+  ClassBorderColor #6c757d
+  ClassHeaderBackgroundColor #f8f9fa
+  ArrowColor #495057
+  ArrowFontSize 10
+  ClassFontSize 10
+  PackageFontSize 12
+  PackageBackgroundColor #fff3cd
+  PackageBorderColor #ffc107
+}
+
+package "Frontend - Angular Student Module" #ffebee {
+  
+  package "Components" #fce4ec {
+    class StudentDashboardComponent {
+      +dashboard: StudentDashboard
+      +loading: boolean
+      +error: string
+      --
+      +loadDashboard(): void
+      +markNotificationAsRead(): void
+      +getPriorityColor(): string
+      +getNotificationIcon(): string
+      +getDaysUntilDeadline(): number
+      +formatDate(): string
+      +refresh(): void
+    }
+    
+    class StudentTasksComponent {
+      +tasks: StudentTask[]
+      +filteredTasks: StudentTask[]
+      +selectedFilter: string
+      +searchTerm: string
+      --
+      +loadTasks(): void
+      +applyFilters(): void
+      +updateTaskStatus(): void
+      +getTaskPriority(): string
+      +getPriorityColor(): string
+      +getStatusColor(): string
+      +isOverdue(): boolean
+      +refresh(): void
+    }
+    
+    class StudentProjectsComponent {
+      +projects: StudentProject[]
+      +filteredProjects: StudentProject[]
+      +searchTerm: string
+      --
+      +loadProjects(): void
+      +applyFilters(): void
+      +getDaysUntilDeadline(): number
+      +isOverdue(): boolean
+      +formatDate(): string
+      +refresh(): void
+    }
+    
+    class StudentGroupsComponent {
+      +groups: StudentGroup[]
+      +filteredGroups: StudentGroup[]
+      +searchTerm: string
+      --
+      +loadGroups(): void
+      +applyFilters(): void
+      +formatDate(): string
+      +refresh(): void
+    }
+    
+    class StudentSubmissionsComponent {
+      +submissions: StudentSubmission[]
+      --
+      +loadSubmissions(): void
+      +getStatusColor(): string
+      +formatDate(): string
+      +refresh(): void
+    }
+    
+    class StudentRepositoriesComponent {
+      +repositories: Repository[]
+      --
+      +loadRepositories(): void
+      +copyToClipboard(): void
+      +refresh(): void
+    }
+    
+    class StudentScheduleComponent {
+      +schedule: StudentSchedule[]
+      --
+      +loadSchedule(): void
+      +getTypeIcon(): string
+      +getTypeColor(): string
+      +formatDate(): string
+      +refresh(): void
+    }
+  }
+  
+  package "Services" #f3e5f5 {
+    class StudentService {
+      -apiUrl: string
+      -http: HttpClient
+      --
+      +getDashboard(): Observable<StudentDashboard>
+      +getTasks(): Observable<StudentTask[]>
+      +getTaskById(): Observable<StudentTask>
+      +updateTaskStatus(): Observable<void>
+      +getGroups(): Observable<StudentGroup[]>
+      +getProjects(): Observable<StudentProject[]>
+      +getSubmissions(): Observable<StudentSubmission[]>
+      +getRepositories(): Observable<Repository[]>
+      +getNotifications(): Observable<Notification[]>
+      +getSchedule(): Observable<StudentSchedule[]>
+      +markNotificationAsRead(): Observable<void>
+      +submitTask(): Observable<StudentSubmission>
+      +getProfile(): Observable<any>
+    }
+  }
+  
+  package "Interfaces/DTOs" #e8f5e8 {
+    interface StudentDashboard {
+      +activeTasks: number
+      +completedTasks: number
+      +totalGroups: number
+      +totalProjects: number
+      +upcomingDeadlines: TaskDeadline[]
+      +recentNotifications: Notification[]
+      +progressStats: ProgressStats
+    }
+    
+    interface StudentTask {
+      +id: string
+      +title: string
+      +description: string
+      +type: TaskAssignmentType
+      +dueDate: Date
+      +status: TaskStatus
+      +isGraded: boolean
+      +isVisible: boolean
+      +projectId?: string
+      +groupId?: string
+      +classId?: string
+    }
+    
+    interface StudentProject {
+      +id: string
+      +name: string
+      +description: string
+      +deadline: Date
+      +createdBy: string
+      +collaborators: Collaborator[]
+      +groups: StudentGroup[]
+      +tasks: StudentTask[]
+      +classes: ProjectClass[]
+    }
+    
+    interface StudentGroup {
+      +id: string
+      +name: string
+      +projectId: string
+      +projectName: string
+      +classId: string
+      +className: string
+      +members: GroupMember[]
+      +repository?: Repository
+    }
+    
+    interface StudentSubmission {
+      +id: string
+      +taskId: string
+      +taskTitle: string
+      +submittedAt: Date
+      +status: string
+      +grade?: number
+      +feedback?: string
+      +files: SubmissionFile[]
+    }
+    
+    interface Repository {
+      +id: string
+      +name: string
+      +fullName: string
+      +description?: string
+      +url: string
+      +isPrivate: boolean
+      +defaultBranch: string
+      +cloneUrl: string
+      +sshUrl: string
+      +isActive: boolean
+    }
+    
+    interface StudentSchedule {
+      +id: string
+      +title: string
+      +description?: string
+      +startTime: Date
+      +endTime: Date
+      +type: ScheduleType
+      +relatedId?: string
+      +location?: string
+    }
+  }
+  
+  package "Module Configuration" #e1f5fe {
+    class StudentModule {
+      +declarations: Component[]
+      +imports: Module[]
+      +routes: Routes[]
+      +exports: Component[]
+    }
+  }
+}
+
+package "Backend - Spring Boot Student API" #e8f5e8 {
+  
+  package "Controllers" #f3e5f5 {
+    class StudentController {
+      -studentService: StudentService
+      --
+      +getDashboard(): ResponseEntity<StudentDashboardDto>
+      +getTasks(): ResponseEntity<List<StudentTaskDto>>
+      +getTaskById(): ResponseEntity<StudentTaskDto>
+      +updateTaskStatus(): ResponseEntity<Void>
+      +getGroups(): ResponseEntity<List<StudentGroupDto>>
+      +getProjects(): ResponseEntity<List<StudentProjectDto>>
+      +getSubmissions(): ResponseEntity<List<StudentSubmission>>
+      +getRepositories(): ResponseEntity<List<Repository>>
+      +getNotifications(): ResponseEntity<List<Notification>>
+      +getSchedule(): ResponseEntity<List<StudentSchedule>>
+      +markNotificationAsRead(): ResponseEntity<Void>
+      +submitTask(): ResponseEntity<StudentSubmission>
+      +getProfile(): ResponseEntity<User>
+    }
+  }
+  
+  package "Services" #fce4ec {
+    interface StudentService {
+      +getDashboard(): StudentDashboardDto
+      +getTasks(): List<StudentTaskDto>
+      +getTaskById(): StudentTaskDto
+      +updateTaskStatus(): void
+      +getGroups(): List<StudentGroupDto>
+      +getProjects(): List<StudentProjectDto>
+      +getSubmissions(): List<StudentSubmission>
+      +getRepositories(): List<Repository>
+      +getNotifications(): List<Notification>
+      +getSchedule(): List<StudentSchedule>
+      +markNotificationAsRead(): void
+      +submitTask(): StudentSubmission
+      +getProfile(): User
+    }
+    
+    class StudentServiceImpl {
+      -taskRepository: TaskRepository
+      -groupRepository: GroupRepository
+      -projectRepository: ProjectRepository
+      -submissionRepository: SubmissionRepository
+      -repositoryRepository: RepositoryRepository
+      -userRepository: UserRepository
+      --
+      +getDashboard(): StudentDashboardDto
+      +getTasks(): List<StudentTaskDto>
+      +updateTaskStatus(): void
+      +getGroups(): List<StudentGroupDto>
+      +getProjects(): List<StudentProjectDto>
+      +getSubmissions(): List<StudentSubmission>
+      +getRepositories(): List<Repository>
+      +getNotifications(): List<Notification>
+      +getSchedule(): List<StudentSchedule>
+      +markNotificationAsRead(): void
+      +submitTask(): StudentSubmission
+      +getProfile(): User
+    }
+  }
+  
+  package "DTOs" #fff0f5 {
+    class StudentDashboardDto {
+      +activeTasks: int
+      +completedTasks: int
+      +totalGroups: int
+      +totalProjects: int
+      +upcomingDeadlines: List<TaskDeadlineDto>
+      +recentNotifications: List<NotificationDto>
+      +progressStats: ProgressStatsDto
+    }
+    
+    class StudentTaskDto {
+      +id: UUID
+      +title: String
+      +description: String
+      +type: TaskAssignmentType
+      +dueDate: LocalDateTime
+      +status: TaskStatus
+      +isGraded: Boolean
+      +isVisible: Boolean
+      +projectId: UUID
+      +projectName: String
+      +groupId: UUID
+      +groupName: String
+      +classId: UUID
+      +className: String
+    }
+    
+    class StudentGroupDto {
+      +id: UUID
+      +name: String
+      +projectId: UUID
+      +projectName: String
+      +classId: UUID
+      +className: String
+      +members: List<GroupMemberDto>
+      +repository: RepositoryDto
+      +createdAt: LocalDateTime
+    }
+    
+    class StudentProjectDto {
+      +id: UUID
+      +name: String
+      +description: String
+      +deadline: LocalDateTime
+      +createdBy: UUID
+      +createdByName: String
+      +collaborators: List<CollaboratorDto>
+      +groups: List<GroupSummaryDto>
+      +tasks: List<TaskSummaryDto>
+      +classes: List<ClassSummaryDto>
+    }
+  }
+}
+
+package "Backend - Core Entities" #e0f2f1 {
+  
+  package "Project Entities" #e8f5e8 {
+    class Task {
+      +id: UUID
+      +title: String
+      +description: String
+      +type: TaskAssignmentType
+      +dueDate: LocalDateTime
+      +status: TaskStatus
+      +graded: Boolean
+      +isVisible: Boolean
+      +project: Project
+      +groups: List<Group>
+      +assignedStudents: List<User>
+      +assignedClasses: List<Classe>
+      +submissions: List<Submission>
+    }
+    
+    class Project {
+      +id: UUID
+      +name: String
+      +description: String
+      +deadline: LocalDateTime
+      +createdBy: User
+      +collaborators: List<User>
+      +groups: List<Group>
+      +tasks: List<Task>
+      +classes: List<Classe>
+    }
+    
+    class Group {
+      +id: UUID
+      +name: String
+      +project: Project
+      +classe: Classe
+      +members: List<User>
+      +tasks: List<Task>
+      +repository: Repository
+      +submissions: List<Submission>
+    }
+    
+    class Submission {
+      +id: UUID
+      +task: Task
+      +student: User
+      +group: Group
+      +submittedAt: LocalDateTime
+      +status: SubmissionStatus
+      +grade: Double
+      +maxGrade: Double
+      +feedback: String
+      +gradedAt: LocalDateTime
+      +gradedBy: User
+      +isLate: Boolean
+      +attemptNumber: Integer
+      +files: List<SubmissionFile>
+      +notes: String
+      --
+      +isGraded(): boolean
+      +isPassing(): boolean
+      +getGradePercentage(): double
+      +addFile(): void
+      +removeFile(): void
+    }
+    
+    class SubmissionFile {
+      +id: UUID
+      +submission: Submission
+      +fileName: String
+      +originalName: String
+      +filePath: String
+      +fileSize: Long
+      +contentType: String
+      +fileUrl: String
+      +isActive: Boolean
+      --
+      +getFileExtension(): String
+      +getDisplaySize(): String
+    }
+  }
+  
+  package "Repository Entities" #f1f8e9 {
+    class Repository {
+      +id: UUID
+      +name: String
+      +fullName: String
+      +description: String
+      +url: String
+      +isPrivate: Boolean
+      +defaultBranch: String
+      +cloneUrl: String
+      +sshUrl: String
+      +isActive: Boolean
+      +owner: User
+      +groups: List<Group>
+      +codeVersions: List<CodeVersion>
+    }
+    
+    class CodeVersion {
+      +id: UUID
+      +repository: Repository
+      +commitSha: String
+      +commitMessage: String
+      +filePath: String
+      +fileContent: String
+      +fileSize: Long
+      +lineCount: Integer
+      +language: String
+      +branchName: String
+      +isBinary: Boolean
+      +encoding: String
+      +mimeType: String
+      +linesAdded: Integer
+      +linesDeleted: Integer
+      +linesModified: Integer
+      +tags: String
+      +status: VersionStatus
+      +author: User
+      +parentVersion: CodeVersion
+    }
+  }
+  
+  package "Academic Entities" #fff8e1 {
+    class User {
+      +id: UUID
+      +email: String
+      +firstName: String
+      +lastName: String
+      +role: UserRole
+      +githubToken: String
+      +githubUsername: String
+      +isActive: Boolean
+      +classe: Classe
+      +groups: List<Group>
+      +tasks: List<Task>
+      +submissions: List<Submission>
+      +ownedRepositories: List<Repository>
+    }
+    
+    class Classe {
+      +id: UUID
+      +nom: String
+      +description: String
+      +capacite: Integer
+      +code: String
+      +isActive: Boolean
+      +niveau: Niveau
+      +students: List<User>
+      +teachers: List<User>
+      +groups: List<Group>
+      +projects: List<Project>
+      +tasks: List<Task>
+    }
+    
+    class Niveau {
+      +id: UUID
+      +nom: String
+      +description: String
+      +annee: Integer
+      +code: String
+      +isActive: Boolean
+      +departement: Departement
+      +classes: List<Classe>
+      +courses: List<Course>
+    }
+  }
+}
+
+package "Security & Configuration" #f3e5f5 {
+  class SecurityConfig {
+    +filterChain(): SecurityFilterChain
+    +corsConfigurationSource(): CorsConfigurationSource
+  }
+  
+  class StudentSecurityRules {
+    +"/api/student/**" : hasRole('STUDENT')
+    +CORS: localhost:4200
+    +JWT: required
+  }
+}
+
+' Frontend Component Relationships
+StudentDashboardComponent --> StudentService
+StudentTasksComponent --> StudentService
+StudentProjectsComponent --> StudentService
+StudentGroupsComponent --> StudentService
+StudentSubmissionsComponent --> StudentService
+StudentRepositoriesComponent --> StudentService
+StudentScheduleComponent --> StudentService
+
+StudentService --> StudentDashboard
+StudentService --> StudentTask
+StudentService --> StudentProject
+StudentService --> StudentGroup
+StudentService --> StudentSubmission
+StudentService --> Repository
+StudentService --> StudentSchedule
+
+StudentModule --> StudentDashboardComponent
+StudentModule --> StudentTasksComponent
+StudentModule --> StudentProjectsComponent
+StudentModule --> StudentGroupsComponent
+StudentModule --> StudentSubmissionsComponent
+StudentModule --> StudentRepositoriesComponent
+StudentModule --> StudentScheduleComponent
+
+' Backend Service Relationships
+StudentController --> StudentService
+StudentServiceImpl --|> StudentService
+StudentController --> StudentDashboardDto
+StudentController --> StudentTaskDto
+StudentController --> StudentGroupDto
+StudentController --> StudentProjectDto
+
+' Entity Relationships
+Task ||--o{ Submission : "has submissions"
+User ||--o{ Submission : "submits"
+Group ||--o{ Submission : "group submissions"
+Submission ||--o{ SubmissionFile : "contains files"
+
+User }o--|| Classe : "belongs to"
+User }o--o{ Group : "member of"
+Group }o--|| Project : "belongs to"
+Group }o--|| Classe : "from class"
+Group ||--o| Repository : "has repository"
+
+Task }o--o{ Group : "assigned to"
+Task }o--o{ User : "assigned to"
+Task }o--|| Project : "belongs to"
+
+Repository }o--|| User : "owned by"
+Repository ||--o{ CodeVersion : "contains versions"
+
+' Frontend-Backend Communication
+StudentService ..> StudentController : "HTTP REST API"
+StudentDashboard ..> StudentDashboardDto : "maps to"
+StudentTask ..> StudentTaskDto : "maps to"
+StudentGroup ..> StudentGroupDto : "maps to"
+StudentProject ..> StudentProjectDto : "maps to"
+
+' Security Configuration
+SecurityConfig ..> StudentController : "protects"
+StudentSecurityRules ..> StudentController : "applies to"
+
+note top of StudentModule : "Angular Lazy-Loaded Module\nRed Theme (#a71617)\nMaterial Design Components"
+
+note top of StudentController : "REST API Endpoints\n@RequestMapping('/api/student')\n@PreAuthorize('hasRole('STUDENT')')"
+
+note top of Submission : "New Entity Created\nTracks student submissions\nSupports file uploads\nGrade management"
+
+note top of SubmissionFile : "New Entity Created\nFile metadata storage\nFile size utilities\nExtension detection"
+
+note right of StudentService : "HTTP Client Service\nProxy to localhost:8090\nObservable-based\nError handling"
+
+note bottom of SecurityConfig : "CORS: localhost:4200\nJWT Authentication\nRole-based Authorization\nStudent endpoints secured"
+
+@enduml

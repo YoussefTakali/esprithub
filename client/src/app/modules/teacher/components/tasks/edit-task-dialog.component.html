@@ -1,0 +1,24 @@
+<div mat-dialog-content>
+  <form [formGroup]="editTaskForm">
+    <mat-form-field appearance="fill" class="full-width">
+      <mat-label>Title</mat-label>
+      <input matInput formControlName="title" />
+    </mat-form-field>
+    <mat-form-field appearance="fill" class="full-width">
+      <mat-label>Description</mat-label>
+      <textarea matInput formControlName="description"></textarea>
+    </mat-form-field>
+    <mat-form-field appearance="fill" class="full-width">
+      <mat-label>Created At</mat-label>
+      <input matInput [matDatepicker]="picker" formControlName="createdAt" />
+      <mat-datepicker-toggle matSuffix [for]="picker"></mat-datepicker-toggle>
+      <mat-datepicker #picker></mat-datepicker>
+    </mat-form-field>
+    <mat-checkbox formControlName="visible">Visible</mat-checkbox>
+    <mat-checkbox formControlName="graded">Graded</mat-checkbox>
+  </form>
+</div>
+<div mat-dialog-actions align="end">
+  <button mat-button (click)="onCancel()">Cancel</button>
+  <button mat-flat-button color="primary" (click)="onSave()" [disabled]="editTaskForm.invalid">Save</button>
+</div>

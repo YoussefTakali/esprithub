@@ -1,0 +1,233 @@
+<div class="s-container" [class.visible]="isSidebarVisible">
+  <ul>
+    <!-- Links for ADMIN -->
+    <ng-container *ngIf="userRole === 'admin' || userRole === 'ADMIN'">
+      <!-- Admin Dashboard -->
+      <li class="s-link" [routerLink]="'/admin/dashboard'" routerLinkActive="active">
+        <div class="s-icon-container">
+          <i class="fas fa-tachometer-alt s-icon"></i>
+        </div>
+        <div class="s-link-text">Admin Dashboard</div>
+      </li>
+
+      <!-- User Management -->
+      <li class="s-link" [routerLink]="'/admin/users'" routerLinkActive="active">
+        <div class="s-icon-container">
+          <i class="fas fa-users-cog s-icon"></i>
+        </div>
+        <div class="s-link-text">Manage Users</div>
+      </li>
+
+      <!-- Department Management -->
+      <li class="s-link" [routerLink]="'/admin/departments'" routerLinkActive="active">
+        <div class="s-icon-container">
+          <i class="fas fa-building s-icon"></i>
+        </div>
+        <div class="s-link-text">Manage Departments</div>
+      </li>
+
+      <!-- Level Management -->
+      <li class="s-link" [routerLink]="'/admin/levels'" routerLinkActive="active">
+        <div class="s-icon-container">
+          <i class="fas fa-layer-group s-icon"></i>
+        </div>
+        <div class="s-link-text">Manage Levels</div>
+      </li>
+
+      <!-- Class Management -->
+      <li class="s-link" [routerLink]="'/admin/classes'" routerLinkActive="active">
+        <div class="s-icon-container">
+          <i class="fas fa-graduation-cap s-icon"></i>
+        </div>
+        <div class="s-link-text">Manage Classes</div>
+      </li>
+
+      <!-- Course Management -->
+      <li class="s-link" [routerLink]="'/admin/courses'" routerLinkActive="active">
+        <div class="s-icon-container">
+          <i class="fas fa-book s-icon"></i>
+        </div>
+        <div class="s-link-text">Course Management</div>
+      </li>
+
+      <!-- Academic Hierarchy -->
+      <li class="s-link" [routerLink]="'/admin/hierarchy'" routerLinkActive="active">
+        <div class="s-icon-container">
+          <i class="fas fa-sitemap s-icon"></i>
+        </div>
+        <div class="s-link-text">Academic Hierarchy</div>
+      </li>
+
+      <!-- AI Code Review -->
+    </ng-container>
+
+    <!-- Links for CHIEF -->
+    <ng-container *ngIf="userRole === 'chief' || userRole === 'CHIEF'">
+      <!-- Chief Dashboard -->
+      <li class="s-link" [routerLink]="'/chief/dashboard'" routerLinkActive="active">
+        <div class="s-icon-container">
+          <i class="fas fa-user-tie s-icon"></i>
+        </div>
+        <div class="s-link-text">Chief Dashboard</div>
+      </li>
+      <!-- My Department -->
+      <li class="s-link" [routerLink]="'/chief/department'" routerLinkActive="active">
+        <div class="s-icon-container">
+          <i class="fas fa-building s-icon"></i>
+        </div>
+        <div class="s-link-text">My Department</div>
+      </li>
+      <!-- Levels -->
+      <li class="s-link" [routerLink]="'/chief/levels'" routerLinkActive="active">
+        <div class="s-icon-container">
+          <i class="fas fa-layer-group s-icon"></i>
+        </div>
+        <div class="s-link-text">Levels</div>
+      </li>
+      <!-- Classes -->
+      <li class="s-link" [routerLink]="'/chief/classes'" routerLinkActive="active">
+        <div class="s-icon-container">
+          <i class="fas fa-graduation-cap s-icon"></i>
+        </div>
+        <div class="s-link-text">Classes</div>
+      </li>
+      <!-- Members -->
+      <li class="s-link" [routerLink]="'/chief/members'" routerLinkActive="active">
+        <div class="s-icon-container">
+          <i class="fas fa-users s-icon"></i>
+        </div>
+        <div class="s-link-text">Members</div>
+      </li>
+
+      <!-- Department Hierarchy -->
+      <li class="s-link" [routerLink]="'/chief/hierarchy'" routerLinkActive="active">
+        <div class="s-icon-container">
+          <i class="fas fa-sitemap s-icon"></i>
+        </div>
+        <div class="s-link-text">Department Hierarchy</div>
+      </li>
+
+      <!-- AI Code Review -->
+    </ng-container>
+
+    <!-- Links for TEACHER -->
+    <ng-container *ngIf="userRole === 'teacher' || userRole === 'TEACHER'">
+      <!-- Home -->
+      <li class="s-link" [routerLink]="'/'" routerLinkActive="active">
+        <div class="s-icon-container">
+          <img src="assets/home-agreement.png" class="s-icon" style="width:20px;height:20px" />
+        </div>
+        <div class="s-link-text">Home</div>
+      </li>
+
+      <!-- Specialties -->
+
+      <!-- Projects (teacher) -->
+      <li class="s-link" [routerLink]="'/teacher/projects'" routerLinkActive="active">
+        <div class="s-icon-container">
+          <i class="fas fa-folder-open s-icon"></i>
+        </div>
+        <div class="s-link-text">Projects</div>
+      </li>
+
+      <!-- Submissions -->
+      <li class="s-link" [routerLink]="'/submissions'" routerLinkActive="active">
+        <div class="s-icon-container">
+          <i class="fas fa-file-alt s-icon"></i>
+        </div>
+        <div class="s-link-text">Submissions</div>
+      </li>
+
+      <!-- Tasks (teacher) -->
+      <li class="s-link" [routerLink]="'/teacher/tasks'" routerLinkActive="active">
+        <div class="s-icon-container">
+          <i class="fas fa-tasks s-icon"></i>
+        </div>
+        <div class="s-link-text">Tasks</div>
+      </li>
+
+      <!-- My Repositories (teacher) -->
+      <li class="s-link" [routerLink]="'/teacher/repositories'" routerLinkActive="active">
+        <div class="s-icon-container">
+          <i class="fab fa-github s-icon"></i>
+        </div>
+        <div class="s-link-text">My Repositories</div>
+      </li>
+
+      <!-- AI Code Review -->
+      <li class="s-link" [routerLink]="'/ai-code-review'" routerLinkActive="active">
+        <div class="s-icon-container">
+          <i class="fas fa-robot s-icon"></i>
+        </div>
+        <div class="s-link-text">Assistant IA</div>
+      </li>
+    </ng-container>
+
+    <!-- Links for STUDENT -->
+    <ng-container *ngIf="userRole === 'student' || userRole === 'STUDENT'">
+      <!-- Student Dashboard -->
+      <li class="s-link" [routerLink]="'/student/dashboard'" routerLinkActive="active">
+        <div class="s-icon-container">
+          <i class="fas fa-tachometer-alt s-icon"></i>
+        </div>
+        <div class="s-link-text">Dashboard</div>
+      </li>
+
+      <!-- My Tasks/Assignments -->
+      <li class="s-link" [routerLink]="'/student/tasks'" routerLinkActive="active">
+        <div class="s-icon-container">
+          <i class="fas fa-tasks s-icon"></i>
+        </div>
+        <div class="s-link-text">My Tasks</div>
+      </li>
+
+      <!-- My Projects -->
+      <li class="s-link" [routerLink]="'/student/projects'" routerLinkActive="active">
+        <div class="s-icon-container">
+          <i class="fas fa-folder-open s-icon"></i>
+        </div>
+        <div class="s-link-text">My Projects</div>
+      </li>
+
+      <!-- My Groups -->
+      <li class="s-link" [routerLink]="'/student/groups'" routerLinkActive="active">
+        <div class="s-icon-container">
+          <i class="fas fa-users s-icon"></i>
+        </div>
+        <div class="s-link-text">My Groups</div>
+      </li>
+
+      <!-- Submissions -->
+      <li class="s-link" [routerLink]="'/student/submissions'" routerLinkActive="active">
+        <div class="s-icon-container">
+          <i class="fas fa-file-upload s-icon"></i>
+        </div>
+        <div class="s-link-text">Submissions</div>
+      </li>
+
+      <!-- Repositories -->
+      <li class="s-link" [routerLink]="'/student/repositories'" routerLinkActive="active">
+        <div class="s-icon-container">
+          <i class="fab fa-github s-icon"></i>
+        </div>
+        <div class="s-link-text">Repositories</div>
+      </li>
+
+      <!-- Schedule -->
+      <li class="s-link" [routerLink]="'/student/schedule'" routerLinkActive="active">
+        <div class="s-icon-container">
+          <i class="fas fa-calendar-alt s-icon"></i>
+        </div>
+        <div class="s-link-text">Schedule</div>
+      </li>
+
+      <!-- AI Code Review -->
+      <li class="s-link" [routerLink]="'/ai-code-review'" routerLinkActive="active">
+        <div class="s-icon-container">
+          <i class="fas fa-robot s-icon"></i>
+        </div>
+        <div class="s-link-text">Assistant IA</div>
+      </li>
+    </ng-container>
+  </ul>
+</div>

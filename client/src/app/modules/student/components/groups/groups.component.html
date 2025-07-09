@@ -1,0 +1,255 @@
+<div class="student-groups">
+  <div class="groups-header">
+    <div class="header-content">
+      <h1>My Groups</h1>
+      <p>Collaborate with your team members</p>
+    </div>
+    <button class="refresh-btn" (click)="refresh()" [disabled]="loading">
+      <i class="fas fa-sync-alt" [class.spinning]="loading"></i>
+      Refresh
+    </button>
+  </div>
+
+  <div class="search-section">
+    <div class="search-box">
+      <i class="fas fa-search"></i>
+      <input type="text" placeholder="Search groups..." [(ngModel)]="searchTerm" (input)="onSearchChange()">
+    </div>
+  </div>
+
+  <div *ngIf="loading" class="loading-container">
+    <div class="loading-spinner">
+      <i class="fas fa-spinner fa-spin"></i>
+      <p>Loading your groups...</p>
+    </div>
+  </div>
+
+  <div *ngIf="error" class="error-container">
+    <div class="error-message">
+      <i class="fas fa-exclamation-triangle"></i>
+      <p>{{ error }}</p>
+      <button class="retry-btn" (click)="loadGroups()">Try Again</button>
+    </div>
+  </div>
+
+  <div *ngIf="!loading && !error" class="groups-content">
+    <div *ngIf="filteredGroups.length === 0" class="empty-state">
+      <i class="fas fa-users"></i>
+      <h3>No groups found</h3>
+      <p>You haven't been assigned to any groups yet.</p>
+    </div>
+
+    <div *ngIf="filteredGroups.length > 0" class="groups-grid">
+      <div *ngFor="let group of filteredGroups" class="group-card">
+        <div class="group-header">
+          <h3>{{ group.name }}</h3>
+          <div class="group-meta">
+            <span class="project-name">{{ group.projectName }}</span>
+            <span class="class-name">{{ group.className }}</span>
+          </div>
+        </div>
+
+        <div class="group-content">
+          <div class="group-stats">
+            <div class="stat-item">
+              <i class="fas fa-users"></i>
+              <span>{{ group.totalMembers }} Members</span>
+            </div>
+            <div class="stat-item">
+              <i class="fas fa-tasks"></i>
+              <span>{{ group.totalTasks }} Tasks</span>
+            </div>
+            <div class="stat-item">
+              <i class="fas fa-check-circle"></i>
+              <span>{{ group.completedTasks }} Completed</span>
+            </div>
+          </div>
+
+          <div *ngIf="group.hasRepository" class="repository-section">
+            <h4><i class="fab fa-github"></i> Repository</h4>
+            <div class="repo-info">
+              <button class="repo-link" (click)="navigateToRepository(group.repositoryId)" 
+                      [disabled]="!group.repositoryId">
+                <i class="fab fa-github"></i>
+                <span>{{ group.repositoryName }}</span>
+                <i class="fas fa-external-link-alt"></i>
+              </button>
+            </div>
+          </div>
+
+          <div class="progress-section">
+            <h4>Progress</h4>
+            <div class="progress-bar">
+              <div class="progress-fill" [style.width.%]="group.completionRate"></div>
+              <span class="progress-text">{{ group.completionRate }}%</span>
+            </div>
+          </div>
+
+          <div *ngIf="group.myRole" class="role-section">
+            <h4>My Role</h4>
+            <span class="role-badge">{{ group.myRole }}</span>
+          </div>
+        </div>
+
+        <div class="group-footer">
+          <div class="created-date">
+            <i class="fas fa-calendar"></i>
+            <span>Created: {{ formatDate(group.createdAt) }}</span>
+          </div>
+          <div class="group-actions">
+            <button class="action-btn view-btn" (click)="viewGroupDetails(group.id)">
+              <i class="fas fa-eye"></i>
+              View
+            </button>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Group Details Modal -->
+  <div *ngIf="showDetails && selectedGroup" class="modal-overlay" (click)="closeDetails()" (keydown.escape)="closeDetails()">
+    <div class="modal-content" (click)="$event.stopPropagation()" (keydown)="$event.stopPropagation()">
+      <div class="modal-header">
+        <div class="modal-title">
+          <h2>{{ selectedGroup.name }}</h2>
+          <p class="group-subtitle">{{ selectedGroup.projectName }} - {{ selectedGroup.className }}</p>
+        </div>
+        <button class="close-btn" (click)="closeDetails()">
+          <i class="fas fa-times"></i>
+        </button>
+      </div>
+      
+      <div class="modal-body">
+        <div class="group-details-grid">
+          <!-- Basic Information -->
+          <div class="detail-section">
+            <h3><i class="fas fa-info-circle"></i> Group Information</h3>
+            <div class="detail-grid">
+              <div class="detail-item">
+                <strong>Group Name:</strong>
+                <span>{{ selectedGroup.name }}</span>
+              </div>
+              <div class="detail-item">
+                <strong>Project:</strong>
+                <span>{{ selectedGroup.projectName }}</span>
+              </div>
+              <div class="detail-item">
+                <strong>Class:</strong>
+                <span>{{ selectedGroup.className }}</span>
+              </div>
+              <div class="detail-item">
+                <strong>Total Members:</strong>
+                <span>{{ selectedGroup.totalMembers }}</span>
+              </div>
+              <div *ngIf="selectedGroup.myRole" class="detail-item">
+                <strong>My Role:</strong>
+                <span class="role-badge">{{ selectedGroup.myRole }}</span>
+              </div>
+              <div class="detail-item">
+                <strong>Created:</strong>
+                <span>{{ formatDate(selectedGroup.createdAt) }}</span>
+              </div>
+            </div>
+          </div>
+
+          <!-- Progress & Tasks -->
+          <div class="detail-section">
+            <h3><i class="fas fa-chart-line"></i> Progress & Tasks</h3>
+            <div class="progress-container">
+              <div class="progress-bar-large">
+                <div class="progress-fill" [style.width.%]="selectedGroup.completionRate"></div>
+                <span class="progress-text">{{ selectedGroup.completionRate }}%</span>
+              </div>
+              <div class="progress-stats">
+                <div class="stat-card">
+                  <div class="stat-value">{{ selectedGroup.totalTasks }}</div>
+                  <div class="stat-label">Total Tasks</div>
+                </div>
+                <div class="stat-card">
+                  <div class="stat-value">{{ selectedGroup.completedTasks }}</div>
+                  <div class="stat-label">Completed</div>
+                </div>
+                <div class="stat-card">
+                  <div class="stat-value">{{ selectedGroup.pendingTasks }}</div>
+                  <div class="stat-label">Pending</div>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <!-- Repository Information -->
+          <div *ngIf="selectedGroup.hasRepository" class="detail-section">
+            <h3><i class="fab fa-github"></i> Repository</h3>
+            <div class="repo-details">
+              <div class="repo-card">
+                <div class="repo-header">
+                  <i class="fab fa-github"></i>
+                  <h4>{{ selectedGroup.repositoryName }}</h4>
+                </div>
+                <div class="repo-stats">
+                  <div class="repo-stat">
+                    <i class="fas fa-code-branch"></i>
+                    <span>{{ selectedGroup.totalCommits }} commits</span>
+                  </div>
+                  <div class="repo-stat">
+                    <i class="fas fa-user-edit"></i>
+                    <span>{{ selectedGroup.myCommits }} my commits</span>
+                  </div>
+                </div>
+                <div class="repo-actions">
+                  <button class="btn btn-primary" (click)="navigateToRepository(selectedGroup.repositoryId)">
+                    <i class="fas fa-eye"></i>
+                    View Repository
+                  </button>
+                  <button class="btn btn-secondary" (click)="openRepositoryUrl(selectedGroup.repositoryUrl)">
+                    <i class="fab fa-github"></i>
+                    Open in GitHub
+                  </button>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <!-- No Repository -->
+          <div *ngIf="!selectedGroup.hasRepository" class="detail-section">
+            <h3><i class="fab fa-github"></i> Repository</h3>
+            <div class="no-repo-message">
+              <i class="fas fa-info-circle"></i>
+              <p>No repository has been assigned to this group yet.</p>
+            </div>
+          </div>
+
+          <!-- Activity & Status -->
+          <div class="detail-section">
+            <h3><i class="fas fa-activity"></i> Activity & Status</h3>
+            <div class="activity-grid">
+              <div class="activity-item">
+                <strong>Last Activity:</strong>
+                <span>{{ selectedGroup.lastActivity ? formatDate(selectedGroup.lastActivity) : 'No recent activity' }}</span>
+              </div>
+              <div class="activity-item">
+                <strong>Status:</strong>
+                <span class="status-badge" [class.active]="selectedGroup.currentStatus === 'ACTIVE'">
+                  {{ selectedGroup.currentStatus || 'Active' }}
+                </span>
+              </div>
+              <div class="activity-item">
+                <strong>Messages:</strong>
+                <span class="message-indicator" [class.unread]="selectedGroup.hasUnreadMessages">
+                  <i class="fas fa-envelope"></i>
+                  {{ selectedGroup.hasUnreadMessages ? 'Unread messages' : 'No unread messages' }}
+                </span>
+              </div>
+            </div>
+          </div>
+        </div>
+        <!-- Ajout du chat de groupe -->
+        <!-- <div class="detail-section">
+          <h3><i class="fas fa-comments"></i> Group Chat</h3>
+          <app-chat [roomId]="selectedGroup.id"></app-chat>
+        </div> -->
+      </div>
+    </div>
+  </div>
+</div>

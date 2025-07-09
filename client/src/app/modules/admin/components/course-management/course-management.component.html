@@ -1,0 +1,72 @@
+
+<div class="course-management-dashboard">
+  <!-- Header -->
+  <div class="dashboard-header">
+    <div class="header-content">
+      <h1>Course Management</h1>
+      <p>Manage courses for each level and department in a modern, card-based UI.</p>
+    </div>
+    <div class="header-actions">
+      <button class="create-btn" (click)="openCreateDialog()">
+        <i class="fas fa-plus"></i> Add Course
+      </button>
+    </div>
+  </div>
+
+  <!-- Loading State -->
+  <div *ngIf="loading" class="loading-container">
+    <div class="loading-spinner">
+      <i class="fas fa-spinner fa-spin"></i>
+      <p>Loading courses...</p>
+    </div>
+  </div>
+
+  <!-- Error State -->
+  <div *ngIf="error && !loading" class="error-container">
+    <div class="error-message">
+      <i class="fas fa-exclamation-triangle"></i>
+      <p>{{ error }}</p>
+      <button class="retry-btn" (click)="reload()">Try Again</button>
+    </div>
+  </div>
+
+  <!-- Filters -->
+  <div class="filter-bar">
+    <label for="departmentFilter">Department:</label>
+    <select id="departmentFilter" [(ngModel)]="selectedDepartmentId" (change)="onDepartmentChange(selectedDepartmentId)">
+      <option [value]="''">All Departments</option>
+      <option *ngFor="let dept of departments" [value]="dept.id">{{ dept.nom }}</option>
+    </select>
+    <label for="niveauFilter" style="margin-left:1rem;">Level:</label>
+    <select id="niveauFilter" [(ngModel)]="selectedNiveauId" (change)="onNiveauChange(selectedNiveauId)">
+      <option [value]="''">All Levels</option>
+      <option *ngFor="let niveau of niveaux" [value]="niveau.id">{{ niveau.nom }}</option>
+    </select>
+  </div>
+
+  <!-- Courses Grid -->
+  <div *ngIf="!loading && courses.length > 0" class="courses-grid">
+    <div *ngFor="let c of courses" class="course-card">
+      <div class="card-header">
+        <h3>{{ c.name }}</h3>
+        <div class="card-actions">
+          <button class="btn-edit" (click)="openEditDialog(c)"><i class="fas fa-edit"></i></button>
+          <button class="btn-delete" (click)="deleteCourse(c)"><i class="fas fa-trash"></i></button>
+        </div>
+      </div>
+      <div class="card-content">
+        <div class="detail-item"><span class="label">Description:</span> <span class="value">{{ c.description || 'No description' }}</span></div>
+        <div class="detail-item"><span class="label">Level:</span> <span class="value">{{ getNiveauName(c.niveauId) }}</span></div>
+        <div class="detail-item"><span class="label">Department:</span> <span class="value">{{ getDepartmentName() }}</span></div>
+      </div>
+    </div>
+  </div>
+
+  <!-- No Data State -->
+  <div *ngIf="!loading && !courses.length && selectedNiveauId" class="no-data">
+    <i class="fas fa-book-open"></i>
+    <h3>No courses found</h3>
+    <p>No courses found for this level.</p>
+    <button class="create-btn" (click)="openCreateDialog()"><i class="fas fa-plus"></i> Add Course</button>
+  </div>
+</div>

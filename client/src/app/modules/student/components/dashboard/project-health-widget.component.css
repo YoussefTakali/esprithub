@@ -1,0 +1,50 @@
+.project-health-widget {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  background: #fff;
+  border-radius: 16px;
+  box-shadow: 0 2px 12px rgba(0,0,0,0.07);
+  padding: 24px 18px 18px 18px;
+  margin-bottom: 24px;
+  min-width: 220px;
+  max-width: 320px;
+}
+
+.health-icon {
+  font-size: 3.2rem;
+  margin-bottom: 8px;
+  transition: filter 0.2s;
+}
+.health-icon.good { filter: none; }
+.health-icon.warning { filter: grayscale(0.5) brightness(1.1); }
+.health-icon.bad { filter: grayscale(1) brightness(0.8); }
+
+.health-label {
+  font-weight: 600;
+  font-size: 1.1rem;
+  margin-bottom: 8px;
+  color: #4f8cff;
+  text-align: center;
+}
+.health-label span {
+  display: block;
+}
+
+.health-details {
+  font-size: 0.98rem;
+  color: #444;
+  text-align: center;
+  margin-top: 6px;
+}
+
+@media (max-width: 600px) {
+  .project-health-widget {
+    padding: 14px 4px 10px 4px;
+    min-width: 140px;
+    max-width: 100vw;
+  }
+  .health-icon {
+    font-size: 2.1rem;
+  }
+} 

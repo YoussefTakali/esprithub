@@ -1,0 +1,125 @@
+<div class="repo-details-modal">
+  <div class="modal-header">
+    <div class="header-left">
+      <div class="repo-icon">
+        <i class="fab fa-github"></i>
+      </div>
+      <div class="repo-info">
+        <h2 class="repo-title">{{ data.repository.name }}</h2>
+        <p class="repo-full-name">{{ data.repository.fullName }}</p>
+      </div>
+    </div>
+    <button class="close-btn" (click)="onClose()" mat-icon-button>
+      <i class="fas fa-times"></i>
+    </button>
+  </div>
+
+  <div class="modal-content">
+    <!-- Repository Status -->
+    <div class="status-section">
+      <div class="status-badges">
+        <span class="status-badge" [class.private]="data.repository.isPrivate">
+          <i [class]="data.repository.isPrivate ? 'fas fa-lock' : 'fas fa-globe'"></i>
+          {{ data.repository.isPrivate ? 'Private' : 'Public' }}
+        </span>
+        <span class="status-badge active" *ngIf="data.repository.isActive">
+          <i class="fas fa-check-circle"></i>
+          Active
+        </span>
+        <span class="access-badge" [class.member]="data.repository.accessLevel === 'MEMBER'">
+          <i class="fas fa-shield-alt"></i>
+          {{ data.repository.accessLevel }}
+        </span>
+      </div>
+    </div>
+
+    <!-- Repository Description -->
+    <div class="description-section" *ngIf="data.repository.description">
+      <h3>Description</h3>
+      <p class="repo-description">{{ data.repository.description }}</p>
+    </div>
+
+    <!-- Repository Details -->
+    <div class="details-section">
+      <h3>Repository Details</h3>
+      <div class="details-grid">
+        <div class="detail-item">
+          <div class="detail-label"><i class="fas fa-user"></i> Owner</div>
+          <span>{{ data.repository.ownerName }}</span>
+        </div>
+        <div class="detail-item">
+          <div class="detail-label"><i class="fas fa-code-branch"></i> Default Branch</div>
+          <span>{{ data.repository.defaultBranch }}</span>
+        </div>
+        <div class="detail-item">
+          <div class="detail-label"><i class="fas fa-users"></i> Group</div>
+          <span>{{ data.repository.groupName }}</span>
+        </div>
+        <div class="detail-item" *ngIf="data.repository.projectName">
+          <div class="detail-label"><i class="fas fa-project-diagram"></i> Project</div>
+          <span>{{ data.repository.projectName }}</span>
+        </div>
+        <div class="detail-item">
+          <div class="detail-label"><i class="fas fa-calendar-plus"></i> Created</div>
+          <span>{{ formatDate(data.repository.createdAt) }}</span>
+        </div>
+        <div class="detail-item">
+          <div class="detail-label"><i class="fas fa-calendar-edit"></i> Last Updated</div>
+          <span>{{ formatDate(data.repository.updatedAt) }}</span>
+        </div>
+      </div>
+    </div>
+
+    <!-- Clone URLs Section -->
+    <div class="clone-section">
+      <h3>Clone Repository</h3>
+      <div class="clone-options">
+        <div class="clone-option">
+          <div class="clone-label">HTTPS</div>
+          <div class="clone-input-group">
+            <input type="text" [value]="data.repository.cloneUrl" readonly class="clone-input">
+            <button class="copy-btn" (click)="copyToClipboard(data.repository.cloneUrl)" mat-icon-button>
+              <i class="fas fa-copy"></i>
+            </button>
+          </div>
+        </div>
+        <div class="clone-option" *ngIf="data.repository.sshUrl">
+          <div class="clone-label">SSH</div>
+          <div class="clone-input-group">
+            <input type="text" [value]="data.repository.sshUrl" readonly class="clone-input">
+            <button class="copy-btn" (click)="copyToClipboard(data.repository.sshUrl)" mat-icon-button>
+              <i class="fas fa-copy"></i>
+            </button>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Permissions Section -->
+    <div class="permissions-section">
+      <h3>Your Permissions</h3>
+      <div class="permissions-list">
+        <div class="permission-item" [class.allowed]="data.repository.canPull">
+          <i [class]="data.repository.canPull ? 'fas fa-check-circle' : 'fas fa-times-circle'"></i>
+          <span>Pull/Read Access</span>
+        </div>
+        <div class="permission-item" [class.allowed]="data.repository.canPush">
+          <i [class]="data.repository.canPush ? 'fas fa-check-circle' : 'fas fa-times-circle'"></i>
+          <span>Push/Write Access</span>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Modal Actions -->
+  <div class="modal-actions">
+    <button class="action-btn secondary" (click)="onClose()">
+      <i class="fas fa-times"></i>
+      Close
+    </button>
+    <button class="action-btn primary" (click)="openGitHub()">
+      <i class="fab fa-github"></i>
+      Open on GitHub
+    </button>
+  </div>
+</div>

@@ -1,0 +1,44 @@
+<div class="github-callback-container">
+  <!-- Loading State -->
+  <div class="callback-card" *ngIf="isLoading">
+    <div class="loading-content">
+      <div class="github-icon">
+        <i class="fab fa-github"></i>
+      </div>
+      <h2>Connecting to GitHub</h2>
+      <p>Please wait while we link your GitHub account...</p>
+      <div class="loading-spinner">
+        <i class="fas fa-spinner fa-spin"></i>
+      </div>
+      <div class="user-info">
+        <small>Linking GitHub to: <strong>{{ userEmail }}</strong></small>
+      </div>
+    </div>
+  </div>
+
+  <!-- Error State -->
+  <div class="callback-card error-card" *ngIf="!isLoading && errorMessage">
+    <div class="error-content">
+      <div class="error-icon">
+        <i class="fas fa-exclamation-triangle"></i>
+      </div>
+      <h2>GitHub Link Failed</h2>
+      <p class="error-message">{{ errorMessage }}</p>
+      
+      <div class="error-actions">
+        <button class="retry-btn" (click)="retryGitHubLink()">
+          <i class="fab fa-github"></i>
+          Try Again
+        </button>
+        <button class="back-btn" (click)="goBackToLogin()">
+          <i class="fas fa-arrow-left"></i>
+          Back to Login
+        </button>
+      </div>
+      
+      <div class="help-text">
+        <p><strong>Note:</strong> GitHub authentication is required to access EspritHub. Your GitHub email must match your Esprit email ({{ userEmail }})</p>
+      </div>
+    </div>
+  </div>
+</div>

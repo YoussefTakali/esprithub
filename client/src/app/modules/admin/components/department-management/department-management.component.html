@@ -1,0 +1,234 @@
+<div class="department-management student-dashboard">
+  <!-- Header -->
+  <div class="dashboard-header">
+    <div class="header-content">
+      <h1>Department Management</h1>
+      <p>Manage all academic departments and their specialities.</p>
+    </div>
+    <div style="display: flex; gap: 0.5rem; align-items: center;">
+      <button class="refresh-btn" (click)="loadData()" [disabled]="loading">
+        <i class="fas fa-sync-alt" [class.spinning]="loading"></i>
+        Refresh
+      </button>
+      <button class="create-btn" (click)="onCreateDepartment()" [disabled]="saving">
+        <i class="fas fa-plus"></i>
+        Create Department
+      </button>
+    </div>
+  </div>
+
+  <!-- Loading State -->
+  <div *ngIf="loading" class="loading-container">
+    <div class="loading-spinner">
+      <i class="fas fa-spinner fa-spin"></i>
+      <p>Loading departments...</p>
+    </div>
+  </div>
+
+  <!-- Error State -->
+  <div *ngIf="error && !loading" class="error-container">
+    <div class="error-message">
+      <i class="fas fa-exclamation-triangle"></i>
+      <p>{{ error }}</p>
+      <button class="retry-btn" (click)="loadData()">Try Again</button>
+    </div>
+  </div>
+
+  <!-- Create/Edit Form -->
+  <div *ngIf="showCreateForm" class="form-overlay">
+    <div class="form-container">
+      <div class="form-header">
+        <h2>{{ editingDepartment ? 'Edit Department' : 'Create Department' }}</h2>
+        <button class="close-btn" (click)="onCancelForm()" [disabled]="saving">
+          <i class="fas fa-times"></i>
+        </button>
+      </div>
+
+      <form (ngSubmit)="onSubmitForm()" class="department-form">
+        <div class="form-group">
+          <label for="name">Department Name *</label>
+          <input
+            id="name"
+            type="text"
+            [(ngModel)]="createForm.nom"
+            name="nom"
+            placeholder="Enter department name"
+            required
+            [disabled]="saving"
+            class="form-input">
+        </div>
+
+        <div class="form-row">
+          <div class="form-group">
+            <label for="speciality">Speciality *</label>
+            <select
+              id="speciality"
+              [(ngModel)]="createForm.specialite"
+              name="specialite"
+              required
+              [disabled]="saving"
+              class="form-select">
+              <option *ngFor="let speciality of specialities" [value]="speciality">
+                {{ getSpecialityDisplayName(speciality) }}
+              </option>
+            </select>
+          </div>
+
+          <div class="form-group">
+            <label for="typeFormation">Type of Formation *</label>
+            <select
+              id="typeFormation"
+              [(ngModel)]="createForm.typeFormation"
+              name="typeFormation"
+              required
+              [disabled]="saving"
+              class="form-select">
+              <option *ngFor="let typeFormation of typeFormations" [value]="typeFormation">
+                {{ getTypeFormationDisplayName(typeFormation) }}
+              </option>
+            </select>
+          </div>
+        </div>
+
+        <div class="form-group">
+          <label for="description">Description</label>
+          <textarea
+            id="description"
+            [(ngModel)]="createForm.description"
+            name="description"
+            placeholder="Enter department description"
+            rows="3"
+            [disabled]="saving"
+            class="form-textarea"></textarea>
+        </div>
+
+        <div class="form-actions">
+          <button 
+            type="button" 
+            class="cancel-btn" 
+            (click)="onCancelForm()" 
+            [disabled]="saving">
+            Cancel
+          </button>
+          <button 
+            type="submit" 
+            class="submit-btn" 
+            [disabled]="saving || !createForm.nom.trim()">
+            <i *ngIf="saving" class="fas fa-spinner fa-spin"></i>
+            {{ editingDepartment ? 'Update' : 'Create' }} Department
+          </button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <!-- Departments List -->
+  <div *ngIf="!loading && !error" class="departments-container">
+    <div class="filter-bar">
+      <input type="text" placeholder="Search by name or code..." [(ngModel)]="searchTerm" (input)="filterDepartments()" class="search-input" />
+    </div>
+    <div *ngIf="filteredDepartments.length === 0" class="no-data">
+      <i class="fas fa-building"></i>
+      <h3>No departments found</h3>
+      <p *ngIf="selectedDepartmentId; else noDepartmentsMessage">No departments found for the selected filter.</p>
+      <ng-template #noDepartmentsMessage><p>Get started by creating your first department.</p></ng-template>
+      <button class="create-btn" (click)="onCreateDepartment()"><i class="fas fa-plus"></i> Create Department</button>
+    </div>
+
+    <div *ngIf="filteredDepartments.length > 0" class="departments-grid">
+      <div *ngFor="let department of filteredDepartments" class="department-card">
+        <div class="card-header">
+          <div class="department-info">
+            <h3>{{ department.nom }}</h3>
+            <span class="department-code">{{ department.code }}</span>
+          </div>
+          <div class="card-actions">
+            <button 
+              class="action-btn edit" 
+              (click)="onEditDepartment(department)"
+              [disabled]="saving"
+              title="Edit department">
+              <i class="fas fa-edit"></i>
+            </button>
+            <button 
+              class="action-btn delete" 
+              (click)="onDeleteDepartment(department)"
+              [disabled]="saving"
+              title="Delete department">
+              <i class="fas fa-trash"></i>
+            </button>
+          </div>
+        </div>
+
+        <div class="card-content">
+          <div class="department-details">
+            <div class="detail-item">
+              <span class="label">Speciality:</span>
+              <span class="value">{{ getSpecialityDisplayName(department.specialite) }}</span>
+            </div>
+            <div class="detail-item">
+              <span class="label">Formation:</span>
+              <span class="value">{{ getTypeFormationDisplayName(department.typeFormation) }}</span>
+            </div>
+            <div class="detail-item">
+              <span class="label">Academic Levels:</span>
+              <span class="value">{{ department.totalNiveaux }}</span>
+            </div>
+          </div>
+
+          <div class="description" *ngIf="department.description">
+            <p>{{ department.description }}</p>
+          </div>
+        </div>
+
+        <div class="card-footer">
+          <div class="status-section">
+            <span class="status-label">Status:</span>
+            <span class="status-badge" [class.active]="department.isActive" [class.inactive]="!department.isActive">
+              {{ department.isActive ? 'Active' : 'Inactive' }}
+            </span>
+            <button 
+              class="toggle-status-btn" 
+              (click)="onToggleActiveStatus(department)"
+              [disabled]="saving"
+              [title]="department.isActive ? 'Deactivate department' : 'Activate department'">
+              {{ department.isActive ? 'Deactivate' : 'Activate' }}
+            </button>
+          </div>
+
+          <div class="chief-section">
+            <span class="chief-label">Department Chief:</span>
+            <div *ngIf="department.chiefName; else noChief" class="chief-info">
+              <span class="chief-name">{{ department.chiefName }}</span>
+              <span class="chief-email">({{ department.chiefEmail }})</span>
+              <button 
+                class="remove-chief-btn" 
+                (click)="onRemoveChief(department)"
+                [disabled]="saving"
+                title="Remove chief">
+                <i class="fas fa-times"></i>
+              </button>
+            </div>
+            <ng-template #noChief>
+              <div class="no-chief">
+                <span class="no-chief-text">No chief assigned</span>
+                <select 
+                  class="chief-select" 
+                  (change)="onAssignChief(department, $any($event.target).value)"
+                  [disabled]="saving || availableChiefs.length === 0"
+                  defaultValue="">
+                  <option value="" disabled>
+                    {{ availableChiefs.length > 0 ? 'Select a chief' : 'No available chiefs' }}
+                  </option>
+                  <option *ngFor="let chief of availableChiefs" [value]="chief.id">
+                    {{ chief.fullName }} ({{ chief.email }})
+                  </option>
+                </select>
+              </div>
+            </ng-template>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>

@@ -1,0 +1,70 @@
+<div class="dashboard-container">
+  <app-navbar></app-navbar>
+  
+  <div class="dashboard-content">
+    <div class="welcome-section">
+      <h1>Welcome to EspritHub Dashboard</h1>
+      <div class="user-info" *ngIf="user">
+        <div class="user-card">
+          <div class="user-avatar">
+            <i class="fas fa-user-circle"></i>
+          </div>
+          <div class="user-details">
+            <h2>{{ user.firstName }} {{ user.lastName }}</h2>
+            <p class="user-email">{{ user.email }}</p>
+            <span class="user-role">{{ user.role }}</span>
+            <div class="github-status" *ngIf="user.hasGithubToken">
+              <i class="fab fa-github"></i>
+              <span>GitHub Connected</span>
+              <span class="github-username" *ngIf="user.githubUsername">@{{ user.githubUsername }}</span>
+            </div>
+            <div class="github-status no-github" *ngIf="!user.hasGithubToken">
+              <i class="fab fa-github"></i>
+              <span>GitHub Not Connected</span>
+              <button class="btn-link-github" (click)="linkGitHub()">Link GitHub Account</button>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="dashboard-features">
+      <div class="feature-card">
+        <div class="feature-icon">
+          <i class="fas fa-code"></i>
+        </div>
+        <h3>Projects</h3>
+        <p>Manage your projects and repositories</p>
+        <button class="feature-btn" disabled>Coming Soon</button>
+      </div>
+
+      <div class="feature-card">
+        <div class="feature-icon">
+          <i class="fas fa-users"></i>
+        </div>
+        <h3>Collaboration</h3>
+        <p>Work with your team members</p>
+        <button class="feature-btn" disabled>Coming Soon</button>
+      </div>
+
+      <div class="feature-card">
+        <div class="feature-icon">
+          <i class="fas fa-chart-line"></i>
+        </div>
+        <h3>Analytics</h3>
+        <p>Track your progress and performance</p>
+        <button class="feature-btn" disabled>Coming Soon</button>
+      </div>
+    </div>
+
+    <div class="quick-actions">
+      <h3>Quick Actions</h3>
+      <div class="actions-grid">
+        <button class="action-btn" (click)="logout()">
+          <i class="fas fa-sign-out-alt"></i>
+          Logout
+        </button>
+      </div>
+    </div>
+  </div>
+</div>

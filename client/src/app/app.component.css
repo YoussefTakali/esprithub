@@ -1,0 +1,68 @@
+/* Global styles for app component */
+* {
+  margin: 0;
+  padding: 0;
+  box-sizing: border-box;
+}
+
+body {
+  font-family: "Poppins", sans-serif;
+  background: #f8f9fa;
+}
+
+/* Import Google Fonts */
+@import url('https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700&family=Climate+Crisis&display=swap');
+@import url('https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css');
+
+/* Main layout styles */
+.main-content {
+  margin-top: 7.2vh; /* Account for fixed navbar height */
+  padding: 0;
+  transition: margin-left 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+  min-height: calc(100vh - 7.2vh);
+  position: relative;
+  z-index: 1; /* Below navbar and sidebar */
+}
+
+/* When sidebar is open on desktop */
+@media (min-width: 738px) {
+  .main-content.sidebar-open {
+    margin-left: 311px; /* Match sidebar width */
+  }
+}
+
+/* Sidebar backdrop for mobile */
+.sidebar-backdrop {
+  display: none;
+  position: fixed;
+  top: 7.2vh; /* Start below navbar */
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background-color: rgba(0, 0, 0, 0.3);
+  z-index: 999; /* Below sidebar but above content */
+  opacity: 0;
+  transition: opacity 0.3s ease;
+  pointer-events: none;
+  border: none;
+  padding: 0;
+  cursor: pointer;
+}
+
+.sidebar-backdrop.visible {
+  opacity: 1;
+  pointer-events: auto;
+}
+
+/* Show backdrop on mobile when sidebar is visible */
+@media (max-width: 737px) {
+  .sidebar-backdrop.visible {
+    display: block;
+  }
+}
+
+/* Ensure router-outlet content flows properly */
+router-outlet + * {
+  display: block;
+  width: 100%;
+}

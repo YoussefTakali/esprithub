@@ -1,0 +1,191 @@
+/* GitHub Callback Component Styles */
+.github-callback-container {
+  min-height: 100vh;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  background: linear-gradient(135deg, #f8f9fa 0%, #e9ecef 100%);
+  padding: 2rem;
+}
+
+.callback-card {
+  background: white;
+  border-radius: 16px;
+  padding: 3rem;
+  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.1);
+  text-align: center;
+  max-width: 500px;
+  width: 100%;
+  border: 1px solid rgba(0, 0, 0, 0.05);
+}
+
+.error-card {
+  border-left: 4px solid #a71617;
+}
+
+/* Loading Content */
+.loading-content {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 1.5rem;
+}
+
+.github-icon {
+  font-size: 4rem;
+  color: #24292e;
+  animation: pulse 2s infinite;
+}
+
+.loading-content h2 {
+  color: #041b2a;
+  font-size: 1.8rem;
+  font-weight: 600;
+  margin: 0;
+}
+
+.loading-content p {
+  color: #666;
+  font-size: 1rem;
+  margin: 0;
+}
+
+.loading-spinner {
+  font-size: 2rem;
+  color: #C9190D;
+}
+
+.user-info {
+  background: #f8f9fa;
+  padding: 1rem;
+  border-radius: 8px;
+  margin-top: 1rem;
+}
+
+.user-info small {
+  color: #495057;
+  font-size: 0.9rem;
+}
+
+/* Error Content */
+.error-content {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 1.5rem;
+}
+
+.error-icon {
+  font-size: 3rem;
+  color: #a71617;
+}
+
+.error-content h2 {
+  color: #a71617;
+  font-size: 1.6rem;
+  font-weight: 600;
+  margin: 0;
+}
+
+.error-message {
+  color: #495057;
+  font-size: 1rem;
+  line-height: 1.5;
+  margin: 0;
+  padding: 1rem;
+  background: #f8d7da;
+  border: 1px solid #f5c6cb;
+  border-radius: 8px;
+  width: 100%;
+}
+
+/* Action Buttons */
+.error-actions {
+  display: flex;
+  gap: 1rem;
+  flex-wrap: wrap;
+  justify-content: center;
+  width: 100%;
+}
+
+.retry-btn, .back-btn {
+  padding: 0.8rem 1.5rem;
+  border: none;
+  border-radius: 8px;
+  font-size: 0.9rem;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  min-width: 140px;
+  justify-content: center;
+}
+
+.retry-btn {
+  background: #24292e;
+  color: white;
+}
+
+.retry-btn:hover {
+  background: #1a1e22;
+  transform: translateY(-2px);
+}
+
+.back-btn {
+  background: #6c757d;
+  color: white;
+}
+
+.back-btn:hover {
+  background: #545b62;
+  transform: translateY(-2px);
+}
+
+/* Help Text */
+.help-text {
+  background: #d1ecf1;
+  border: 1px solid #bee5eb;
+  border-radius: 8px;
+  padding: 1rem;
+  margin-top: 1rem;
+}
+
+.help-text p {
+  color: #0c5460;
+  font-size: 0.85rem;
+  margin: 0;
+  line-height: 1.4;
+}
+
+/* Animations */
+@keyframes pulse {
+  0%, 100% {
+    transform: scale(1);
+    opacity: 1;
+  }
+  50% {
+    transform: scale(1.05);
+    opacity: 0.8;
+  }
+}
+
+/* Responsive */
+@media (max-width: 768px) {
+  .github-callback-container {
+    padding: 1rem;
+  }
+  
+  .callback-card {
+    padding: 2rem;
+  }
+  
+  .error-actions {
+    flex-direction: column;
+  }
+  
+  .retry-btn, .back-btn {
+    width: 100%;
+  }
+}

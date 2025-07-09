@@ -1,0 +1,23 @@
+/* Add any main layout-specific styles here */
+
+.main-content {
+  padding-top: 64px; /* Adjust to match navbar height */
+  transition: margin-left 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+  margin-left: 0;
+}
+
+.sidebar-open.main-content {
+  margin-left: 311px; /* Match sidebar width */
+}
+
+@media (max-width: 737px) {
+  .sidebar-open.main-content {
+    margin-left: 0;
+  }
+}
+
+@media (max-width: 600px) {
+  .main-content {
+    padding-top: 56px; /* For mobile, if navbar is shorter */
+  }
+}

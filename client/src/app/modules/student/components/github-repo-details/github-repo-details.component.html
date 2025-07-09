@@ -1,0 +1,898 @@
+<div class="repository-dashboard" *ngIf="repository && !loading && !error">
+  <!-- Header -->
+  <div class="dashboard-header">
+    <div class="header-left">
+      <button class="back-btn" (click)="goBack()">
+        <i class="fas fa-arrow-left"></i>
+        Back to Repositories
+      </button>
+      <div class="repo-info">
+        <i class="fas fa-folder folder-icon"></i>
+        <span class="repo-label">Public repository</span>
+        <h1 class="repo-path">{{ repository.owner?.login }}/{{ repository.name }}</h1>
+      </div>
+    </div>
+    <div class="header-right">
+      <div class="header-actions">
+        <!-- Buttons moved to branch selector area -->
+      </div>
+    </div>
+  </div>
+
+  <!-- View Commit History Button -->
+  <div class="commit-history-section">
+    <button class="view-commit-history-btn" (click)="showCommitHistoryView()">
+      <i class="fas fa-history"></i>
+      View Commit History
+    </button>
+  </div>
+
+  <!-- Tab Navigation -->
+  <div class="tab-navigation">
+    <div class="nav-tabs">
+      <button class="nav-tab" 
+              [class.active]="activeTab === 'code'"
+              (click)="setActiveTab('code')">
+        <i class="fas fa-code"></i>
+        Code
+      </button>
+      <button class="nav-tab" 
+              [class.active]="activeTab === 'statistics'"
+              (click)="setActiveTab('statistics')">
+        <i class="fas fa-chart-line"></i>
+        Statistics
+      </button>
+    </div>
+
+  </div>
+
+  <!-- Code View -->
+  <div class="code-content" *ngIf="activeTab === 'code'">
+    <!-- GitHub-style Repository Header -->
+    <div class="github-repo-header">
+        <div class="repo-actions-bar">
+          <div class="branch-selector">
+            <i class="fas fa-code-branch"></i>
+            <span class="branch-label">Branch:</span>
+            <select class="github-branch-select" [(ngModel)]="currentBranch" (change)="switchBranch(currentBranch)" [disabled]="branchSwitching">
+              <option *ngFor="let branch of getAllBranches()" [value]="branch.name">{{ branch.name }}</option>
+            </select>
+            <i class="fas fa-spinner fa-spin" *ngIf="branchSwitching" style="margin-left: 8px; color: #dc2626;"></i>
+          </div>
+
+          <div class="action-buttons">
+            <input type="file"
+                   #fileInput
+                   multiple
+                   (change)="onFileSelect($event)"
+                   style="display: none;">
+            <button class="btn btn-danger" (click)="fileInput.click()">
+              <i class="fas fa-plus"></i>
+              Add file
+            </button>
+            <button class="btn btn-danger" (click)="openCloneModal()">
+              <i class="fas fa-code"></i>
+              Code
+            </button>
+          </div>
+        </div>
+      </div>
+
+    <!-- Repository Layout Container -->
+    <div class="repository-layout">
+      <div class="main-content">
+
+      <!-- Latest Commit Info - Horizontal Above Everything -->
+      <div class="latest-commit-horizontal" *ngIf="latestCommit">
+        <span class="commit-info-text">{{ latestCommit.message || 'Add files via upload' }}</span>
+        <span class="commit-info-text">{{ latestCommit.author || getDefaultCommitter() }}</span>
+        <span class="commit-info-text">{{ latestCommit.date }}</span>
+      </div>
+
+      <!-- File Browser -->
+      <div class="file-browser">
+        <!-- Drag and Drop Upload Area -->
+        <!-- Upload progress overlay -->
+        <div class="upload-progress-overlay" *ngIf="isUploading">
+          <div class="upload-progress">
+            <div class="upload-spinner">
+              <i class="fas fa-spinner fa-spin"></i>
+            </div>
+            <h3>Uploading files...</h3>
+            <p>Please wait while your files are being uploaded to the repository.</p>
+          </div>
+        </div>
+
+        <!-- File List View -->
+        <div *ngIf="!isViewingFile">
+          <div class="file-browser-header">
+            <div class="breadcrumb-nav" *ngIf="currentPath.length > 0">
+              <button class="breadcrumb-btn" (click)="navigateToRoot()">
+                <i class="fas fa-home"></i>
+                Repository
+              </button>
+              <span class="breadcrumb-separator">/</span>
+              <span class="breadcrumb-item" *ngFor="let path of currentPath; let i = index">
+                <button class="breadcrumb-btn" (click)="navigateToPath(i)">{{ path }}</button>
+                <span class="breadcrumb-separator" *ngIf="i < currentPath.length - 1">/</span>
+              </span>
+            </div>
+          </div>
+
+
+
+          <!-- GitHub-style File Table -->
+          <div class="github-file-table">
+            <div class="file-table-header">
+              <div class="header-cell name-header">NAME</div>
+              <div class="header-cell message-header">COMMIT MESSAGE</div>
+              <div class="header-cell committer-header">COMMITTER</div>
+              <div class="header-cell date-header">UPDATED</div>
+            </div>
+
+            <div class="file-table-body">
+              <div class="file-row" *ngFor="let file of repositoryFiles"
+                   (click)="onFileClick(file)"
+                   (keyup.enter)="onFileClick(file)"
+                   tabindex="0"
+                   role="button"
+                   [attr.aria-label]="'Open ' + file.name">
+
+                <div class="file-cell name-cell">
+                  <div class="file-icon">
+                    <i [class]="getFileIcon(file.type)"
+                       [style.color]="getFileIconColor(file.name, file.type)"></i>
+                  </div>
+                  <span class="file-name">{{ file.name }}</span>
+                  <i class="fas fa-chevron-right file-arrow" *ngIf="file.type === 'dir'"></i>
+                </div>
+
+                <div class="file-cell message-cell">
+                  <span class="file-commit-message">{{ file.message || 'Add files via upload' }}</span>
+                </div>
+
+                <div class="file-cell committer-cell">
+                  <span class="file-committer-name">{{ file.committer }}</span>
+                </div>
+
+                <div class="file-cell date-cell">
+                  <span class="file-date">{{ file.lastModified }}</span>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Repository Description Section -->
+        <div class="repository-description-section" *ngIf="!isViewingFile">
+          <div class="description-header">
+            <div class="description-title">
+              <i class="fas fa-book"></i>
+              <span>REPOSITORY DESCRIPTION</span>
+            </div>
+            <button class="btn btn-danger btn-sm" (click)="toggleDescriptionEdit()" *ngIf="!isEditingDescription">
+              Edit
+            </button>
+          </div>
+
+          <div class="description-content" *ngIf="!isEditingDescription">
+            <div class="no-description" *ngIf="!repositoryDescription">
+              <div class="readme-icon">
+                <i class="fas fa-book"></i>
+              </div>
+              <h3>Add a README</h3>
+              <p class="no-description-subtitle">Help people interested in this repository understand your project by adding a README.</p>
+              <button class="btn btn-success" (click)="toggleDescriptionEdit()">
+                Add a README
+              </button>
+            </div>
+            <div class="description-text" *ngIf="repositoryDescription">
+              <p>{{ repositoryDescription }}</p>
+            </div>
+          </div>
+
+          <div class="description-edit" *ngIf="isEditingDescription">
+            <textarea
+              class="description-textarea"
+              [(ngModel)]="editingDescriptionText"
+              placeholder="Add a description to help others understand what this repository is about."
+              rows="4">
+            </textarea>
+            <div class="description-actions">
+              <button class="btn btn-success" (click)="saveDescription()">
+                Save
+              </button>
+              <button class="btn btn-secondary" (click)="cancelDescriptionEdit()">
+                Cancel
+              </button>
+            </div>
+          </div>
+        </div>
+
+        <!-- File Content View -->
+        <div *ngIf="isViewingFile" class="file-content-view">
+          <div class="file-view-header">
+            <div class="file-nav">
+              <button class="back-btn" (click)="backToFiles()">
+                <i class="fas fa-arrow-left"></i>
+                Back to files
+              </button>
+              <span class="file-path">{{ currentViewingFile?.path }}</span>
+            </div>
+            <div class="file-actions">
+              <button class="btn btn-secondary" (click)="downloadFile(currentViewingFile)">
+                <i class="fas fa-download"></i>
+                Download
+              </button>
+              <button class="btn btn-secondary"
+                      (click)="startEditingFile()"
+                      *ngIf="!isBinaryFile(currentViewingFile?.name) && !isEditingFile">
+                <i class="fas fa-edit"></i>
+                Edit
+              </button>
+              <button class="btn btn-secondary" *ngIf="isEditingFile" (click)="cancelEditing()">
+                <i class="fas fa-times"></i>
+                Cancel
+              </button>
+              <button class="btn btn-primary"
+                      *ngIf="isEditingFile"
+                      (click)="saveFileChanges()"
+                      [disabled]="isSavingFile">
+                <i class="fas fa-save"></i>
+                {{ isSavingFile ? 'Saving...' : 'Save Changes' }}
+              </button>
+              <button class="btn btn-secondary"
+                      (click)="openReplaceModal()"
+                      *ngIf="!isEditingFile">
+                <i class="fas fa-upload"></i>
+                Replace
+              </button>
+              <button class="btn btn-danger"
+                      (click)="openDeleteModal()"
+                      *ngIf="!isEditingFile">
+                <i class="fas fa-trash"></i>
+                Delete
+              </button>
+            </div>
+          </div>
+
+          <div class="file-content-container">
+            <!-- Edit mode for text files -->
+            <div *ngIf="isEditingFile && !isBinaryFile(currentViewingFile?.name)" class="edit-file-content">
+              <div class="edit-form">
+                <div class="form-group">
+                  <label for="commit-message-edit">Commit message:</label>
+                  <input type="text"
+                         id="commit-message-edit"
+                         [(ngModel)]="editCommitMessage"
+                         placeholder="Update file"
+                         class="form-control">
+                </div>
+                <div class="form-group">
+                  <label for="file-content-edit">File content:</label>
+                  <textarea id="file-content-edit"
+                            [(ngModel)]="editedFileContent"
+                            class="file-editor"
+                            rows="20"></textarea>
+                </div>
+              </div>
+            </div>
+
+            <!-- View mode for text files -->
+            <div *ngIf="!isEditingFile && !isBinaryFile(currentViewingFile?.name)" class="text-file-content">
+              <pre><code [innerHTML]="fileContent"></code></pre>
+            </div>
+
+            <!-- Image file content -->
+            <div *ngIf="isImageFile(currentViewingFile?.name)" class="image-file-content">
+              <img [src]="getFileDownloadUrl(currentViewingFile)"
+                   [alt]="currentViewingFile?.name"
+                   *ngIf="!imageLoadError">
+              <div *ngIf="imageLoadError" class="image-error">
+                <i class="fas fa-image"></i>
+                <p>Unable to load image</p>
+              </div>
+            </div>
+
+            <!-- Binary file content -->
+            <div *ngIf="isBinaryFile(currentViewingFile?.name) && !isImageFile(currentViewingFile?.name)" class="binary-file-content">
+              <div class="binary-file-info">
+                <i class="fas fa-file"></i>
+                <h3>{{ currentViewingFile?.name }}</h3>
+                <p>This is a binary file and cannot be displayed.</p>
+                <button class="btn btn-primary" (click)="downloadFile(currentViewingFile)">
+                  <i class="fas fa-download"></i>
+                  Download File
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- File Actions for Selected File -->
+      <div class="file-actions-bar" *ngIf="!showFileContent && !showCommitDetails">
+        <div class="file-action-buttons">
+          <button class="action-btn btn-view" *ngIf="selectedFile">
+            <i class="fas fa-eye"></i>
+            View
+          </button>
+          <button class="action-btn btn-edit" *ngIf="selectedFile">
+            <i class="fas fa-edit"></i>
+            Edit
+          </button>
+          <button class="action-btn btn-download" *ngIf="selectedFile">
+            <i class="fas fa-download"></i>
+            Download
+          </button>
+          <button class="action-btn btn-replace" *ngIf="selectedFile">
+            <i class="fas fa-upload"></i>
+            Replace
+          </button>
+          <button class="action-btn btn-delete" *ngIf="selectedFile">
+            <i class="fas fa-trash"></i>
+            Delete
+          </button>
+        </div>
+      </div>
+      </div>
+
+      <!-- Sidebar -->
+      <div class="sidebar">
+
+      <!-- Latest Commit Banner - GitHub Style (Info Only) -->
+      <div class="github-latest-commit" *ngIf="latestCommit">
+        <div class="commit-icon">
+          <i class="fas fa-dot-circle"></i>
+        </div>
+        <div class="commit-info">
+          <div class="commit-header">
+            <span class="commit-label">LATEST COMMIT</span>
+            <span class="commit-message">{{ latestCommit.message || 'Add files via upload' }}</span>
+          </div>
+          <div class="commit-meta">
+            <img [src]="latestCommit.avatarUrl || getDefaultCommitterAvatar()"
+                 [alt]="latestCommit.author || getDefaultCommitter()"
+                 class="commit-avatar-circle">
+            <span class="commit-author">{{ latestCommit.author || getDefaultCommitter() }}</span>
+            <span class="commit-time">{{ latestCommit.date }}</span>
+          </div>
+        </div>
+        <div class="commit-sha-badge">
+          {{ latestCommit.sha?.substring(0, 7) }}
+        </div>
+      </div>
+
+      <!-- Contributors -->
+      <div class="sidebar-section contributors-section">
+        <h3>Contributors <span class="contributors-count-badge">{{ getAllContributors().length || 1 }}</span></h3>
+        <div class="contributors-list">
+          <div class="contributor" *ngFor="let contributor of getAllContributors(); let i = index">
+            <img [src]="contributor.avatar"
+                 [alt]="contributor.name"
+                 class="contributor-avatar">
+            <div class="contributor-info">
+              <span class="contributor-name">{{ contributor.name }}</span>
+              <span class="contributor-commits">{{ contributor.commits }} commits</span>
+            </div>
+          </div>
+          <!-- Default contributor if none exist -->
+          <div class="contributor" *ngIf="getAllContributors().length === 0">
+            <img [src]="getDefaultCommitterAvatar()"
+                 [alt]="getDefaultCommitter()"
+                 class="contributor-avatar">
+            <div class="contributor-info">
+              <span class="contributor-name">{{ getDefaultCommitter() }}</span>
+              <span class="contributor-commits">{{ getTotalCommits() }} commits</span>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- File Types -->
+      <div class="sidebar-section file-types-section">
+        <h3>File Types</h3>
+        <div class="file-types-chart">
+          <div class="file-type-bar">
+            <div class="file-type-segment"
+                 *ngFor="let lang of getLanguageArray()"
+                 [style.width.%]="lang.percentage"
+                 [style.background-color]="lang.color"
+                 [title]="lang.name + ' ' + lang.percentage + '%'">
+            </div>
+          </div>
+          <div class="file-type-list">
+            <div class="file-type-item" *ngFor="let lang of getLanguageArray()">
+              <div class="file-type-color" [style.background-color]="lang.color"></div>
+              <span class="file-type-name">{{ lang.name }}</span>
+              <span class="file-type-percentage">{{ lang.percentage.toFixed(1) }}%</span>
+            </div>
+            <!-- Default file types if none exist -->
+            <div class="file-type-item" *ngIf="getLanguageArray().length === 0">
+              <div class="file-type-color" style="background-color: #f1e05a;"></div>
+              <span class="file-type-name">JavaScript</span>
+              <span class="file-type-percentage">83.1%</span>
+            </div>
+            <div class="file-type-item" *ngIf="getLanguageArray().length === 0">
+              <div class="file-type-color" style="background-color: #e34c26;"></div>
+              <span class="file-type-name">HTML</span>
+              <span class="file-type-percentage">9.9%</span>
+            </div>
+            <div class="file-type-item" *ngIf="getLanguageArray().length === 0">
+              <div class="file-type-color" style="background-color: #563d7c;"></div>
+              <span class="file-type-name">CSS</span>
+              <span class="file-type-percentage">5.1%</span>
+            </div>
+            <div class="file-type-item" *ngIf="getLanguageArray().length === 0">
+              <div class="file-type-color" style="background-color: #89e051;"></div>
+              <span class="file-type-name">Other</span>
+              <span class="file-type-percentage">1.9%</span>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+    <!-- End Sidebar -->
+
+    </div>
+    <!-- End Repository Layout -->
+  </div>
+
+  <!-- Repository Dashboard (Statistics) -->
+  <div class="repo-dashboard-content" *ngIf="activeTab === 'statistics'">
+    <div class="dashboard-title">
+      <h2>Repository Dashboard</h2>
+      <span class="repo-path-subtitle">{{ repository.owner?.login }}/{{ repository.name }}</span>
+      <button class="refresh-btn" (click)="refreshData()">
+        <i class="fas fa-sync-alt"></i>
+        Refresh
+      </button>
+    </div>
+
+    <!-- Stats Cards -->
+    <div class="stats-grid">
+      <div class="stat-card">
+        <div class="stat-icon stars">
+          <span class="stat-number">{{ repository.stargazersCount || 0 }}</span>
+        </div>
+        <div class="stat-label">STARS</div>
+      </div>
+
+      <div class="stat-card">
+        <div class="stat-icon forks">
+          <span class="stat-number">{{ repository.forksCount || 0 }}</span>
+        </div>
+        <div class="stat-label">FORKS</div>
+      </div>
+
+      <div class="stat-card">
+        <div class="stat-icon watchers">
+          <span class="stat-number">{{ repository.watchersCount || 0 }}</span>
+        </div>
+        <div class="stat-label">WATCHERS</div>
+      </div>
+      
+      <div class="stat-card">
+        <div class="stat-icon contributors">
+          <span class="stat-number">{{ dashboardStats.contributors }}</span>
+        </div>
+        <div class="stat-label">CONTRIBUTORS</div>
+      </div>
+      
+      <div class="stat-card">
+        <div class="stat-icon total-commits">
+          <span class="stat-number">{{ dashboardStats.totalCommits }}</span>
+        </div>
+        <div class="stat-label">TOTAL COMMITS (30 DAYS)</div>
+      </div>
+      
+      <div class="stat-card">
+        <div class="stat-icon total-files">
+          <span class="stat-number">{{ dashboardStats.totalFiles }}</span>
+        </div>
+        <div class="stat-label">TOTAL FILES</div>
+      </div>
+    </div>
+
+    <!-- Activity Statistics -->
+    <div class="activity-section">
+      <div class="section-header">
+        <h3>
+          <i class="fas fa-chart-line"></i>
+          Activity Statistics
+        </h3>
+        <div class="period-selector">
+          <button 
+            *ngFor="let period of activityPeriods" 
+            class="period-btn"
+            [class.active]="selectedActivityPeriod === period"
+            (click)="onActivityPeriodChange(period)">
+            {{ period }}
+          </button>
+        </div>
+      </div>
+
+      <div class="activity-stats">
+        <div class="activity-stat">
+          <span class="stat-label">Total Commits:</span>
+          <span class="stat-value">{{ activityStats.totalCommits }}</span>
+        </div>
+        <div class="activity-stat">
+          <span class="stat-label">Lines Added:</span>
+          <span class="stat-value added">+{{ activityStats.linesAdded }}</span>
+        </div>
+        <div class="activity-stat">
+          <span class="stat-label">Lines Deleted:</span>
+          <span class="stat-value deleted">-{{ activityStats.linesDeleted }}</span>
+        </div>
+      </div>
+
+      <!-- Daily Activity Chart -->
+      <div class="daily-activity">
+        <h4>Daily Activity</h4>
+        <div class="activity-chart" *ngIf="commits.length > 0; else noActivityChart">
+          <div class="chart-container">
+            <div class="chart-bar">
+              <div class="bar-line"></div>
+              <div class="activity-point" 
+                   *ngFor="let commit of commits.slice(0, 7); let i = index"
+                   [style.left.%]="(i * 14) + 2">
+                <div class="point-value">{{ commits.slice(i, i+1).length }}</div>
+              </div>
+            </div>
+            <div class="chart-labels">
+              <span class="chart-label" *ngFor="let commit of commits.slice(0, 7); let i = index">
+                {{ formatDate(commit.date).split(' ')[0] }}
+              </span>
+            </div>
+          </div>
+        </div>
+        <ng-template #noActivityChart>
+          <div class="no-activity-chart">
+            <p><i class="fas fa-info-circle"></i> No recent activity data available</p>
+          </div>
+        </ng-template>
+      </div>
+    </div>
+
+    <!-- File Types Distribution -->
+    <div class="file-types-section">
+      <h3>
+        <i class="fas fa-folder"></i>
+        File Types Distribution
+      </h3>
+      <div class="file-types-chart">
+        <div class="file-type-item" *ngFor="let fileType of fileTypes">
+          <div class="file-type-color" [style.background-color]="fileType.color"></div>
+          <span class="file-type-name" [attr.data-type]="fileType.type">{{ fileType.type }}</span>
+          <span class="file-type-percentage">{{ fileType.percentage }}%</span>
+          <div class="file-type-bar">
+            <div class="file-type-fill" 
+                 [style.width.%]="fileType.percentage" 
+                 [style.background-color]="fileType.color">
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+
+<!-- Upload File Modal -->
+<div class="modal-overlay" *ngIf="showUploadModal"
+     (click)="closeUploadModal()"
+     (keydown.escape)="closeUploadModal()">
+  <div class="upload-modal" (click)="$event.stopPropagation()">
+    <div class="modal-header">
+      <h3><i class="fas fa-plus"></i> Add files to {{ repository?.name }}</h3>
+      <button class="close-btn" (click)="closeUploadModal()">
+        <i class="fas fa-times"></i>
+      </button>
+    </div>
+    <div class="modal-body">
+      <div class="form-group">
+        <label for="upload-branch">Branch:</label>
+        <select id="upload-branch"
+                [(ngModel)]="selectedUploadBranch"
+                class="form-control">
+          <option [value]="repository.defaultBranch || 'main'">{{ repository.defaultBranch || 'main' }}</option>
+          <option *ngFor="let branch of branches" [value]="branch.name">{{ branch.name }}</option>
+        </select>
+      </div>
+      <div class="form-group">
+        <label for="commit-message">Commit message:</label>
+        <input type="text"
+               id="commit-message"
+               [(ngModel)]="uploadCommitMessage"
+               placeholder="Add files via upload"
+               class="form-control">
+      </div>
+      <div class="form-group">
+        <label>Selected files:</label>
+        <div class="file-preview">
+          <div *ngIf="selectedFiles.length === 0" class="no-files">
+            <p>No files selected</p>
+            <input type="file"
+                   #modalFileInput
+                   multiple
+                   (change)="onModalFileSelect($event)"
+                   style="display: none;">
+            <button type="button" class="btn btn-secondary" (click)="modalFileInput.click()">
+              <i class="fas fa-folder-open"></i>
+              Choose Files
+            </button>
+          </div>
+          <div *ngIf="selectedFiles.length > 0" class="files-list">
+            <div *ngFor="let file of selectedFiles" class="file-item-preview">
+              <i class="fas fa-file"></i>
+              {{ file.name }} ({{ formatFileSize(file.size) }})
+            </div>
+          </div>
+        </div>
+      </div>
+      <div class="selected-files" *ngIf="selectedFiles.length > 0">
+        <h4>Selected Files:</h4>
+        <ul>
+          <li *ngFor="let file of selectedFiles">{{ file.name }} ({{ formatFileSize(file.size) }})</li>
+        </ul>
+      </div>
+    </div>
+    <div class="modal-footer">
+      <button class="btn btn-secondary" (click)="closeUploadModal()">Cancel</button>
+      <button class="btn btn-primary"
+              (click)="uploadSelectedFiles()"
+              [disabled]="selectedFiles.length === 0 || isUploading">
+        <i class="fas fa-upload"></i>
+        {{ isUploading ? 'Uploading...' : 'Upload Files' }}
+      </button>
+    </div>
+  </div>
+</div>
+
+
+<!-- Replace File Modal -->
+<div class="modal-overlay" *ngIf="showReplaceModal"
+     (click)="closeReplaceModal()"
+     (keydown.escape)="closeReplaceModal()">
+  <div class="upload-modal" (click)="$event.stopPropagation()">
+    <div class="modal-header">
+      <h3><i class="fas fa-upload"></i> Replace {{ currentViewingFile?.name }}</h3>
+      <button class="close-btn" (click)="closeReplaceModal()">
+        <i class="fas fa-times"></i>
+      </button>
+    </div>
+    <div class="modal-body">
+      <div class="form-group">
+        <label for="replace-commit-message">Commit message:</label>
+        <input type="text"
+               id="replace-commit-message"
+               [(ngModel)]="replaceCommitMessage"
+               placeholder="Replace file"
+               class="form-control">
+      </div>
+      <div class="form-group">
+        <label for="replace-file-input">Choose replacement file:</label>
+        <input type="file"
+               id="replace-file-input"
+               (change)="onReplaceFileSelect($event)"
+               class="form-control">
+      </div>
+      <div class="selected-files" *ngIf="selectedReplaceFile">
+        <h4>Selected File:</h4>
+        <div class="file-item-preview">
+          <i class="fas fa-file"></i>
+          {{ selectedReplaceFile.name }} ({{ formatFileSize(selectedReplaceFile.size) }})
+        </div>
+        <div class="file-warning" *ngIf="selectedReplaceFile.name !== currentViewingFile?.name">
+          <i class="fas fa-exclamation-triangle"></i>
+          <span>Warning: The selected file has a different name than the original file.</span>
+        </div>
+      </div>
+    </div>
+    <div class="modal-footer">
+      <button class="btn btn-secondary" (click)="closeReplaceModal()">Cancel</button>
+      <button class="btn btn-primary"
+              (click)="replaceFile()"
+              [disabled]="!selectedReplaceFile || isReplacingFile">
+        <i class="fas fa-upload"></i>
+        {{ isReplacingFile ? 'Replacing...' : 'Replace File' }}
+      </button>
+    </div>
+  </div>
+</div>
+
+<!-- Delete File Modal -->
+<div class="modal-overlay" *ngIf="showDeleteModal"
+     (click)="closeDeleteModal()"
+     (keydown.escape)="closeDeleteModal()">
+  <div class="upload-modal" (click)="$event.stopPropagation()">
+    <div class="modal-header">
+      <h3><i class="fas fa-trash"></i> Delete {{ currentViewingFile?.name }}</h3>
+      <button class="close-btn" (click)="closeDeleteModal()">
+        <i class="fas fa-times"></i>
+      </button>
+    </div>
+    <div class="modal-body">
+      <div class="delete-warning">
+        <i class="fas fa-exclamation-triangle"></i>
+        <p><strong>Warning:</strong> This action cannot be undone. This will permanently delete the file from the repository.</p>
+      </div>
+      <div class="form-group">
+        <label for="delete-commit-message">Commit message:</label>
+        <input type="text"
+               id="delete-commit-message"
+               [(ngModel)]="deleteCommitMessage"
+               placeholder="Delete file"
+               class="form-control">
+      </div>
+    </div>
+    <div class="modal-footer">
+      <button class="btn btn-secondary" (click)="closeDeleteModal()">Cancel</button>
+      <button class="btn btn-danger"
+              (click)="deleteFile()"
+              [disabled]="!deleteCommitMessage.trim() || isDeletingFile">
+        <i class="fas fa-trash"></i>
+        {{ isDeletingFile ? 'Deleting...' : 'Delete File' }}
+      </button>
+    </div>
+  </div>
+</div>
+
+<!-- Clone Modal -->
+<div class="modal-overlay" *ngIf="showCloneModal"
+     (click)="closeCloneModal()" 
+     (keydown.escape)="closeCloneModal()"
+     role="dialog"
+     aria-modal="true"
+     aria-labelledby="clone-modal-title">
+  <div class="clone-modal" (click)="$event.stopPropagation()" (keydown)="$event.stopPropagation()">
+    <div class="modal-header">
+      <h3 id="clone-modal-title"><i class="fas fa-download"></i> Clone or download this repository</h3>
+      <button class="close-btn" (click)="closeCloneModal()" aria-label="Close modal">
+        <i class="fas fa-times"></i>
+      </button>
+    </div>
+    
+    <div class="modal-content">
+      <div class="clone-section">
+        <h4><i class="fas fa-link"></i> Clone with HTTPS</h4>
+        <p class="clone-description">Use Git or checkout with SVN using the web URL.</p>
+        <div class="clone-url-container">
+          <input type="text" 
+                 [value]="repository.cloneUrl || 'https://github.com/' + (repository.owner?.login || repository.fullName?.split('/')[0]) + '/' + (repository.name || repository.fullName?.split('/')[1]) + '.git'" 
+                 readonly 
+                 class="clone-url-input">
+          <button class="copy-btn" 
+                  (click)="copyToClipboard(repository.cloneUrl || 'https://github.com/' + (repository.owner?.login || repository.fullName?.split('/')[0]) + '/' + (repository.name || repository.fullName?.split('/')[1]) + '.git')">>
+            <i class="fas fa-copy"></i>
+            Copy
+          </button>
+        </div>
+      </div>
+      
+      <div class="download-section">
+        <h4><i class="fas fa-download"></i> Download ZIP</h4>
+        <button class="download-zip-btn" (click)="downloadZip()">
+          <i class="fas fa-download"></i>
+          Download ZIP ({{ currentBranch }} branch)
+        </button>
+        <p class="download-note">
+          <i class="fas fa-info-circle"></i>
+          Try direct GitHub download if the above doesn't work
+        </p>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- File Content View Modal -->
+<div class="modal-overlay" *ngIf="showFileContent" 
+     (click)="closeFileView()" 
+     (keydown.escape)="closeFileView()"
+     role="dialog"
+     aria-modal="true"
+     aria-labelledby="file-modal-title">
+  <div class="file-content-modal" (click)="$event.stopPropagation()" (keydown)="$event.stopPropagation()">
+    <div class="file-header">
+      <div class="file-path">
+        <button class="back-btn" (click)="closeFileView()">
+          <i class="fas fa-arrow-left"></i>
+          Back to files
+        </button>
+        <span id="file-modal-title" class="file-name">{{ selectedFile?.name }}</span>
+      </div>
+      <div class="file-actions">
+        <button class="btn-raw">Raw</button>
+        <button class="btn-download">
+          <i class="fas fa-download"></i>
+          Download
+        </button>
+        <button class="btn-edit">
+          <i class="fas fa-edit"></i>
+          Edit
+        </button>
+        <button class="btn-replace">
+          <i class="fas fa-upload"></i>
+          Replace
+        </button>
+        <button class="btn-delete">
+          <i class="fas fa-trash"></i>
+          Delete
+        </button>
+      </div>
+    </div>
+    
+    <div class="file-content">
+      <!-- Image preview for image files -->
+      <div class="image-preview" *ngIf="selectedFile && isImageFile(selectedFile.name)">
+        <img [src]="getImageSrc(selectedFile)"
+             [alt]="selectedFile.name"
+             class="preview-image"
+             [style.display]="imageLoadError ? 'none' : 'block'">
+        <div class="image-error" [style.display]="imageLoadError ? 'block' : 'none'">
+          <i class="fas fa-exclamation-triangle"></i>
+          <p>Unable to load image preview</p>
+        </div>
+        <div class="image-info">
+          <p><strong>File:</strong> {{ selectedFile.name }}</p>
+          <p><strong>Size:</strong> {{ selectedFile.sizeFormatted }}</p>
+          <p *ngIf="selectedFile.lastModified"><strong>Last Modified:</strong> {{ selectedFile.lastModified }}</p>
+        </div>
+      </div>
+      
+      <!-- Binary file notice -->
+      <div class="binary-file-preview" *ngIf="selectedFile && isBinaryFile(selectedFile.name) && !isImageFile(selectedFile.name)">
+        <i class="fas fa-file-archive"></i>
+        <h3>Binary File</h3>
+        <p>This is a binary file and cannot be displayed as text.</p>
+        <div class="image-info">
+          <p><strong>File:</strong> {{ selectedFile.name }}</p>
+          <p><strong>Size:</strong> {{ selectedFile.sizeFormatted }}</p>
+          <p *ngIf="selectedFile.lastModified"><strong>Last Modified:</strong> {{ selectedFile.lastModified }}</p>
+        </div>
+        <a [href]="selectedFile.downloadUrl" 
+           class="download-binary-btn" 
+           target="_blank"
+           *ngIf="selectedFile.downloadUrl">
+          <i class="fas fa-download"></i>
+          Download File
+        </a>
+      </div>
+      
+      <!-- Text content for text files -->
+      <div class="text-content" *ngIf="selectedFile && !isBinaryFile(selectedFile.name)">
+        <div class="line-numbers">
+          <div class="line-number" *ngFor="let line of fileContent.split('\n'); let i = index">{{ i + 1 }}</div>
+        </div>
+        <div class="file-code-content">
+          <pre><code>{{ fileContent }}</code></pre>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- Commit History View removed - now navigates to new page -->
+
+
+
+
+
+<!-- Loading State -->
+<div *ngIf="loading" class="loading-state">
+  <div class="loading-spinner">
+    <i class="fas fa-spinner fa-spin"></i>
+  </div>
+  <p>Loading repository details...</p>
+</div>
+
+<!-- Error State -->
+<div *ngIf="error && !loading" class="error-state">
+  <div class="error-icon">
+    <i class="fas fa-exclamation-triangle"></i>
+  </div>
+  <h3>Error Loading Repository</h3>
+  <p>{{ error }}</p>
+  <button class="btn-retry" (click)="goBack()">Go Back</button>
+</div>

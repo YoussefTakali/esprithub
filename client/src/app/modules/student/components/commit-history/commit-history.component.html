@@ -1,0 +1,247 @@
+<div class="commit-history-page">
+  <!-- Header -->
+  <div class="commits-header">
+    <div class="commits-title">
+      <button class="back-to-repo-btn" (click)="goBack()">
+        <i class="fas fa-arrow-left"></i>
+      </button>
+      <h2>Commits</h2>
+    </div>
+    <div class="commits-filters">
+      <div class="branch-selector">
+        <i class="fas fa-code-branch"></i>
+        <span>{{ branch }}</span>
+      </div>
+      <div class="contributors-filter"
+           [class.active]="showContributorsDropdown"
+           (click)="toggleContributorsDropdown($event)">
+        <i class="fas fa-users"></i>
+        <span>{{ getSelectedContributorName() }}</span>
+        <i class="fas fa-chevron-down" [ngClass]="{'rotated': showContributorsDropdown}"></i>
+ 
+        <!-- Contributors Dropdown -->
+        <div class="contributors-dropdown"
+             *ngIf="showContributorsDropdown"
+             (click)="$event.stopPropagation()">
+          <div class="dropdown-header">
+            <span>Filter by contributor</span>
+            <button class="close-button" (click)="toggleContributorsDropdown($event)">×</button>
+          </div>
+ 
+          <!-- All users option -->
+          <div class="contributor-item"
+               [ngClass]="{'selected': !selectedContributor}"
+               (click)="selectContributor(null)">
+            <div class="contributor-info">
+              <i class="fas fa-users contributor-avatar-placeholder"></i>
+              <div class="contributor-details">
+                <span class="contributor-name">All users</span>
+                <span class="contributor-commits">{{ allCommits.length }} commits</span>
+              </div>
+            </div>
+          </div>
+ 
+          <!-- Individual contributors -->
+          <div class="contributor-item"
+               *ngFor="let contributor of contributors"
+               [ngClass]="{'selected': selectedContributor === contributor.login}"
+               (click)="selectContributor(contributor)">
+            <div class="contributor-info">
+              <img *ngIf="contributor.avatar"
+                   [src]="contributor.avatar"
+                   [alt]="contributor.name"
+                   class="contributor-avatar">
+              <div *ngIf="!contributor.avatar" class="contributor-avatar-placeholder">
+                {{ contributor.name.charAt(0).toUpperCase() }}
+              </div>
+              <div class="contributor-details">
+                <span class="contributor-name">{{ contributor.name }}</span>
+                <span class="contributor-commits">{{ contributor.commitCount }} commits</span>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+      <div class="time-filter">
+        <i class="fas fa-clock"></i>
+        <span>All time</span>
+      </div>
+    </div>
+  </div>
+ 
+  <!-- Loading State -->
+  <div *ngIf="loading" class="loading-state">
+    <div class="loading-spinner">
+      <i class="fas fa-spinner fa-spin"></i>
+    </div>
+    <p>Loading commits...</p>
+  </div>
+ 
+  <!-- Error State -->
+  <div *ngIf="error && !loading" class="error-state">
+    <div class="error-icon">
+      <i class="fas fa-exclamation-triangle"></i>
+    </div>
+    <h3>Error Loading Commits</h3>
+    <p>{{ error }}</p>
+    <button class="btn-retry" (click)="loadCommits()">Retry</button>
+  </div>
+ 
+  <!-- Commits List -->
+  <div class="commits-list-container" *ngIf="!loading && !error">
+    <div class="commit-group" *ngFor="let group of getCommitsByDate()">
+      <div class="commit-date-header">
+        <i class="fas fa-calendar"></i>
+        <span>Commits on {{ group.date }}</span>
+      </div>
+ 
+      <div class="commit-list-item"
+           *ngFor="let commit of group.commits"
+           (click)="selectCommit(commit)">
+        <div class="commit-message-section">
+          <div class="commit-title">{{ commit.message }}</div>
+          <div class="commit-author-info">
+            <img [src]="commit.avatarUrl || 'https://github.com/identicons/' + commit.author + '.png'"
+                 [alt]="commit.author"
+                 class="author-avatar">
+            <span class="author-name">{{ commit.author }}</span>
+            <span class="commit-time">committed {{ getRelativeTime(commit.date) }}</span>
+          </div>
+        </div>
+ 
+        <div class="commit-actions">
+          <span class="commit-sha-link">{{ commit.shortSha }}</span>
+          <button class="copy-sha-btn" (click)="copyToClipboard(commit.sha); $event.stopPropagation()">
+            <i class="fas fa-copy"></i>
+          </button>
+        </div>
+      </div>
+    </div>
+ 
+    <div class="no-commits-message" *ngIf="commits.length === 0">
+      <i class="fas fa-info-circle"></i>
+      <p>No commits found for this repository.</p>
+    </div>
+  </div>
+</div>
+ 
+<!-- Commit Details Popup -->
+<div class="modal-overlay" *ngIf="showCommitDetails"
+     (click)="closeCommitDetails()"
+     (keydown.escape)="closeCommitDetails()">
+  <div class="commit-details-popup" (click)="$event.stopPropagation()">
+    <div class="commit-header">
+      <div class="commit-info">
+        <h3>{{ getCommitDetails().message }}</h3>
+        <div class="commit-meta">
+          <span class="commit-author">{{ getCommitDetails().author }}</span>
+          <span class="commit-date">{{ getCommitDetails().date }}</span>
+          <span class="commit-sha">{{ getCommitDetails().sha }}</span>
+        </div>
+      </div>
+      <button class="close-btn" (click)="closeCommitDetails()">
+        <i class="fas fa-times"></i>
+      </button>
+    </div>
+ 
+    <div class="commit-stats" *ngIf="getCommitDetails().stats.changedFiles > 0">
+      <div class="stats-summary">
+        <span class="files-changed">{{ getCommitDetails().stats.changedFiles }} files changed</span>
+        <span class="additions">+{{ getCommitDetails().stats.additions }}</span>
+        <span class="deletions">-{{ getCommitDetails().stats.deletions }}</span>
+      </div>
+     
+      <!-- Visual diff stats bar -->
+      <div class="diff-stats-bar">
+        <div class="additions-bar"
+             [style.width.%]="(getCommitDetails().stats.additions / (getCommitDetails().stats.additions + getCommitDetails().stats.deletions)) * 100"></div>
+        <div class="deletions-bar"
+             [style.width.%]="(getCommitDetails().stats.deletions / (getCommitDetails().stats.additions + getCommitDetails().stats.deletions)) * 100"></div>
+      </div>
+    </div>
+ 
+    <div class="commit-changes">
+      <div class="change-item" *ngFor="let change of commitChanges">
+        <div class="change-header" (click)="toggleFileDiff(change)">
+          <div class="file-info">
+            <i class="fas fa-file-code"></i>
+            <span class="file-path">{{ change.file }}</span>
+            <span class="change-type" [ngClass]="change.type">{{ change.type }}</span>
+          </div>
+          <div class="change-stats">
+            <span class="additions" *ngIf="change.additions > 0">+{{ change.additions }}</span>
+            <span class="deletions" *ngIf="change.deletions > 0">-{{ change.deletions }}</span>
+            <i class="fas" [ngClass]="change.expanded ? 'fa-chevron-up' : 'fa-chevron-down'"></i>
+          </div>
+        </div>
+ 
+        <!-- GitHub-style Diff View -->
+        <div class="github-diff-view" *ngIf="change.expanded">
+          <div style="background: yellow; padding: 10px; margin: 10px;">
+            DIFF VIEW IS EXPANDED FOR: {{ change.file }}
+          </div>
+ 
+          <!-- For binary files -->
+          <div class="binary-file-message" *ngIf="change.isBinary">
+            <div class="binary-info">
+              <i class="fas fa-file"></i>
+              <span>Binary file</span>
+              <span class="file-type-badge">{{ getFileExtension(change.file) }}</span>
+            </div>
+            <div class="binary-status" [ngClass]="change.type">
+              <span *ngIf="change.type === 'added'" class="status-added">
+                <i class="fas fa-plus"></i>
+                File added ({{ formatFileSize(change.size || 0) }})
+              </span>
+              <span *ngIf="change.type === 'deleted'" class="status-deleted">
+                <i class="fas fa-minus"></i>
+                File deleted
+              </span>
+              <span *ngIf="change.type === 'modified'" class="status-modified">
+                <i class="fas fa-edit"></i>
+                File modified
+              </span>
+            </div>
+          </div>
+ 
+          <!-- For text files with diff -->
+          <div class="diff-table" *ngIf="!change.isBinary && change.diff && change.diff !== 'No diff available'">
+            <div class="diff-row" *ngFor="let line of parseDiffLines(change.diff)"
+                 [ngClass]="getDiffLineClass(line)">
+              <div class="line-numbers">
+                <span class="old-line-number">{{ line.oldLineNumber || '' }}</span>
+                <span class="new-line-number">{{ line.newLineNumber || '' }}</span>
+              </div>
+              <div class="line-content">
+                <span class="diff-marker">{{ getDiffMarker(line) }}</span>
+                <span class="code-content">{{ line.content }}</span>
+              </div>
+            </div>
+          </div>
+ 
+          <!-- For new files without diff data -->
+          <div class="new-file-message" *ngIf="!change.isBinary && change.type === 'added' && (!change.diff || change.diff === 'No diff available')">
+            <div class="new-file-info">
+              <i class="fas fa-plus-circle"></i>
+              <span>New file added</span>
+              <span class="file-type-badge">{{ getFileExtension(change.file) }}</span>
+            </div>
+            <div class="new-file-placeholder">
+              <div class="diff-line diff-addition">
+                <span class="diff-marker">+</span>
+                <span class="code-content">File content will be visible once committed to repository</span>
+              </div>
+            </div>
+          </div>
+ 
+          <!-- For files without diff data -->
+          <div class="no-diff-message" *ngIf="!change.isBinary && change.type !== 'added' && (!change.diff || change.diff === 'No diff available')">
+            <i class="fas fa-info-circle"></i>
+            <span>No diff data available for this file</span>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+ 

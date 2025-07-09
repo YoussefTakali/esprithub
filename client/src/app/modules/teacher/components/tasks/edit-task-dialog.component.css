@@ -1,0 +1,34 @@
+/* Edit Task Modal Styles - match group/task dialog look */
+.edit-task-modal .mat-dialog-container {
+  padding: 0;
+  border-radius: 12px;
+  background: #fff;
+  box-shadow: 0 8px 32px rgba(44,62,80,0.18);
+}
+.edit-task-modal h2, .edit-task-modal h3 {
+  margin: 0 0 18px 0;
+  color: #e74c3c;
+  font-size: 1.5rem;
+  font-weight: 600;
+}
+.edit-task-modal .mat-form-field {
+  width: 100%;
+  margin-bottom: 18px;
+}
+.edit-task-modal .mat-dialog-actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 1rem;
+  margin-top: 18px;
+}
+.edit-task-modal .mat-flat-button {
+  background: #a71617;
+  color: #fff;
+}
+.edit-task-modal .mat-flat-button[disabled] {
+  background: #ccc;
+  color: #888;
+}
+.edit-task-modal .mat-button {
+  color: #888;
+}

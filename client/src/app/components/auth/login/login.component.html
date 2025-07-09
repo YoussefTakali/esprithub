@@ -1,0 +1,136 @@
+<!-- Login Container -->
+<div class="login-container">
+  <!-- Background Animation -->
+  <div class="animated-bg">
+    <div class="shape shape-1"></div>
+    <div class="shape shape-2"></div>
+    <div class="shape shape-3"></div>
+  </div>
+
+  <!-- Login Card -->
+  <div class="login-card">
+    <!-- Header Section -->
+    <div class="login-header">
+      <h1 class="title">EspritHub</h1>
+      <p class="subtitle">Welcome back to your GitLab-like platform</p>
+    </div>
+
+    <!-- Login Form -->
+    <form [formGroup]="loginForm" (ngSubmit)="onSubmit()" class="login-form">
+      <!-- Error Message -->
+      <div class="error-message" *ngIf="errorMessage">
+        <i class="fas fa-exclamation-circle"></i>
+        {{ errorMessage }}
+      </div>
+
+      <!-- Email Field -->
+      <div class="form-group">
+        <label for="email" class="form-label">
+          <i class="fas fa-envelope"></i>
+          Email Address
+        </label>
+        <div class="input-wrapper">
+          <input
+            id="email"
+            type="email"
+            formControlName="email"
+            class="form-input"
+            [class.error]="email?.invalid && email?.touched"
+            placeholder="your.name@esprit.tn"
+            autocomplete="email"
+          />
+          <div class="input-icon">
+            <i class="fas fa-at"></i>
+          </div>
+        </div>
+        <div class="form-error" *ngIf="email?.invalid && email?.touched">
+          <span *ngIf="email?.errors?.['required']">Email is required</span>
+          <span *ngIf="email?.errors?.['email']">Please enter a valid email</span>
+          <span *ngIf="email?.errors?.['espritEmail']">Must be an &#64;esprit.tn email address</span>
+        </div>
+      </div>
+
+      <!-- Password Field -->
+      <div class="form-group">
+        <label for="password" class="form-label">
+          <i class="fas fa-lock"></i>
+          Password
+        </label>
+        <div class="input-wrapper">
+          <input
+            id="password"
+            [type]="showPassword ? 'text' : 'password'"
+            formControlName="password"
+            class="form-input"
+            [class.error]="password?.invalid && password?.touched"
+            placeholder="Enter your password"
+            autocomplete="current-password"
+          />
+          <button
+            type="button"
+            class="password-toggle"
+            (click)="togglePasswordVisibility()"
+            tabindex="-1"
+          >
+            <i [class]="showPassword ? 'fas fa-eye-slash' : 'fas fa-eye'"></i>
+          </button>
+        </div>
+        <div class="form-error" *ngIf="password?.invalid && password?.touched">
+          <span *ngIf="password?.errors?.['required']">Password is required</span>
+          <span *ngIf="password?.errors?.['minlength']">Password must be at least 6 characters</span>
+        </div>
+      </div>
+
+      <!-- Submit Button -->
+      <button
+        type="submit"
+        class="login-btn"
+        [disabled]="isLoading || loginForm.invalid"
+        [class.loading]="isLoading"
+      >
+        <span *ngIf="!isLoading">
+          <i class="fas fa-sign-in-alt"></i>
+          Sign In
+        </span>
+        <span *ngIf="isLoading" class="loading-content">
+          <i class="fas fa-spinner fa-spin"></i>
+          Signing In...
+        </span>
+      </button>
+    </form>
+
+    <!-- Footer -->
+    <div class="login-footer">
+      <p class="help-text">
+        <i class="fas fa-info-circle"></i>
+        Use your Esprit University credentials to sign in
+      </p>
+      <div class="github-notice">
+        <i class="fab fa-github"></i>
+        <span>GitHub authentication is required after login</span>
+      </div>
+    </div>
+  </div>
+
+  <!-- Test Credentials (Development Only) -->
+  <div class="test-credentials" *ngIf="true">
+    <h4>Test Credentials</h4>
+    <div class="credential-grid">
+      <div class="credential-item" (click)="loginForm.patchValue({email: 'admin&#64;esprit.tn', password: 'admin123'})">
+        <strong>Admin:</strong> admin&#64;esprit.tn / admin123
+      </div>
+      <div class="credential-item" (click)="loginForm.patchValue({email: 'teacher&#64;esprit.tn', password: 'teacher123'})">
+        <strong>Teacher:</strong> teacher&#64;esprit.tn / teacher123
+      </div>
+      <div class="credential-item" (click)="loginForm.patchValue({email: 'student&#64;esprit.tn', password: 'student123'})">
+        <strong>Student:</strong> student&#64;esprit.tn / student123
+      </div>
+      <div class="credential-item" (click)="loginForm.patchValue({email: 'chief&#64;esprit.tn', password: 'chief123'})">
+        <strong>Chief:</strong> chief&#64;esprit.tn / chief123
+      </div>
+      <div class="credential-item" (click)="loginForm.patchValue({email: 'Youssef.Takali&#64;esprit.tn', password: 'youssef123'})">
+        <strong>Youssef:</strong> Youssef.Takali&#64;esprit.tn / youssef123
+      </div>
+    </div>
+  </div>
+</div>

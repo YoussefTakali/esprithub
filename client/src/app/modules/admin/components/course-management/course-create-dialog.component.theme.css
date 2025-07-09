@@ -1,0 +1,152 @@
+/* Modern input and select styles for dialog */
+.form-group {
+  margin-bottom: 1.5rem;
+}
+.form-group label {
+  display: block;
+  margin-bottom: 0.5rem;
+  color: #2c3e50;
+  font-weight: 500;
+  font-size: 0.95rem;
+}
+.form-input,
+.form-select {
+  width: 100%;
+  padding: 0.75rem;
+  border: 1px solid #ced4da;
+  border-radius: 6px;
+  font-size: 1rem;
+  transition: border-color 0.2s ease, box-shadow 0.2s ease;
+  background: #fff;
+  color: #2c3e50;
+  box-sizing: border-box;
+}
+.form-input:focus,
+.form-select:focus {
+  outline: none;
+  border-color: #a71617;
+  box-shadow: 0 0 0 3px rgba(220,53,69,0.08);
+}
+.form-input:disabled,
+.form-select:disabled {
+  background: #f8f9fa;
+  color: #6c757d;
+}
+/* Modern modal overlay and container for course create dialog */
+
+.course-dialog-overlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: rgba(44, 62, 80, 0.13);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 2000;
+  padding: 1.5rem;
+  animation: fadeIn 0.2s;
+}
+
+.course-dialog-container {
+  background: #fff;
+  border-radius: 18px;
+  box-shadow: 0 8px 40px rgba(220,53,69,0.18), 0 2px 8px rgba(0,0,0,0.09);
+  width: 100%;
+  max-width: 480px;
+  max-height: 92vh;
+  overflow-y: auto;
+  border: 2px solid #f3d6d8;
+  animation: popIn 0.18s cubic-bezier(.4,2,.6,1);
+}
+
+.course-dialog-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 1.25rem 1.5rem 1rem 1.5rem;
+  border-bottom: 1.5px solid #f3d6d8;
+  background: #fff;
+}
+
+.course-dialog-header h2 {
+  margin: 0;
+  color: #a71617;
+  font-size: 1.25rem;
+  font-weight: 700;
+}
+
+.course-dialog-close-btn {
+  background: none;
+  border: none;
+  font-size: 1.5rem;
+  color: #a71617;
+  cursor: pointer;
+  padding: 0.25rem;
+  border-radius: 50%;
+  transition: background 0.2s, color 0.2s;
+}
+
+.course-dialog-close-btn:hover {
+  background: #f8d7da;
+  color: #fff;
+}
+
+@keyframes fadeIn {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+@keyframes popIn {
+  0% { transform: scale(0.95); opacity: 0.7; }
+  100% { transform: scale(1); opacity: 1; }
+}
+
+.course-dialog-form {
+  padding: 1.5rem;
+}
+
+.course-dialog-actions {
+  display: flex;
+  gap: 1rem;
+  justify-content: flex-end;
+  margin-top: 2rem;
+  padding-top: 1rem;
+  border-top: 1px solid #e9ecef;
+}
+
+.course-dialog-cancel-btn {
+  padding: 0.75rem 1.5rem;
+  background: #6c757d;
+  color: white;
+  border: none;
+  border-radius: 6px;
+  cursor: pointer;
+  transition: background 0.2s ease;
+}
+
+.course-dialog-cancel-btn:hover:not(:disabled) {
+  background: #545b62;
+}
+
+.course-dialog-submit-btn {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0.75rem 1.5rem;
+  background: #a71617;
+  color: white;
+  border: none;
+  border-radius: 6px;
+  cursor: pointer;
+  transition: background 0.2s ease;
+}
+
+.course-dialog-submit-btn:hover:not(:disabled) {
+  background: #d31c1c;
+}
+
+.course-dialog-submit-btn:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}

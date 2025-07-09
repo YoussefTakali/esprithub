@@ -1,0 +1,175 @@
+
+<!-- Header -->
+  <div class="dashboard-header">
+    <div class="header-content">
+      <h1>Level Management</h1>
+      <p>Manage academic levels, years, and assignments in a modern, card-based UI.</p>
+    </div>
+    <div style="display: flex; gap: 1rem; align-items: center;">
+      <select class="department-filter" [(ngModel)]="selectedDepartmentId" (change)="onDepartmentFilter(selectedDepartmentId)">
+        <option [value]="null">All Departments</option>
+        <option *ngFor="let dept of departments" [value]="dept.id">{{ dept.nom }}</option>
+      </select>
+      <button class="refresh-btn" (click)="loadData()" [disabled]="loading">
+        <i class="fas fa-sync-alt" [class.spinning]="loading"></i>
+        Refresh
+      </button>
+      <button class="create-btn" (click)="onCreateLevel()" [disabled]="saving">
+        <i class="fas fa-plus"></i>
+        Create Level
+      </button>
+    </div>
+  </div>
+
+  <!-- Loading State -->
+  <div *ngIf="loading" class="loading-container">
+    <div class="loading-spinner">
+      <i class="fas fa-spinner fa-spin"></i>
+      <p>Loading levels...</p>
+    </div>
+  </div>
+
+  <!-- Error State -->
+  <div *ngIf="error && !loading" class="error-container">
+    <div class="error-message">
+      <i class="fas fa-exclamation-triangle"></i>
+      <p>{{ error }}</p>
+      <button class="retry-btn" (click)="loadData()">Try Again</button>
+    </div>
+  </div>
+
+  <!-- Create/Edit Form -->
+  <div *ngIf="showCreateForm" class="form-overlay">
+    <div class="form-container">
+      <div class="form-header">
+        <h2>{{ editingLevel ? 'Edit Level' : 'Create Level' }}</h2>
+        <button class="close-btn" (click)="onCancelForm()" [disabled]="saving">
+          <i class="fas fa-times"></i>
+        </button>
+      </div>
+      <form (ngSubmit)="onSubmitForm()" class="level-form">
+        <div class="form-group">
+          <label for="name">Level Name *</label>
+          <input id="name" type="text" [(ngModel)]="createForm.nom" name="nom" placeholder="Enter level name (e.g., L1 Informatique, M1 Génie Civil)" required [disabled]="saving" class="form-input">
+        </div>
+        <div class="form-row">
+          <div class="form-group">
+            <label for="department">Department *</label>
+            <select id="department" [(ngModel)]="createForm.departementId" name="departementId" required [disabled]="saving" class="form-select">
+              <option value="">Select a department</option>
+              <option *ngFor="let dept of departments" [value]="dept.id">{{ dept.nom }}</option>
+            </select>
+          </div>
+          <div class="form-group">
+            <label for="year">Academic Year *</label>
+            <select id="year" [(ngModel)]="createForm.annee" name="annee" required [disabled]="saving" class="form-select">
+              <option value="1">1st Year</option>
+              <option value="2">2nd Year</option>
+              <option value="3">3rd Year</option>
+              <option value="4">4th Year</option>
+              <option value="5">5th Year</option>
+            </select>
+          </div>
+        </div>
+        <div class="form-group">
+          <label for="description">Description</label>
+          <textarea id="description" [(ngModel)]="createForm.description" name="description" placeholder="Enter level description" rows="3" [disabled]="saving" class="form-textarea"></textarea>
+        </div>
+        <div class="form-actions">
+          <button type="button" class="cancel-btn" (click)="onCancelForm()" [disabled]="saving">Cancel</button>
+          <button type="submit" class="submit-btn" [disabled]="saving || !createForm.nom.trim() || !createForm.departementId">
+            <i *ngIf="saving" class="fas fa-spinner fa-spin"></i>
+            {{ editingLevel ? 'Update' : 'Create' }} Level
+          </button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <!-- Levels List -->
+  <div *ngIf="!loading && !error" class="levels-container">
+    <div *ngIf="levels.length === 0" class="no-data">
+      <i class="fas fa-layer-group"></i>
+      <h3>No levels found</h3>
+      <p *ngIf="selectedDepartmentId; else noLevelsMessage">No levels found for the selected department.</p>
+      <ng-template #noLevelsMessage><p>Get started by creating your first academic level.</p></ng-template>
+      <button class="create-btn" (click)="onCreateLevel()"><i class="fas fa-plus"></i> Create Level</button>
+    </div>
+    <div *ngIf="levels.length > 0" class="levels-grid">
+      <div *ngFor="let level of levels" class="level-card">
+        <div class="level-header">
+          <h3>{{ level.nom }}</h3>
+          <div class="level-actions">
+            <button class="btn-edit" (click)="onEditLevel(level)" title="Edit Level"><i class="fas fa-edit"></i></button>
+            <button class="btn-delete" (click)="onDeleteLevel(level)" title="Delete Level"><i class="fas fa-trash"></i></button>
+            <button class="btn-assign" (click)="onManageAssignments(level)" title="Manage Assignments">
+              <i class="fas fa-tasks"></i>
+              <span class="btn-assign-text">Assign</span>
+            </button>
+          </div>
+        </div>
+        <div class="card-content">
+          <div class="level-details">
+            <div class="detail-item"><span class="label">Department:</span><span class="value">{{ getDepartmentName(level.departementId) }}</span></div>
+            <div class="detail-item"><span class="label">Academic Year:</span><span class="value">{{ getYearDisplayName(level.annee) }}</span></div>
+            <div class="detail-item"><span class="label">Total Classes:</span><span class="value">{{ level.totalClasses || 0 }}</span></div>
+            <div class="detail-item"><span class="label">Status:</span><span class="status-badge" [class.active]="level.isActive" [class.inactive]="!level.isActive">{{ level.isActive ? 'Active' : 'Inactive' }}</span></div>
+          </div>
+          <div class="description" *ngIf="level.description"><p>{{ level.description }}</p></div>
+        </div>
+        <div class="card-footer" *ngIf="level.classes && level.classes.length > 0">
+          <div class="classes-section">
+            <h4>Classes ({{ level.classes.length }})</h4>
+            <div class="classes-list">
+              <span *ngFor="let classe of level.classes" class="class-tag">{{ classe.nom }}</span>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Course Assignment Modal Dialog -->
+  <div *ngIf="showAssignmentDialog" class="modal-overlay">
+    <div class="assignment-modal">
+      <div class="modal-header">
+        <h3>Manage Course Assignments for {{ selectedLevel?.nom }}</h3>
+        <button class="close-btn" (click)="closeAssignmentDialog()"><i class="fas fa-times"></i></button>
+      </div>
+      <div *ngIf="assignmentLoading" class="loading-container">
+        <div class="loading-spinner"><i class="fas fa-spinner fa-spin"></i><p>Loading assignments...</p></div>
+      </div>
+      <div *ngIf="assignmentError && !assignmentLoading" class="error-container">
+        <div class="error-message"><i class="fas fa-exclamation-triangle"></i><p>{{ assignmentError }}</p></div>
+      </div>
+      <div *ngIf="!assignmentLoading && !assignmentError">
+        <div class="assignments-list">
+          <h4>Current Assignments</h4>
+          <div *ngIf="assignments.length === 0" class="no-data"><p>No course assignments for this level.</p></div>
+          <ul *ngIf="assignments.length > 0">
+            <li *ngFor="let a of assignments">
+              <span><b>{{ a.courseName }}</b> &rarr; {{ a.teacherName }}</span>
+              <button class="btn-remove" (click)="removeAssignment(a.id)"><i class="fas fa-trash"></i></button>
+            </li>
+          </ul>
+        </div>
+        <div class="assignment-form">
+          
+          <form (ngSubmit)="addAssignment()">
+            <select [(ngModel)]="assignmentForm.courseId" name="courseId" required>
+              <option value="">Select Course</option>
+              <option *ngFor="let c of courses" [value]="c.id">{{ c.name }}</option>
+            </select>
+            <select [(ngModel)]="assignmentForm.teacherId" name="teacherId" required>
+              <option value="">Select Teacher</option>
+              <option *ngFor="let t of teachers" [value]="t.id">{{ t.fullName }}</option>
+            </select>
+            <button type="submit" [disabled]="assignmentLoading || !assignmentForm.courseId || !assignmentForm.teacherId">
+              <i *ngIf="assignmentLoading" class="fas fa-spinner fa-spin"></i>
+              Add Assignment
+            </button>
+          </form>
+        </div>
+      </div>
+    </div>
+  </div>

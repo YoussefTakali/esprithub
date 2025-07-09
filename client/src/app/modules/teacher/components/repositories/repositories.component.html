@@ -1,0 +1,53 @@
+<div class="repositories-page">
+  <div class="repositories-header">
+    <h1 class="repositories-title">Your Repositories</h1>
+    <button class="add-repo-btn" mat-raised-button color="primary" (click)="addRepository()">
+      <i class="fas fa-plus"></i> New Repository
+    </button>
+  </div>
+  <div class="repositories-search">
+    <mat-form-field appearance="outline">
+      <mat-label>Search repositories</mat-label>
+      <input matInput placeholder="Type to search..." [(ngModel)]="searchTerm">
+      <button mat-icon-button matSuffix *ngIf="searchTerm" (click)="searchTerm = ''">
+        <i class="fas fa-times"></i>
+      </button>
+    </mat-form-field>
+  </div>
+  <div *ngIf="loading" class="loading-state">
+    <mat-spinner diameter="40"></mat-spinner>
+    <p>Loading repositories...</p>
+  </div>
+  <div *ngIf="!loading && (repositories?.length || 0) === 0" class="empty-state">
+    <i class="fas fa-folder-open"></i>
+    <h2>No repositories found</h2>
+    <p>Connect your GitHub account or create a new repository to get started.</p>
+  </div>
+  <div class="repositories-grid" *ngIf="!loading && (filteredRepositories?.length || 0) > 0">
+    <div class="repo-card" *ngFor="let repo of filteredRepositories">
+      <div class="repo-header">
+        <span class="repo-name">{{ repo.name }}</span>
+        <span class="repo-visibility" [class.private]="repo.isPrivate">
+          <i class="fas {{ repo.isPrivate ? 'fa-lock' : 'fa-globe' }}"></i>
+          {{ repo.isPrivate ? 'Private' : 'Public' }}
+        </span>
+      </div>
+      <div class="repo-description">{{ repo.description || 'No description' }}</div>
+      <div class="repo-meta">
+        <span class="repo-language" *ngIf="repo.language">
+          <span class="lang-dot" [style.backgroundColor]="getLanguageColor(repo.language)"></span>
+          {{ repo.language }}
+        </span>
+        <span class="repo-size">{{ (repo.size || 0) | number }} KB</span>
+      </div>
+      <div class="repo-actions">
+        <button mat-stroked-button color="primary" (click)="navigateToRepository(repo)">
+          <i class="fas fa-folder"></i> View
+        </button>
+        <a [href]="repo.url" target="_blank" mat-icon-button matTooltip="Open on GitHub">
+          <i class="fab fa-github"></i>
+        </a>
+      </div>
+    </div>
+  </div>
+</div>
