@@ -3,7 +3,7 @@ import { CommonModule } from '@angular/common';
 import { FormsModule, ReactiveFormsModule } from '@angular/forms';
 import { RouterModule, Routes } from '@angular/router';
 import { HttpClientModule } from '@angular/common/http';
-
+ 
 // Angular Material Modules
 import { MatDialogModule } from '@angular/material/dialog';
 import { MatFormFieldModule } from '@angular/material/form-field';
@@ -27,7 +27,7 @@ import { MatTableModule } from '@angular/material/table';
 import { MatSortModule } from '@angular/material/sort';
 import { MatDatepickerModule } from '@angular/material/datepicker';
 import { MatNativeDateModule } from '@angular/material/core';
-
+ 
 // Student Components
 import { StudentDashboardComponent } from './components/dashboard/dashboard.component';
 import { StudentTasksComponent } from './components/tasks/tasks.component';
@@ -37,8 +37,9 @@ import { StudentSubmissionsComponent } from './components/submissions/submission
 import { StudentRepositoriesComponent } from './components/repositories/repositories.component';
 import { StudentScheduleComponent } from './components/schedule/schedule.component';
 import { GitHubRepoDetailsComponent } from './components/github-repo-details/github-repo-details.component';
+import { CommitHistoryComponent } from './components/commit-history/commit-history.component';
 import { StudentService } from './services/student.service';
-
+ 
 const routes: Routes = [
   { path: 'dashboard', component: StudentDashboardComponent },
   { path: 'tasks', component: StudentTasksComponent },
@@ -47,11 +48,12 @@ const routes: Routes = [
   { path: 'submissions', component: StudentSubmissionsComponent },
   { path: 'repositories', component: StudentRepositoriesComponent },
   { path: 'repositories/:id', component: GitHubRepoDetailsComponent },
+  { path: 'repositories/:id/commits', component: CommitHistoryComponent },
   { path: 'schedule', component: StudentScheduleComponent },
   { path: '', redirectTo: 'dashboard', pathMatch: 'full' },
   { path: '**', redirectTo: 'dashboard' }
 ];
-
+ 
 @NgModule({
   declarations: [
     StudentDashboardComponent,
@@ -61,7 +63,9 @@ const routes: Routes = [
     StudentSubmissionsComponent,
     StudentRepositoriesComponent,
     StudentScheduleComponent,
-    GitHubRepoDetailsComponent
+    GitHubRepoDetailsComponent,
+    CommitHistoryComponent,
+    CommitHistoryComponent
   ],
   imports: [
     CommonModule,
@@ -69,7 +73,7 @@ const routes: Routes = [
     ReactiveFormsModule,
     HttpClientModule,
     RouterModule.forChild(routes),
-    
+   
     // Angular Material
     MatDialogModule,
     MatFormFieldModule,
@@ -108,3 +112,5 @@ const routes: Routes = [
   ]
 })
 export class StudentModule { }
+ 
+ 

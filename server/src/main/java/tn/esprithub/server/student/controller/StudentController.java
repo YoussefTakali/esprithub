@@ -44,9 +44,9 @@ public class StudentController {
             @RequestParam(required = false) String status,
             @RequestParam(required = false) String search,
             Authentication authentication) {
-        log.info("Fetching tasks for student: {} (page: {}, size: {}, status: {}, search: {})", 
+        log.info("Fetching tasks for student: {} (page: {}, size: {}, status: {}, search: {})",
                 authentication.getName(), page, size, status, search);
-        
+
         Pageable pageable = Pageable.ofSize(size).withPage(page);
         Page<StudentTaskDto> tasks = studentService.getStudentTasks(authentication.getName(), pageable, status, search);
         return ResponseEntity.ok(tasks);
@@ -69,7 +69,7 @@ public class StudentController {
             @RequestBody(required = false) Map<String, String> submissionData,
             Authentication authentication) {
         log.info("Submitting task: {} by student: {}", taskId, authentication.getName());
-        
+
         try {
             String notes = submissionData != null ? submissionData.get("notes") : "";
             studentService.submitTask(taskId, authentication.getName(), notes);
@@ -140,7 +140,7 @@ public class StudentController {
             @PathVariable UUID notificationId,
             Authentication authentication) {
         log.info("Marking notification as read: {} by student: {}", notificationId, authentication.getName());
-        
+
         try {
             studentService.markNotificationAsRead(notificationId, authentication.getName());
             return ResponseEntity.ok(Map.of("message", "Notification marked as read"));
@@ -167,7 +167,7 @@ public class StudentController {
             @RequestParam(defaultValue = "10") int size,
             Authentication authentication) {
         log.info("Fetching submissions for student: {} (page: {}, size: {})", authentication.getName(), page, size);
-        
+
         Pageable pageable = Pageable.ofSize(size).withPage(page);
         Page<Map<String, Object>> submissions = studentService.getSubmissions(authentication.getName(), pageable);
         return ResponseEntity.ok(submissions);
@@ -210,7 +210,7 @@ public class StudentController {
             @PathVariable String repositoryId,
             Authentication authentication) {
         log.info("Fetching GitHub repository details for repository: {} by student: {}", repositoryId, authentication.getName());
-        
+
         try {
             Map<String, Object> githubDetails = studentService.getRepositoryDetails(repositoryId, authentication.getName());
             return ResponseEntity.ok(githubDetails);
@@ -227,7 +227,7 @@ public class StudentController {
             @PathVariable String repo,
             Authentication authentication) {
         log.info("Fetching GitHub repository details for {}/{} by student: {}", owner, repo, authentication.getName());
-        
+
         try {
             Map<String, Object> githubDetails = studentService.getGitHubRepositoryByFullName(owner, repo, authentication.getName());
             return ResponseEntity.ok(githubDetails);
@@ -245,9 +245,9 @@ public class StudentController {
             @RequestParam(value = "path", defaultValue = "") String path,
             @RequestParam(value = "branch", defaultValue = "main") String branch,
             Authentication authentication) {
-        log.info("Fetching files for repository {}/{} at path: {} on branch: {} by student: {}", 
+        log.info("Fetching files for repository {}/{} at path: {} on branch: {} by student: {}",
                 owner, repo, path, branch, authentication.getName());
-        
+
         try {
             List<Map<String, Object>> files = studentService.getRepositoryFiles(owner, repo, path, branch, authentication.getName());
             return ResponseEntity.ok(files);
@@ -265,9 +265,9 @@ public class StudentController {
             @RequestParam String path,
             @RequestParam(value = "branch", defaultValue = "main") String branch,
             Authentication authentication) {
-        log.info("Fetching file content for {}/{} at path: {} on branch: {} by student: {}", 
+        log.info("Fetching file content for {}/{} at path: {} on branch: {} by student: {}",
                 owner, repo, path, branch, authentication.getName());
-        
+
         try {
             Map<String, Object> fileContent = studentService.getFileContent(owner, repo, path, branch, authentication.getName());
             return ResponseEntity.ok(fileContent);
@@ -286,15 +286,34 @@ public class StudentController {
             @RequestParam(value = "page", defaultValue = "1") int page,
             @RequestParam(value = "per_page", defaultValue = "30") int perPage,
             Authentication authentication) {
-        log.info("Fetching commits for repository {}/{} on branch: {} (page: {}, per_page: {}) by student: {}", 
+        log.info("Fetching commits for repository {}/{} on branch: {} (page: {}, per_page: {}) by student: {}",
                 owner, repo, branch, page, perPage, authentication.getName());
-        
+
         try {
             List<Map<String, Object>> commits = studentService.getRepositoryCommits(owner, repo, branch, page, perPage, authentication.getName());
             return ResponseEntity.ok(commits);
         } catch (Exception e) {
             log.error("Error fetching repository commits: {}", e.getMessage());
             return ResponseEntity.badRequest().body(List.of(Map.of("error", "Failed to fetch repository commits: " + e.getMessage())));
+        }
+    }
+
+    // Get individual commit details with diff data
+    @GetMapping("/github/{owner}/{repo}/commits/{sha}")
+    public ResponseEntity<Map<String, Object>> getCommitDetails(
+            @PathVariable String owner,
+            @PathVariable String repo,
+            @PathVariable String sha,
+            Authentication authentication) {
+        log.info("Fetching commit details for {}/{}/commits/{} by student: {}",
+                owner, repo, sha, authentication.getName());
+
+        try {
+            Map<String, Object> commitDetails = studentService.getCommitDetails(owner, repo, sha, authentication.getName());
+            return ResponseEntity.ok(commitDetails);
+        } catch (Exception e) {
+            log.error("Error fetching commit details: {}", e.getMessage());
+            return ResponseEntity.badRequest().body(Map.of("error", "Failed to fetch commit details: " + e.getMessage()));
         }
     }
 
@@ -305,7 +324,7 @@ public class StudentController {
             @PathVariable String repo,
             Authentication authentication) {
         log.info("Fetching branches for repository {}/{} by student: {}", owner, repo, authentication.getName());
-        
+
         try {
             List<Map<String, Object>> branches = studentService.getRepositoryBranches(owner, repo, authentication.getName());
             return ResponseEntity.ok(branches);
@@ -323,13 +342,13 @@ public class StudentController {
             @RequestBody Map<String, Object> fileData,
             Authentication authentication) {
         log.info("Creating file in repository {}/{} by student: {}", owner, repo, authentication.getName());
-        
+
         try {
             String path = (String) fileData.get("path");
             String content = (String) fileData.get("content");
             String message = (String) fileData.get("message");
             String branch = (String) fileData.getOrDefault("branch", "main");
-            
+
             Map<String, Object> result = studentService.createFile(owner, repo, path, content, message, branch, authentication.getName());
             return ResponseEntity.ok(result);
         } catch (Exception e) {
@@ -346,14 +365,14 @@ public class StudentController {
             @RequestBody Map<String, Object> fileData,
             Authentication authentication) {
         log.info("Updating file in repository {}/{} by student: {}", owner, repo, authentication.getName());
-        
+
         try {
             String path = (String) fileData.get("path");
             String content = (String) fileData.get("content");
             String message = (String) fileData.get("message");
             String sha = (String) fileData.get("sha"); // Required for updates
             String branch = (String) fileData.getOrDefault("branch", "main");
-            
+
             Map<String, Object> result = studentService.updateFile(owner, repo, path, content, message, sha, branch, authentication.getName());
             return ResponseEntity.ok(result);
         } catch (Exception e) {
@@ -373,7 +392,7 @@ public class StudentController {
             @RequestParam(value = "branch", defaultValue = "main") String branch,
             Authentication authentication) {
         log.info("Deleting file {} from repository {}/{} by student: {}", path, owner, repo, authentication.getName());
-        
+
         try {
             Map<String, Object> result = studentService.deleteFile(owner, repo, path, message, sha, branch, authentication.getName());
             return ResponseEntity.ok(result);
@@ -391,11 +410,11 @@ public class StudentController {
             @RequestBody Map<String, Object> branchData,
             Authentication authentication) {
         log.info("Creating branch in repository {}/{} by student: {}", owner, repo, authentication.getName());
-        
+
         try {
             String branchName = (String) branchData.get("name");
             String fromBranch = (String) branchData.getOrDefault("from", "main");
-            
+
             Map<String, Object> result = studentService.createBranch(owner, repo, branchName, fromBranch, authentication.getName());
             return ResponseEntity.ok(result);
         } catch (Exception e) {
@@ -411,7 +430,7 @@ public class StudentController {
             @PathVariable String repo,
             Authentication authentication) {
         log.info("Fetching contributors for repository {}/{} by student: {}", owner, repo, authentication.getName());
-        
+
         try {
             List<Map<String, Object>> contributors = studentService.getRepositoryContributors(owner, repo, authentication.getName());
             return ResponseEntity.ok(contributors);
@@ -425,7 +444,7 @@ public class StudentController {
     @GetMapping("/github-repositories")
     public ResponseEntity<List<Map<String, Object>>> getStudentGitHubRepositories(Authentication authentication) {
         log.info("Fetching all GitHub repositories for student: {}", authentication.getName());
-        
+
         try {
             List<Map<String, Object>> repositories = studentService.getStudentGitHubRepositories(authentication.getName());
             return ResponseEntity.ok(repositories);
@@ -441,9 +460,9 @@ public class StudentController {
         log.info("Fetching schedule for student: {}", authentication.getName());
         List<Map<String, Object>> weeklySchedule = studentService.getWeeklySchedule(authentication.getName());
         Map<String, Object> scheduleResponse = Map.of(
-            "weeklySchedule", weeklySchedule,
-            "upcomingEvents", studentService.getUpcomingDeadlines(authentication.getName(), 7),
-            "deadlines", studentService.getUpcomingDeadlines(authentication.getName(), 14)
+                "weeklySchedule", weeklySchedule,
+                "upcomingEvents", studentService.getUpcomingDeadlines(authentication.getName(), 7),
+                "deadlines", studentService.getUpcomingDeadlines(authentication.getName(), 14)
         );
         return ResponseEntity.ok(scheduleResponse);
     }
@@ -452,7 +471,7 @@ public class StudentController {
     @GetMapping("/debug/github")
     public ResponseEntity<Map<String, Object>> debugGitHubAccess(Authentication authentication) {
         log.info("Debug: Testing GitHub access for student: {}", authentication.getName());
-        
+
         try {
             Map<String, Object> debugInfo = studentService.debugGitHubAccess(authentication.getName());
             return ResponseEntity.ok(debugInfo);
@@ -470,7 +489,7 @@ public class StudentController {
             @RequestParam(value = "branch", required = false) String branch,
             Authentication authentication) {
         log.info("Fetching comprehensive overview for repository {}/{} by student: {}", owner, repo, authentication.getName());
-        
+
         try {
             Map<String, Object> overview = studentService.getRepositoryOverview(owner, repo, branch, authentication.getName());
             return ResponseEntity.ok(overview);
@@ -488,7 +507,7 @@ public class StudentController {
             @RequestParam(value = "branch", required = false) String branch,
             Authentication authentication) {
         log.info("Fetching file tree for repository {}/{} on branch: {} by student: {}", owner, repo, branch, authentication.getName());
-        
+
         try {
             Map<String, Object> fileTree = studentService.getRepositoryFileTree(owner, repo, branch, authentication.getName());
             return ResponseEntity.ok(fileTree);
@@ -497,7 +516,7 @@ public class StudentController {
             return ResponseEntity.badRequest().body(Map.of("error", "Failed to fetch repository file tree: " + e.getMessage()));
         }
     }
-    
+
     // Upload single file
     @PostMapping("/github/{owner}/{repo}/upload")
     public ResponseEntity<Map<String, Object>> uploadFile(
@@ -509,7 +528,7 @@ public class StudentController {
             @RequestParam(value = "branch", required = false) String branch,
             Authentication authentication) {
         log.info("Uploading file to repository {}/{} at path: {} by student: {}", owner, repo, path, authentication.getName());
-        
+
         try {
             byte[] fileContent = file.getBytes();
             Map<String, Object> result = studentService.uploadFile(owner, repo, path, fileContent, message, branch, authentication.getName());
@@ -519,7 +538,7 @@ public class StudentController {
             return ResponseEntity.badRequest().body(Map.of("error", "Failed to upload file: " + e.getMessage()));
         }
     }
-    
+
     // Upload multiple files
     @PostMapping("/github/{owner}/{repo}/upload-multiple")
     public ResponseEntity<Map<String, Object>> uploadMultipleFiles(
@@ -530,9 +549,9 @@ public class StudentController {
             @RequestParam("message") String message,
             @RequestParam(value = "branch", required = false) String branch,
             Authentication authentication) {
-        log.info("Uploading {} files to repository {}/{} in path: {} by student: {}", 
-            files.length, owner, repo, basePath, authentication.getName());
-        
+        log.info("Uploading {} files to repository {}/{} in path: {} by student: {}",
+                files.length, owner, repo, basePath, authentication.getName());
+
         try {
             Map<String, byte[]> fileMap = new HashMap<>();
             for (MultipartFile file : files) {
@@ -540,7 +559,7 @@ public class StudentController {
                     fileMap.put(file.getOriginalFilename(), file.getBytes());
                 }
             }
-            
+
             Map<String, Object> result = studentService.uploadMultipleFiles(owner, repo, basePath, fileMap, message, branch, authentication.getName());
             return ResponseEntity.ok(result);
         } catch (Exception e) {
