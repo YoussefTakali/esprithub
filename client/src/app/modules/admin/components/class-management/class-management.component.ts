@@ -7,7 +7,8 @@ import { AuthService } from '../../../../services/auth.service';
 import { Classe, CreateClasse, CreateClasseSimple, Niveau, Departement, User, UserRole } from '../../../../shared/models/academic.models';
 import { MatDialog } from '@angular/material/dialog';
 import { AssignStudentsDialogComponent } from './assign-students-dialog.component';
-
+import { ShowAllStudentsDialogComponent } from './show-all-students-dialog.component';
+ 
 @Component({
   selector: 'app-class-management',
   templateUrl: './class-management.component.html',
@@ -18,28 +19,28 @@ export class ClassManagementComponent implements OnInit {
   levels: Niveau[] = [];
   departments: Departement[] = [];
   teachers: User[] = [];
-  
+ 
   loading = true;
   saving = false;
   error: string | null = null;
-  
+ 
   showCreateForm = false;
   editingClass: Classe | null = null;
   selectedDepartmentId: string | null = null;
   selectedLevelId: string | null = null;
-  
+ 
   createForm: CreateClasse = {
     nom: '',
     description: '',
     niveauId: '',
     capacite: 30
   };
-
+ 
   // New form fields for hierarchical creation
   createFormDepartmentId: string = '';
   createFormLevelId: string = '';
   createFormLevels: Niveau[] = [];
-
+ 
   constructor(
     private readonly academicService: AcademicService,
     private readonly userService: UserService,
@@ -47,11 +48,11 @@ export class ClassManagementComponent implements OnInit {
     private readonly authService: AuthService,
     private readonly dialog: MatDialog
   ) {}
-
+ 
   ngOnInit(): void {
     this.loadData();
   }
-
+ 
   async loadData(): Promise<void> {
     try {
       this.loading = true;
@@ -84,7 +85,7 @@ export class ClassManagementComponent implements OnInit {
       this.loading = false;
     }
   }
-
+ 
   async onDepartmentFilter(departmentId: string | null): Promise<void> {
     const user = this.authService.getCurrentUser();
     if (user?.role === 'CHIEF' && (user as any).departementId) {
@@ -93,7 +94,7 @@ export class ClassManagementComponent implements OnInit {
     }
     this.selectedDepartmentId = departmentId;
     this.selectedLevelId = null;
-    
+   
     if (departmentId) {
       try {
         this.loading = true;
@@ -113,7 +114,7 @@ export class ClassManagementComponent implements OnInit {
       await this.loadData();
     }
   }
-
+ 
   async onLevelFilter(levelId: string | null): Promise<void> {
     this.selectedLevelId = levelId;
     if (levelId) {
@@ -142,7 +143,7 @@ export class ClassManagementComponent implements OnInit {
       await this.loadData();
     }
   }
-
+ 
   private async loadClassesByDepartment(departmentId: string): Promise<void> {
     try {
       this.loading = true;
@@ -167,7 +168,7 @@ export class ClassManagementComponent implements OnInit {
       this.loading = false;
     }
   }
-
+ 
   async onCreateClass(): Promise<void> {
     this.showCreateForm = true;
     this.editingClass = null;
@@ -179,9 +180,9 @@ export class ClassManagementComponent implements OnInit {
       this.resetCreateForm();
     }
   }
-
-
-
+ 
+ 
+ 
 onDepartmentSelectedForCreate(eventOrId: Event | string): void {
   let value: string;
   if (typeof eventOrId === 'string') {
@@ -198,7 +199,7 @@ onDepartmentSelectedForCreate(eventOrId: Event | string): void {
     this.createFormLevels = [];
   }
 }
-
+ 
 private async loadLevelsForDepartment(departmentId: string): Promise<void> {
   try {
     this.loading = true;
@@ -215,7 +216,7 @@ private async loadLevelsForDepartment(departmentId: string): Promise<void> {
     this.loading = false;
   }
 }
-
+ 
   onEditClass(classe: Classe): void {
     this.editingClass = classe;
     this.showCreateForm = true;
@@ -233,27 +234,27 @@ private async loadLevelsForDepartment(departmentId: string): Promise<void> {
       this.onDepartmentSelectedForCreate(this.createFormDepartmentId);
     }
   }
-
+ 
   onCancelForm(): void {
     this.showCreateForm = false;
     this.editingClass = null;
     this.error = null; // Clear error on cancel
     this.resetCreateForm();
   }
-
+ 
   async onSubmitForm(): Promise<void> {
     if (!this.createForm.nom.trim() || !this.createFormDepartmentId || !this.createForm.niveauId) {
       this.snackbarService.showError('Class name, department, and level are required.');
       this.error = 'Class name, department, and level are required.';
       return;
     }
-
+ 
     try {
       this.saving = true;
       this.error = null;
       const prevDepartmentId = this.createFormDepartmentId;
       const prevLevelId = this.createFormLevelId;
-
+ 
       if (this.editingClass) {
         await firstValueFrom(
           this.academicService.updateClasse(this.editingClass.id, this.createForm)
@@ -268,14 +269,14 @@ private async loadLevelsForDepartment(departmentId: string): Promise<void> {
         };
         await firstValueFrom(
           this.academicService.createClasseForNiveau(
-            this.createFormDepartmentId, 
-            this.createForm.niveauId, 
+            this.createFormDepartmentId,
+            this.createForm.niveauId,
             createClasseData
           )
         );
         this.snackbarService.showSuccess('Class created successfully!');
       }
-
+ 
       // Preserve department and level selection after create/update
       this.selectedDepartmentId = prevDepartmentId;
       this.selectedLevelId = prevLevelId;
@@ -290,21 +291,21 @@ private async loadLevelsForDepartment(departmentId: string): Promise<void> {
       this.saving = false;
     }
   }
-
+ 
   async onDeleteClass(classe: Classe): Promise<void> {
     if (!confirm(`Are you sure you want to delete the class "${classe.nom}"?`)) {
       return;
     }
-
+ 
     try {
       this.saving = true;
       this.error = null;
-      
+     
       await firstValueFrom(
         this.academicService.deleteClasse(classe.id)
       );
       this.snackbarService.showSuccess('Class deleted successfully!');
-      
+     
       await this.refreshCurrentView();
     } catch (error) {
       console.error('Error deleting class:', error);
@@ -314,7 +315,7 @@ private async loadLevelsForDepartment(departmentId: string): Promise<void> {
       this.saving = false;
     }
   }
-
+ 
   async onAssignStudents(classe: Classe): Promise<void> {
     try {
       // Fetch all students (optionally filter by department/level)
@@ -343,7 +344,31 @@ private async loadLevelsForDepartment(departmentId: string): Promise<void> {
       this.snackbarService.showError('Failed to load students.');
     }
   }
-
+ 
+  async onShowAllStudents(): Promise<void> {
+    try {
+      const students = await firstValueFrom(this.userService.getUsersByRole(UserRole.STUDENT));
+      this.dialog.open(ShowAllStudentsDialogComponent, {
+        width: '600px',
+        data: { students }
+      });
+    } catch (err) {
+      this.snackbarService.showError('Failed to load students.');
+    }
+  }
+ 
+  async onShowClassStudents(classe: Classe): Promise<void> {
+    try {
+      const students = await firstValueFrom(this.userService.getUsersByClass(classe.id));
+      this.dialog.open(ShowAllStudentsDialogComponent, {
+        width: '600px',
+        data: { students }
+      });
+    } catch (err) {
+      this.snackbarService.showError('Failed to load students.');
+    }
+  }
+ 
   private async refreshCurrentView(): Promise<void> {
     if (this.selectedLevelId) {
       await this.onLevelFilter(this.selectedLevelId);
@@ -353,7 +378,7 @@ private async loadLevelsForDepartment(departmentId: string): Promise<void> {
       await this.loadData();
     }
   }
-
+ 
   private resetCreateForm(): void {
     this.createForm = {
       nom: '',
@@ -361,28 +386,28 @@ private async loadLevelsForDepartment(departmentId: string): Promise<void> {
       niveauId: '',
       capacite: 30
     };
-    
+   
     // Reset hierarchical form fields
     this.createFormDepartmentId = this.selectedDepartmentId ?? '';
     this.createFormLevelId = '';
     this.createFormLevels = [];
-    
+   
     // If we have a pre-selected department, load its levels
     if (this.createFormDepartmentId) {
       this.onDepartmentSelectedForCreate(this.createFormDepartmentId);
     }
   }
-
+ 
   getDepartmentName(departmentId: string): string {
     const department = this.departments.find(d => d.id === departmentId);
     return department?.nom ?? 'Unknown Department';
   }
-
+ 
   getLevelName(levelId: string): string {
     const level = this.levels.find(l => l.id === levelId);
     return level?.nom ?? 'Unknown Level';
   }
-
+ 
   getAvailableLevels(): Niveau[] {
     if (this.selectedDepartmentId) {
       return this.levels;

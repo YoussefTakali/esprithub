@@ -2,7 +2,7 @@ import { Component, Inject } from '@angular/core';
 import { MAT_DIALOG_DATA, MatDialogRef } from '@angular/material/dialog';
 import { UserService } from '../../../../shared/services/user.service';
 import { SnackbarService } from '../../../../shared/services/snackbar.service';
-
+ 
 @Component({
   selector: 'app-show-all-students-dialog',
   template: `
@@ -64,7 +64,7 @@ export class ShowAllStudentsDialogComponent {
     private userService: UserService,
     private snackbar: SnackbarService
   ) {}
-
+ 
   removeStudent(student: any) {
     if (!confirm(`Remove ${student.fullName} from this class?`)) return;
     this.removingId = student.id;
@@ -80,4 +80,4 @@ export class ShowAllStudentsDialogComponent {
       }
     });
   }
-} 
+}

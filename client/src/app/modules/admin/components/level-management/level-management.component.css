@@ -835,10 +835,11 @@
 }
 
 .levels-grid {
+  padding-left: 35px;
+  padding-right: 35px;
   display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+  grid-template-columns: repeat(4, 1fr);
   gap: 1.25rem;
-  margin-top: 1.5rem;
 }
 
 /* === DÉTAILS DES CARTES === */
