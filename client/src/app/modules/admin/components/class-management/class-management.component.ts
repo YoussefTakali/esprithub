@@ -7,7 +7,6 @@ import { AuthService } from '../../../../services/auth.service';
 import { Classe, CreateClasse, CreateClasseSimple, Niveau, Departement, User, UserRole } from '../../../../shared/models/academic.models';
 import { MatDialog } from '@angular/material/dialog';
 import { AssignStudentsDialogComponent } from './assign-students-dialog.component';
-import { ShowAllStudentsDialogComponent } from './show-all-students-dialog.component';
 
 @Component({
   selector: 'app-class-management',
@@ -339,30 +338,6 @@ private async loadLevelsForDepartment(departmentId: string): Promise<void> {
             this.saving = false;
           }
         }
-      });
-    } catch (err) {
-      this.snackbarService.showError('Failed to load students.');
-    }
-  }
-
-  async onShowAllStudents(): Promise<void> {
-    try {
-      const students = await firstValueFrom(this.userService.getUsersByRole(UserRole.STUDENT));
-      this.dialog.open(ShowAllStudentsDialogComponent, {
-        width: '600px',
-        data: { students }
-      });
-    } catch (err) {
-      this.snackbarService.showError('Failed to load students.');
-    }
-  }
-
-  async onShowClassStudents(classe: Classe): Promise<void> {
-    try {
-      const students = await firstValueFrom(this.userService.getUsersByClass(classe.id));
-      this.dialog.open(ShowAllStudentsDialogComponent, {
-        width: '600px',
-        data: { students }
       });
     } catch (err) {
       this.snackbarService.showError('Failed to load students.');

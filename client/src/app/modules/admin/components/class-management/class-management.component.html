@@ -11,14 +11,6 @@
         <option [value]="null">All Departments</option>
         <option *ngFor="let dept of departments" [value]="dept.id">{{ dept.nom }}</option>
       </select>
-      <!-- Filtre des niveaux -->
-      <div class="filter-group">
-        <label for="levelFilter">Level:</label>
-        <select id="levelFilter" [(ngModel)]="selectedLevelId" (change)="onLevelFilter(selectedLevelId)">
-          <option [ngValue]="null">All levels</option>
-          <option *ngFor="let level of levels" [ngValue]="level.id">{{ level.nom }}</option>
-        </select>
-      </div>
       <button class="refresh-btn" (click)="loadData()" [disabled]="loading">
         <i class="fas fa-sync-alt" [class.spinning]="loading"></i>
         Refresh
@@ -113,7 +105,6 @@
             <button class="btn-edit" (click)="onEditClass(classe)"><i class="fas fa-edit"></i></button>
             <button class="btn-delete" (click)="onDeleteClass(classe)"><i class="fas fa-trash"></i></button>
             <button class="btn-assign" (click)="onAssignStudents(classe)"><i class="fas fa-user-plus"></i> Assign Students</button>
-            <button class="btn-show-students" (click)="onShowClassStudents(classe)"><i class="fas fa-users"></i> Show Students</button>
           </div>
         </div>
         <div class="card-content">
@@ -135,5 +126,5 @@
       </div>
     </div>
   </div>
-  <button class="show-students-btn" (click)="onShowAllStudents()">Show All Students</button>
+</div>
 </div>
