@@ -52,13 +52,13 @@
 
 /* Improved hover effect */
 .s-link:hover {
-  background-color:  rgb(165, 32, 45) ;
+  background-color:  #eeebeb ;
   transform: translateX(4px);
 }
 
 /* Active link styling with left border indicator */
 .s-link.active {
-  background-color:  #a52c38;
+  background-color:  #e2dfdf;
   font-weight: 600;
   transform: translateX(4px);
   color:#ffffff;
