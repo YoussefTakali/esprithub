@@ -33,10 +33,12 @@ public interface RepositoryService {
     void removeCollaborator(String repoFullName, String username, String teacherEmail);
     
     List<Map<String, Object>> getCommits(String repoFullName, String branch, int page, String teacherEmail);
-    
+
+    Object getLatestCommit(String owner, String repo, String path, String branch, String teacherEmail);
+
     void updateRepository(String repoFullName, Map<String, Object> settings, String teacherEmail);
-    
+
     void deleteRepository(String repoFullName, String teacherEmail);
-    
+
     RepositoryDto createRepository(String repositoryName, String description, boolean isPrivate, String teacherEmail);
 }

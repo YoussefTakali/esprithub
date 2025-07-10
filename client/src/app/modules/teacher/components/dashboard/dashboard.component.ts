@@ -11,6 +11,10 @@ export class TeacherDashboardComponent implements OnInit {
   myProjects: any[] = [];
   myGroups: any[] = [];
   myTasks: any[] = [];
+  dashboard: any = null;
+  loading = true;
+  error: string | null = null;
+  now = new Date();
 
   constructor(private readonly teacherData: TeacherDataService) {}
 
@@ -19,5 +23,20 @@ export class TeacherDashboardComponent implements OnInit {
     this.teacherData.getMyProjects().subscribe(projects => this.myProjects = projects);
     this.teacherData.getMyGroups().subscribe(groups => this.myGroups = groups);
     this.teacherData.getMyTasks().subscribe(tasks => this.myTasks = tasks);
+    this.teacherData.getDashboard().subscribe({
+      next: (data) => {
+        this.dashboard = data;
+        this.loading = false;
+      },
+      error: (err) => {
+        this.error = 'Failed to load dashboard data';
+        this.loading = false;
+      }
+    });
+  }
+
+  isOverdue(deadline: string | null): boolean {
+    if (!deadline) return false;
+    return new Date(deadline) < this.now;
   }
 }

@@ -20,6 +20,7 @@ import tn.esprithub.server.user.repository.UserRepository;
 import java.time.LocalDateTime;
 import java.time.ZonedDateTime;
 import java.util.*;
+import org.springframework.web.util.UriComponentsBuilder;
 
 @Service
 @RequiredArgsConstructor
@@ -320,12 +321,19 @@ public class RepositoryServiceImpl implements RepositoryService {
                 List<RepositoryStatsDto.CommitDto> commitList = new ArrayList<>();
                 
                 for (JsonNode commit : commits) {
+                    // Get avatar URL from the GitHub user info (author field in the commit object)
+                    String avatarUrl = null;
+                    if (commit.has("author") && commit.get("author") != null && !commit.get("author").isNull()) {
+                        avatarUrl = commit.get("author").get("avatar_url").asText();
+                    }
+
                     RepositoryStatsDto.CommitDto commitDto = RepositoryStatsDto.CommitDto.builder()
                             .sha(commit.get("sha").asText())
                             .message(commit.get("commit").get("message").asText())
                             .author(commit.get("commit").get("author").get("name").asText())
                             .date(parseGitHubDate(commit.get("commit").get("author").get("date").asText()))
                             .url(commit.get("html_url").asText())
+                            .avatarUrl(avatarUrl)
                             .build();
                     commitList.add(commitDto);
                 }
@@ -464,33 +472,47 @@ public class RepositoryServiceImpl implements RepositoryService {
     @Override
     public List<Map<String, Object>> getCollaborators(String repoFullName, String teacherEmail) {
         User teacher = getTeacherWithGitHubToken(teacherEmail);
-        
         try {
-            String url = GITHUB_API_BASE + "/repos/" + repoFullName + "/collaborators";
+            String collabUrl = GITHUB_API_BASE + "/repos/" + repoFullName + "/collaborators";
+            String invitesUrl = GITHUB_API_BASE + "/repos/" + repoFullName + "/invitations";
             HttpHeaders headers = createHeaders(teacher.getGithubToken());
             HttpEntity<String> entity = new HttpEntity<>(headers);
-            
-            ResponseEntity<String> response = restTemplate.exchange(url, HttpMethod.GET, entity, String.class);
-            
-            if (response.getStatusCode().is2xxSuccessful()) {
-                JsonNode collaborators = objectMapper.readTree(response.getBody());
-                List<Map<String, Object>> collaboratorList = new ArrayList<>();
-                
+
+            // Fetch accepted collaborators
+            ResponseEntity<String> collabResponse = restTemplate.exchange(collabUrl, HttpMethod.GET, entity, String.class);
+            List<Map<String, Object>> collaboratorList = new ArrayList<>();
+            if (collabResponse.getStatusCode().is2xxSuccessful()) {
+                JsonNode collaborators = objectMapper.readTree(collabResponse.getBody());
                 for (JsonNode collaborator : collaborators) {
                     Map<String, Object> collabData = Map.of(
                         "username", collaborator.get("login").asText(),
                         "avatar_url", collaborator.get("avatar_url").asText(),
                         "type", collaborator.get("type").asText(),
-                        "permissions", collaborator.has("permissions") ? collaborator.get("permissions") : Map.of()
+                        "permissions", collaborator.has("permissions") ? collaborator.get("permissions") : Map.of(),
+                        "pending", false
                     );
                     collaboratorList.add(collabData);
                 }
-                
-                return collaboratorList;
-            } else {
-                throw new BusinessException("Failed to fetch collaborators from GitHub");
             }
-            
+
+            // Fetch pending invitations
+            ResponseEntity<String> inviteResponse = restTemplate.exchange(invitesUrl, HttpMethod.GET, entity, String.class);
+            if (inviteResponse.getStatusCode().is2xxSuccessful()) {
+                JsonNode invitations = objectMapper.readTree(inviteResponse.getBody());
+                for (JsonNode invite : invitations) {
+                    String username = invite.has("invitee") && invite.get("invitee").has("login") ? invite.get("invitee").get("login").asText() : null;
+                    String avatarUrl = invite.has("invitee") && invite.get("invitee").has("avatar_url") ? invite.get("invitee").get("avatar_url").asText() : null;
+                    String email = invite.has("email") ? invite.get("email").asText() : null;
+                    Map<String, Object> pendingData = new HashMap<>();
+                    pendingData.put("pending", true);
+                    pendingData.put("type", "User");
+                    if (username != null) pendingData.put("username", username);
+                    if (avatarUrl != null) pendingData.put("avatar_url", avatarUrl);
+                    if (email != null) pendingData.put("email", email);
+                    collaboratorList.add(pendingData);
+                }
+            }
+            return collaboratorList;
         } catch (Exception e) {
             log.error("Error fetching collaborators for repository {}: {}", repoFullName, e.getMessage());
             throw new BusinessException("Failed to fetch collaborators: " + e.getMessage());
@@ -618,13 +640,22 @@ public class RepositoryServiceImpl implements RepositoryService {
                 List<Map<String, Object>> commitList = new ArrayList<>();
                 
                 for (JsonNode commit : commits) {
-                    Map<String, Object> commitData = Map.of(
-                        "sha", commit.get("sha").asText(),
-                        "message", commit.get("commit").get("message").asText(),
-                        "author", commit.get("commit").get("author").get("name").asText(),
-                        "date", commit.get("commit").get("author").get("date").asText(),
-                        "url", commit.get("html_url").asText()
-                    );
+                    // Get avatar URL from the GitHub user info
+                    String avatarUrl = null;
+                    if (commit.has("author") && commit.get("author") != null && !commit.get("author").isNull()) {
+                        avatarUrl = commit.get("author").get("avatar_url").asText();
+                    }
+
+                    Map<String, Object> commitData = new HashMap<>();
+                    commitData.put("sha", commit.get("sha").asText());
+                    commitData.put("message", commit.get("commit").get("message").asText());
+                    commitData.put("author", commit.get("commit").get("author").get("name").asText());
+                    commitData.put("date", commit.get("commit").get("author").get("date").asText());
+                    commitData.put("url", commit.get("html_url").asText());
+                    if (avatarUrl != null) {
+                        commitData.put("avatarUrl", avatarUrl);
+                    }
+
                     commitList.add(commitData);
                 }
                 
@@ -636,6 +667,47 @@ public class RepositoryServiceImpl implements RepositoryService {
         } catch (Exception e) {
             log.error("Error fetching commits for repository {}: {}", repoFullName, e.getMessage());
             throw new BusinessException("Failed to fetch commits: " + e.getMessage());
+        }
+    }
+
+    @Override
+    public Object getLatestCommit(String owner, String repo, String path, String branch, String teacherEmail) {
+        User teacher = getTeacherWithGitHubToken(teacherEmail);
+
+        try {
+            // Build the URL properly with encoding
+            UriComponentsBuilder builder = UriComponentsBuilder
+                    .fromHttpUrl("https://api.github.com/repos/" + owner + "/" + repo + "/commits")
+                    .queryParam("sha", branch)
+                    .queryParam("per_page", 1);
+
+            // Only add path parameter if it's not empty
+            if (path != null && !path.trim().isEmpty()) {
+                builder.queryParam("path", path);
+            }
+
+            String url = builder.build().encode().toUriString();
+
+            // Log the URL for debugging
+            System.out.println("Latest commit URL: " + url);
+
+            HttpHeaders headers = createHeaders(teacher.getGithubToken());
+            HttpEntity<String> entity = new HttpEntity<>(headers);
+
+            ResponseEntity<String> response = restTemplate.exchange(url, HttpMethod.GET, entity, String.class);
+
+            if (response.getStatusCode().is2xxSuccessful()) {
+                JsonNode result = objectMapper.readTree(response.getBody());
+                System.out.println("Latest commit response: " + result.toString());
+                return result;
+            } else {
+                throw new BusinessException("Failed to fetch latest commit from GitHub");
+            }
+
+        } catch (Exception e) {
+            log.error("Error fetching latest commit for path {} in repository {}/{}: {}", path, owner, repo, e.getMessage());
+            throw new BusinessException("Error fetching commit: " + e.getMessage() +
+                    " for path: " + path + " in repo: " + owner + "/" + repo + ", branch: " + branch);
         }
     }
 

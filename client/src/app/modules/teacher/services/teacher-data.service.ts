@@ -124,4 +124,8 @@ export class TeacherDataService {
   updateTask(taskId: string, update: any) {
     return this.http.put<any>(`http://localhost:8090/api/tasks/${taskId}`, update);
   }
+
+  getDashboard(): Observable<any> {
+    return this.http.get<any>('http://localhost:8090/api/teacher/dashboard');
+  }
 }

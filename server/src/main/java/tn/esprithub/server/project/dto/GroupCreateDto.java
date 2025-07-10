@@ -10,4 +10,6 @@ public class GroupCreateDto {
     private UUID projectId;
     private UUID classeId;
     private List<UUID> studentIds;
+    private Boolean isPrivate = true; // default to private
+    private String gitignoreTemplate; 
 }
