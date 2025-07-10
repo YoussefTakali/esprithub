@@ -81,6 +81,10 @@ public interface UserRepository extends JpaRepository<User, UUID> {
     @Query("SELECT COUNT(u) FROM User u WHERE u.classe.id = :classeId AND u.role = 'STUDENT'")
     long countStudentsByClasse(@Param("classeId") UUID classeId);
 
+    // GitHub integration queries
+    @Query("SELECT u FROM User u WHERE u.githubToken IS NOT NULL AND u.githubToken != '' AND u.isActive = true")
+    List<User> findUsersWithGitHubTokens();
+
     // Pagination support for large datasets
     @Query("SELECT u FROM User u WHERE u.role IN :roles ORDER BY u.lastName, u.firstName")
     List<User> findByRoleInOrderByName(@Param("roles") List<UserRole> roles);

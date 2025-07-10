@@ -1,0 +1,366 @@
+<div class="user-details student-dashboard">
+  <!-- Header -->
+  <div class="dashboard-header">
+    <div class="header-content">
+      <button class="back-btn" (click)="goBack()">
+        <i class="fas fa-arrow-left"></i>
+        Back to Users
+      </button>
+      <h1 *ngIf="user">{{ user.fullName }}</h1>
+      <p *ngIf="user">{{ getRoleDisplayName(user.role) }} • {{ user.email }}</p>
+    </div>
+    <div class="header-actions" *ngIf="user">
+      <span class="status-badge" [class.active]="user.isActive" [class.inactive]="!user.isActive">
+        {{ user.isActive ? 'Active' : 'Inactive' }}
+      </span>
+      <span class="github-info" *ngIf="user.githubUsername">
+        <i class="fab fa-github"></i>
+        {{ user.githubUsername }}
+      </span>
+    </div>
+  </div>
+
+  <!-- Loading State -->
+  <div *ngIf="loading" class="loading-container">
+    <div class="loading-spinner">
+      <i class="fas fa-spinner fa-spin"></i>
+      <p>Loading user details...</p>
+    </div>
+  </div>
+
+  <!-- Error State -->
+  <div *ngIf="error && !loading" class="error-container">
+    <div class="error-message">
+      <i class="fas fa-exclamation-triangle"></i>
+      <p>{{ error }}</p>
+      <button class="retry-btn" (click)="loadUserDetails(user?.id || '')">Try Again</button>
+    </div>
+  </div>
+
+  <!-- User Details Content -->
+  <div *ngIf="!loading && !error && user" class="user-details-content">
+    <!-- Navigation Tabs -->
+    <div class="tabs-container">
+      <div class="tabs">
+        <button 
+          class="tab" 
+          [class.active]="activeTab === 'overview'"
+          (click)="setActiveTab('overview')">
+          <i class="fas fa-user"></i>
+          Overview
+        </button>
+        <button 
+          class="tab" 
+          [class.active]="activeTab === 'repositories'"
+          (click)="setActiveTab('repositories')">
+          <i class="fab fa-github"></i>
+          Repositories ({{ repositories.length }})
+        </button>
+        <button 
+          class="tab" 
+          [class.active]="activeTab === 'tasks'"
+          (click)="setActiveTab('tasks')">
+          <i class="fas fa-tasks"></i>
+          Tasks ({{ tasks.length }})
+        </button>
+        <button 
+          class="tab" 
+          [class.active]="activeTab === 'webhooks'"
+          (click)="setActiveTab('webhooks')">
+          <i class="fas fa-webhook"></i>
+          Webhooks ({{ webhookSubscriptions.length }})
+        </button>
+      </div>
+    </div>
+
+    <!-- Tab Content -->
+    <div class="tab-content">
+      <!-- Overview Tab -->
+      <div *ngIf="activeTab === 'overview'" class="overview-tab">
+        <div class="overview-grid">
+          <!-- User Information Card -->
+          <div class="info-card">
+            <h3>User Information</h3>
+            <div class="info-grid">
+              <div class="info-item">
+                <label>Full Name:</label>
+                <span>{{ user.fullName }}</span>
+              </div>
+              <div class="info-item">
+                <label>Email:</label>
+                <span>{{ user.email }}</span>
+                <span class="email-status" [class.verified]="user.isEmailVerified" [class.unverified]="!user.isEmailVerified">
+                  <i class="fas" [class.fa-check-circle]="user.isEmailVerified" [class.fa-exclamation-circle]="!user.isEmailVerified"></i>
+                  {{ user.isEmailVerified ? 'Verified' : 'Unverified' }}
+                </span>
+              </div>
+              <div class="info-item">
+                <label>Role:</label>
+                <span class="role-badge" [attr.data-role]="user.role">{{ getRoleDisplayName(user.role) }}</span>
+              </div>
+              <div class="info-item" *ngIf="user.departement">
+                <label>Department:</label>
+                <span>{{ user.departement.nom }}</span>
+              </div>
+              <div class="info-item" *ngIf="user.classe">
+                <label>Class:</label>
+                <span>{{ user.classe.nom }}</span>
+              </div>
+              <div class="info-item">
+                <label>Last Login:</label>
+                <span *ngIf="user.lastLogin; else noLogin">{{ formatDateTime(user.lastLogin) }}</span>
+                <ng-template #noLogin><span class="no-login">Never</span></ng-template>
+              </div>
+              <div class="info-item">
+                <label>Member Since:</label>
+                <span>{{ formatDate(user.createdAt) }}</span>
+              </div>
+            </div>
+          </div>
+
+          <!-- GitHub Information Card -->
+          <div class="info-card" *ngIf="user.githubUsername">
+            <h3>GitHub Information</h3>
+            <div class="github-info">
+              <div class="github-avatar">
+                <i class="fab fa-github"></i>
+              </div>
+              <div class="github-details">
+                <div class="github-username">{{ user.githubUsername }}</div>
+                <div class="github-name" *ngIf="user.githubName">{{ user.githubName }}</div>
+                <a [href]="'https://github.com/' + user.githubUsername" target="_blank" class="github-link">
+                  View on GitHub <i class="fas fa-external-link-alt"></i>
+                </a>
+              </div>
+            </div>
+          </div>
+
+          <!-- Statistics Card -->
+          <div class="info-card">
+            <h3>Statistics</h3>
+            <div class="stats-grid">
+              <div class="stat-item">
+                <div class="stat-value">{{ repositories.length }}</div>
+                <div class="stat-label">Repositories</div>
+              </div>
+              <div class="stat-item">
+                <div class="stat-value">{{ tasks.length }}</div>
+                <div class="stat-label">Tasks</div>
+              </div>
+              <div class="stat-item">
+                <div class="stat-value">{{ webhookSubscriptions.length }}</div>
+                <div class="stat-label">Webhooks</div>
+              </div>
+              <div class="stat-item">
+<div class="stat-value">{{ getActiveWebhooksCount() }}</div>
+                <div class="stat-label">Active Webhooks</div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Repositories Tab -->
+      <div *ngIf="activeTab === 'repositories'" class="repositories-tab">
+        <div class="tab-header">
+          <h3>Repositories ({{ repositories.length }})</h3>
+          <button
+            class="fetch-btn"
+            (click)="fetchRepositories()"
+            [disabled]="loading"
+            *ngIf="user?.githubUsername"
+            title="Fetch fresh repositories from GitHub">
+            <i class="fas fa-sync-alt" [class.fa-spin]="loading"></i>
+            Fetch from GitHub
+          </button>
+        </div>
+
+        <div *ngIf="repositories.length === 0" class="no-data">
+          <i class="fab fa-github"></i>
+          <h3>No repositories found</h3>
+          <p>This user doesn't have any repositories yet.</p>
+        </div>
+
+        <div *ngIf="repositories.length > 0" class="repositories-grid">
+          <div *ngFor="let repo of repositories" class="repository-card">
+            <div class="repo-header">
+              <div class="repo-info">
+                <h4>{{ repo.name }}</h4>
+                <p class="repo-description" *ngIf="repo.description">{{ repo.description }}</p>
+                <div class="repo-meta">
+                  <span class="repo-visibility" [class.private]="repo.isPrivate" [class.public]="!repo.isPrivate">
+                    <i class="fas" [class.fa-lock]="repo.isPrivate" [class.fa-globe]="!repo.isPrivate"></i>
+                    {{ repo.isPrivate ? 'Private' : 'Public' }}
+                  </span>
+                  <span class="repo-branch">
+                    <i class="fas fa-code-branch"></i>
+                    {{ repo.defaultBranch }}
+                  </span>
+                </div>
+              </div>
+              <div class="repo-actions">
+                <button class="action-btn view" (click)="viewRepository(repo)" title="View repository">
+                  <i class="fas fa-eye"></i>
+                </button>
+                <a [href]="repo.url" target="_blank" class="action-btn external" title="Open on GitHub">
+                  <i class="fab fa-github"></i>
+                </a>
+              </div>
+            </div>
+
+            <div class="repo-footer">
+              <div class="webhook-status">
+                <ng-container *ngIf="getWebhookSubscription(repo.id) as webhook; else noWebhook">
+                  <span class="webhook-badge" [ngClass]="getStatusBadgeClass(webhook.status)">
+                    <i class="fas fa-webhook"></i>
+                    {{ webhook.status }}
+                  </span>
+                  <div class="webhook-actions">
+                    <button
+                      class="webhook-btn reregister"
+                      (click)="reregisterWebhook(repo)"
+                      [disabled]="webhookLoading"
+                      title="Re-register webhook">
+                      <i class="fas fa-sync-alt"></i>
+                    </button>
+                    <button
+                      class="webhook-btn unsubscribe"
+                      (click)="unsubscribeFromWebhook(repo)"
+                      [disabled]="webhookLoading"
+                      title="Unsubscribe from webhook">
+                      <i class="fas fa-unlink"></i>
+                    </button>
+                  </div>
+                </ng-container>
+                <ng-template #noWebhook>
+                  <span class="webhook-badge no-webhook">
+                    <i class="fas fa-webhook"></i>
+                    No Webhook
+                  </span>
+                  <button
+                    class="webhook-btn subscribe"
+                    (click)="subscribeToWebhook(repo)"
+                    [disabled]="webhookLoading"
+                    title="Subscribe to webhook">
+                    <i class="fas fa-link"></i>
+                    Subscribe
+                  </button>
+                </ng-template>
+              </div>
+              <div class="repo-sync">
+                <button
+                  class="sync-btn"
+                  (click)="syncRepositoryData(repo)"
+                  [disabled]="repositoryLoading"
+                  title="Sync repository data">
+                  <i class="fas fa-sync-alt" [class.fa-spin]="repositoryLoading"></i>
+                  Sync
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Tasks Tab -->
+      <div *ngIf="activeTab === 'tasks'" class="tasks-tab">
+        <div *ngIf="tasks.length === 0" class="no-data">
+          <i class="fas fa-tasks"></i>
+          <h3>No tasks found</h3>
+          <p>This user doesn't have any tasks assigned.</p>
+        </div>
+
+        <div *ngIf="tasks.length > 0" class="tasks-list">
+          <div *ngFor="let task of tasks" class="task-card">
+            <div class="task-header">
+              <div class="task-info">
+                <h4>{{ task.title }}</h4>
+                <p class="task-description" *ngIf="task.description">{{ task.description }}</p>
+              </div>
+              <div class="task-badges">
+                <span class="status-badge" [ngClass]="getTaskStatusBadgeClass(task.status)">
+                  {{ task.status.replace('_', ' ') }}
+                </span>
+                <span class="priority-badge" [ngClass]="getPriorityBadgeClass(task.priority)">
+                  {{ task.priority }}
+                </span>
+              </div>
+            </div>
+            <div class="task-meta">
+              <div class="task-dates">
+                <span *ngIf="task.dueDate" class="due-date">
+                  <i class="fas fa-calendar-alt"></i>
+                  Due: {{ formatDate(task.dueDate) }}
+                </span>
+                <span class="created-date">
+                  <i class="fas fa-clock"></i>
+                  Created: {{ formatDate(task.createdAt) }}
+                </span>
+              </div>
+              <div class="task-assignments" *ngIf="task.assignedToGroups.length > 0">
+                <span class="assignment-label">Groups:</span>
+                <span *ngFor="let group of task.assignedToGroups; let last = last" class="group-name">
+                  {{ group.name }}<span *ngIf="!last">, </span>
+                </span>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Webhooks Tab -->
+      <div *ngIf="activeTab === 'webhooks'" class="webhooks-tab">
+        <div *ngIf="webhookSubscriptions.length === 0" class="no-data">
+          <i class="fas fa-webhook"></i>
+          <h3>No webhook subscriptions</h3>
+          <p>This user doesn't have any webhook subscriptions.</p>
+        </div>
+
+        <div *ngIf="webhookSubscriptions.length > 0" class="webhooks-list">
+          <div *ngFor="let webhook of webhookSubscriptions" class="webhook-card">
+            <div class="webhook-header">
+              <div class="webhook-info">
+                <h4>{{ webhook.repository.fullName }}</h4>
+                <p class="webhook-url">{{ webhook.webhookUrl }}</p>
+              </div>
+              <span class="webhook-status" [ngClass]="getStatusBadgeClass(webhook.status)">
+                {{ webhook.status }}
+              </span>
+            </div>
+            <div class="webhook-details">
+              <div class="webhook-meta">
+                <div class="meta-item">
+                  <label for="webhook-events-{{webhook.id}}">Events:</label>
+                  <span id="webhook-events-{{webhook.id}}">
+                    <ng-container *ngIf="webhook.events && webhook.events.length > 0; else noEvents">
+                      <ng-container *ngFor="let event of webhook.events; let last = last">
+                        {{ event }}<span *ngIf="!last">, </span>
+                      </ng-container>
+                    </ng-container>
+                    <ng-template #noEvents>None</ng-template>
+                  </span>
+                </div>
+                <div class="meta-item">
+                  <label for="webhook-subscribed-{{webhook.id}}">Subscribed:</label>
+                  <span id="webhook-subscribed-{{webhook.id}}">{{ formatDate(webhook.subscriptionDate) }}</span>
+                </div>
+                <div class="meta-item" *ngIf="webhook.lastDelivery">
+                  <label for="webhook-lastdelivery-{{webhook.id}}">Last Delivery:</label>
+                  <span id="webhook-lastdelivery-{{webhook.id}}">{{ formatDateTime(webhook.lastDelivery) }}</span>
+                </div>
+                <div class="meta-item" *ngIf="webhook.failureCount > 0">
+                  <label for="webhook-failures-{{webhook.id}}">Failures:</label>
+                  <span id="webhook-failures-{{webhook.id}}" class="failure-count">{{ webhook.failureCount }}</span>
+                </div>
+              </div>
+              <div class="webhook-error" *ngIf="webhook.lastError">
+                <label for="webhook-error-{{webhook.id}}">Last Error:</label>
+                <p id="webhook-error-{{webhook.id}}" class="error-message">{{ webhook.lastError }}</p>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>

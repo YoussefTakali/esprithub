@@ -1,0 +1,795 @@
+.user-details {
+  padding: 20px;
+  max-width: 1200px;
+  margin: 0 auto;
+}
+
+.dashboard-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 30px;
+  padding-bottom: 20px;
+  border-bottom: 1px solid #e0e0e0;
+}
+
+.header-content {
+  flex: 1;
+}
+
+.back-btn {
+  background: none;
+  border: none;
+  color: #666;
+  font-size: 14px;
+  cursor: pointer;
+  margin-bottom: 10px;
+  padding: 8px 12px;
+  border-radius: 4px;
+  transition: all 0.2s;
+}
+
+.back-btn:hover {
+  background-color: #f5f5f5;
+  color: #333;
+}
+
+.header-actions {
+  display: flex;
+  align-items: center;
+  gap: 15px;
+}
+
+.status-badge {
+  padding: 4px 12px;
+  border-radius: 20px;
+  font-size: 12px;
+  font-weight: 500;
+  text-transform: uppercase;
+}
+
+.status-badge.active {
+  background-color: #e8f5e9;
+  color: #2e7d32;
+}
+
+.status-badge.inactive {
+  background-color: #ffebee;
+  color: #c62828;
+}
+
+.github-info {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  color: #666;
+  font-size: 14px;
+}
+
+.tabs-container {
+  margin-bottom: 30px;
+}
+
+.tabs {
+  display: flex;
+  border-bottom: 2px solid #e0e0e0;
+  gap: 0;
+}
+
+.tab {
+  background: none;
+  border: none;
+  padding: 15px 25px;
+  cursor: pointer;
+  font-size: 14px;
+  font-weight: 500;
+  color: #666;
+  border-bottom: 3px solid transparent;
+  transition: all 0.2s;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.tab:hover {
+  color: #333;
+  background-color: #f8f9fa;
+}
+
+.tab.active {
+  color: #1976d2;
+  border-bottom-color: #1976d2;
+  background-color: #f8f9fa;
+}
+
+.tab-content {
+  min-height: 400px;
+}
+
+.tab-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 20px;
+  padding-bottom: 15px;
+  border-bottom: 1px solid #e0e0e0;
+}
+
+.tab-header h3 {
+  margin: 0;
+  color: #333;
+  font-size: 18px;
+  font-weight: 600;
+}
+
+.fetch-btn {
+  background-color: #e8f5e9;
+  color: #2e7d32;
+  border: none;
+  border-radius: 6px;
+  padding: 8px 16px;
+  font-size: 14px;
+  font-weight: 500;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  transition: all 0.2s;
+}
+
+.fetch-btn:hover:not(:disabled) {
+  background-color: #c8e6c9;
+  transform: translateY(-1px);
+}
+
+.fetch-btn:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+  transform: none;
+}
+
+.fetch-btn .fa-spin {
+  animation: spin 1s linear infinite;
+}
+
+/* Overview Tab */
+.overview-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(350px, 1fr));
+  gap: 25px;
+}
+
+.info-card {
+  background: white;
+  border-radius: 8px;
+  padding: 25px;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+  border: 1px solid #e0e0e0;
+}
+
+.info-card h3 {
+  margin: 0 0 20px 0;
+  color: #333;
+  font-size: 18px;
+  font-weight: 600;
+}
+
+.info-grid {
+  display: grid;
+  gap: 15px;
+}
+
+.info-item {
+  display: grid;
+  grid-template-columns: 120px 1fr;
+  gap: 10px;
+  align-items: center;
+}
+
+.info-item label {
+  font-weight: 500;
+  color: #666;
+  font-size: 14px;
+}
+
+.info-item span {
+  color: #333;
+}
+
+.email-status {
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  font-size: 12px;
+  margin-left: 10px;
+}
+
+.email-status.verified {
+  color: #2e7d32;
+}
+
+.email-status.unverified {
+  color: #f57c00;
+}
+
+.role-badge {
+  padding: 4px 8px;
+  border-radius: 4px;
+  font-size: 12px;
+  font-weight: 500;
+  text-transform: uppercase;
+}
+
+.role-badge[data-role="ADMIN"] {
+  background-color: #e3f2fd;
+  color: #1565c0;
+}
+
+.role-badge[data-role="TEACHER"] {
+  background-color: #f3e5f5;
+  color: #7b1fa2;
+}
+
+.role-badge[data-role="STUDENT"] {
+  background-color: #e8f5e9;
+  color: #2e7d32;
+}
+
+.role-badge[data-role="CHIEF"] {
+  background-color: #fff3e0;
+  color: #ef6c00;
+}
+
+.no-login {
+  color: #999;
+  font-style: italic;
+}
+
+.github-info {
+  display: flex;
+  align-items: center;
+  gap: 15px;
+}
+
+.github-avatar {
+  width: 50px;
+  height: 50px;
+  background-color: #f5f5f5;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 24px;
+  color: #666;
+}
+
+.github-details {
+  flex: 1;
+}
+
+.github-username {
+  font-weight: 600;
+  color: #333;
+  margin-bottom: 5px;
+}
+
+.github-name {
+  color: #666;
+  font-size: 14px;
+  margin-bottom: 8px;
+}
+
+.github-link {
+  color: #1976d2;
+  text-decoration: none;
+  font-size: 14px;
+  display: flex;
+  align-items: center;
+  gap: 5px;
+}
+
+.github-link:hover {
+  text-decoration: underline;
+}
+
+.stats-grid {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 20px;
+}
+
+.stat-item {
+  text-align: center;
+  padding: 15px;
+  background-color: #f8f9fa;
+  border-radius: 8px;
+}
+
+.stat-value {
+  font-size: 24px;
+  font-weight: 700;
+  color: #1976d2;
+  margin-bottom: 5px;
+}
+
+.stat-label {
+  font-size: 12px;
+  color: #666;
+  text-transform: uppercase;
+  font-weight: 500;
+}
+
+/* Repositories Tab */
+.repositories-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(400px, 1fr));
+  gap: 20px;
+}
+
+.repository-card {
+  background: white;
+  border-radius: 8px;
+  padding: 20px;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+  border: 1px solid #e0e0e0;
+}
+
+.repo-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  margin-bottom: 15px;
+}
+
+.repo-info h4 {
+  margin: 0 0 8px 0;
+  color: #333;
+  font-size: 16px;
+  font-weight: 600;
+}
+
+.repo-description {
+  color: #666;
+  font-size: 14px;
+  margin: 0 0 10px 0;
+  line-height: 1.4;
+}
+
+.repo-meta {
+  display: flex;
+  gap: 15px;
+  font-size: 12px;
+}
+
+.repo-visibility {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  color: #666;
+}
+
+.repo-visibility.private {
+  color: #f57c00;
+}
+
+.repo-visibility.public {
+  color: #2e7d32;
+}
+
+.repo-branch {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  color: #666;
+}
+
+.repo-actions {
+  display: flex;
+  gap: 8px;
+}
+
+.action-btn {
+  width: 32px;
+  height: 32px;
+  border: none;
+  border-radius: 4px;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: all 0.2s;
+  text-decoration: none;
+}
+
+.action-btn.view {
+  background-color: #e3f2fd;
+  color: #1565c0;
+}
+
+.action-btn.external {
+  background-color: #f5f5f5;
+  color: #666;
+}
+
+.action-btn:hover {
+  transform: translateY(-1px);
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+}
+
+.repo-footer {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding-top: 15px;
+  border-top: 1px solid #e0e0e0;
+}
+
+.webhook-status {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.webhook-badge {
+  padding: 4px 8px;
+  border-radius: 4px;
+  font-size: 11px;
+  font-weight: 500;
+  text-transform: uppercase;
+  display: flex;
+  align-items: center;
+  gap: 4px;
+}
+
+.webhook-badge.status-active {
+  background-color: #e8f5e9;
+  color: #2e7d32;
+}
+
+.webhook-badge.status-failed {
+  background-color: #ffebee;
+  color: #c62828;
+}
+
+.webhook-badge.status-inactive {
+  background-color: #f5f5f5;
+  color: #666;
+}
+
+.webhook-badge.no-webhook {
+  background-color: #fff3e0;
+  color: #f57c00;
+}
+
+.webhook-actions {
+  display: flex;
+  gap: 5px;
+}
+
+.webhook-btn {
+  width: 24px;
+  height: 24px;
+  border: none;
+  border-radius: 3px;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 10px;
+  transition: all 0.2s;
+}
+
+.webhook-btn.subscribe {
+  background-color: #e8f5e9;
+  color: #2e7d32;
+  padding: 4px 8px;
+  width: auto;
+  font-size: 11px;
+}
+
+.webhook-btn.reregister {
+  background-color: #fff3e0;
+  color: #f57c00;
+}
+
+.webhook-btn.unsubscribe {
+  background-color: #ffebee;
+  color: #c62828;
+}
+
+.webhook-btn:hover {
+  transform: scale(1.1);
+}
+
+.sync-btn {
+  background-color: #f8f9fa;
+  border: 1px solid #e0e0e0;
+  border-radius: 4px;
+  padding: 6px 12px;
+  cursor: pointer;
+  font-size: 12px;
+  color: #666;
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  transition: all 0.2s;
+}
+
+.sync-btn:hover {
+  background-color: #e3f2fd;
+  color: #1565c0;
+  border-color: #1565c0;
+}
+
+/* Tasks Tab */
+.tasks-list {
+  display: grid;
+  gap: 15px;
+}
+
+.task-card {
+  background: white;
+  border-radius: 8px;
+  padding: 20px;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+  border: 1px solid #e0e0e0;
+}
+
+.task-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  margin-bottom: 15px;
+}
+
+.task-info h4 {
+  margin: 0 0 8px 0;
+  color: #333;
+  font-size: 16px;
+  font-weight: 600;
+}
+
+.task-description {
+  color: #666;
+  font-size: 14px;
+  margin: 0;
+  line-height: 1.4;
+}
+
+.task-badges {
+  display: flex;
+  gap: 8px;
+}
+
+.task-completed {
+  background-color: #e8f5e9;
+  color: #2e7d32;
+}
+
+.task-in-progress {
+  background-color: #e3f2fd;
+  color: #1565c0;
+}
+
+.task-not-started {
+  background-color: #f5f5f5;
+  color: #666;
+}
+
+.task-cancelled {
+  background-color: #ffebee;
+  color: #c62828;
+}
+
+.priority-urgent {
+  background-color: #ffebee;
+  color: #c62828;
+}
+
+.priority-high {
+  background-color: #fff3e0;
+  color: #f57c00;
+}
+
+.priority-medium {
+  background-color: #e3f2fd;
+  color: #1565c0;
+}
+
+.priority-low {
+  background-color: #e8f5e9;
+  color: #2e7d32;
+}
+
+.task-meta {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  font-size: 12px;
+  color: #666;
+}
+
+.task-dates {
+  display: flex;
+  gap: 15px;
+}
+
+.due-date,
+.created-date {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+}
+
+.task-assignments {
+  display: flex;
+  align-items: center;
+  gap: 5px;
+}
+
+.assignment-label {
+  font-weight: 500;
+}
+
+.group-name {
+  color: #1976d2;
+}
+
+/* Webhooks Tab */
+.webhooks-list {
+  display: grid;
+  gap: 15px;
+}
+
+.webhook-card {
+  background: white;
+  border-radius: 8px;
+  padding: 20px;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+  border: 1px solid #e0e0e0;
+}
+
+.webhook-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  margin-bottom: 15px;
+}
+
+.webhook-info h4 {
+  margin: 0 0 8px 0;
+  color: #333;
+  font-size: 16px;
+  font-weight: 600;
+}
+
+.webhook-url {
+  color: #666;
+  font-size: 12px;
+  font-family: monospace;
+  margin: 0;
+}
+
+.webhook-status {
+  padding: 4px 12px;
+  border-radius: 20px;
+  font-size: 12px;
+  font-weight: 500;
+  text-transform: uppercase;
+}
+
+.webhook-details {
+  border-top: 1px solid #e0e0e0;
+  padding-top: 15px;
+}
+
+.webhook-meta {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+  gap: 15px;
+  margin-bottom: 15px;
+}
+
+.meta-item {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.meta-item label {
+  font-weight: 500;
+  color: #666;
+  font-size: 12px;
+  text-transform: uppercase;
+}
+
+.failure-count {
+  color: #c62828;
+  font-weight: 600;
+}
+
+.webhook-error {
+  background-color: #ffebee;
+  border-radius: 4px;
+  padding: 10px;
+}
+
+.webhook-error label {
+  font-weight: 500;
+  color: #c62828;
+  font-size: 12px;
+  text-transform: uppercase;
+  margin-bottom: 5px;
+  display: block;
+}
+
+.error-message {
+  color: #c62828;
+  font-size: 12px;
+  margin: 0;
+  font-family: monospace;
+  line-height: 1.4;
+}
+
+/* Common styles */
+.no-data {
+  text-align: center;
+  padding: 60px 20px;
+  color: #666;
+}
+
+.no-data i {
+  font-size: 48px;
+  margin-bottom: 20px;
+  color: #ccc;
+}
+
+.no-data h3 {
+  margin: 0 0 10px 0;
+  color: #666;
+}
+
+.no-data p {
+  margin: 0;
+  color: #999;
+}
+
+.loading-container,
+.error-container {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  min-height: 300px;
+}
+
+.loading-spinner,
+.error-message {
+  text-align: center;
+}
+
+.loading-spinner i {
+  font-size: 32px;
+  color: #1976d2;
+  margin-bottom: 15px;
+}
+
+.error-message i {
+  font-size: 32px;
+  color: #c62828;
+  margin-bottom: 15px;
+}
+
+.retry-btn {
+  background-color: #1976d2;
+  color: white;
+  border: none;
+  border-radius: 4px;
+  padding: 10px 20px;
+  cursor: pointer;
+  margin-top: 15px;
+  transition: background-color 0.2s;
+}
+
+.retry-btn:hover {
+  background-color: #1565c0;
+}

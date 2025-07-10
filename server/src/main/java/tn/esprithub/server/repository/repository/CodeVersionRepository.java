@@ -65,4 +65,7 @@ public interface CodeVersionRepository extends JpaRepository<CodeVersion, UUID> 
     
     // Check if a specific commit SHA exists for a repository
     boolean existsByRepositoryIdAndCommitSha(UUID repositoryId, String commitSha);
+
+    // Check if a specific commit SHA exists (across all repositories)
+    boolean existsByCommitSha(String commitSha);
 }

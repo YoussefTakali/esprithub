@@ -1,0 +1,247 @@
+<div class="repository-management">
+  <!-- Header -->
+  <div class="page-header">
+    <div class="header-content">
+      <h1>Repository Management</h1>
+      <p>Manage all repositories and webhook subscriptions across the platform</p>
+    </div>
+    <div class="header-actions">
+      <button
+        class="action-btn fetch-all"
+        (click)="fetchAllRepositories()"
+        [disabled]="actionLoading"
+        title="Fetch repositories from GitHub for all users">
+        <i class="fas fa-sync-alt" [class.fa-spin]="actionLoading"></i>
+        Fetch All Repositories
+      </button>
+      <button
+        class="action-btn bulk-subscribe"
+        (click)="bulkSubscribeWebhooks()"
+        [disabled]="actionLoading || filteredRepositories.length === 0"
+        title="Subscribe to webhooks for all filtered repositories">
+        <i class="fas fa-link"></i>
+        Bulk Subscribe Webhooks
+      </button>
+    </div>
+  </div>
+
+  <!-- Webhook Statistics -->
+  <div class="stats-section" *ngIf="webhookStats">
+    <h2>Webhook Statistics</h2>
+    <div class="stats-grid">
+      <div class="stat-card">
+        <div class="stat-value">{{ webhookStats.totalSubscriptions }}</div>
+        <div class="stat-label">Total Subscriptions</div>
+      </div>
+      <div class="stat-card active">
+        <div class="stat-value">{{ webhookStats.activeSubscriptions }}</div>
+        <div class="stat-label">Active Webhooks</div>
+      </div>
+      <div class="stat-card failed">
+        <div class="stat-value">{{ webhookStats.failedSubscriptions }}</div>
+        <div class="stat-label">Failed Webhooks</div>
+      </div>
+      <div class="stat-card inactive">
+        <div class="stat-value">{{ webhookStats.inactiveSubscriptions }}</div>
+        <div class="stat-label">Inactive Webhooks</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Filters and Search -->
+  <div class="filters-section">
+    <div class="search-bar">
+      <div class="search-input">
+        <i class="fas fa-search"></i>
+        <input 
+          type="text" 
+          placeholder="Search repositories by name or owner..." 
+          [(ngModel)]="searchQuery"
+          (input)="onSearchChange()">
+      </div>
+      <button class="clear-btn" (click)="clearFilters()" *ngIf="searchQuery || selectedOwner || selectedStatus || selectedVisibility">
+        <i class="fas fa-times"></i>
+        Clear Filters
+      </button>
+    </div>
+
+    <div class="filter-controls">
+      <div class="filter-group">
+        <label>Owner:</label>
+        <select [(ngModel)]="selectedOwner" (change)="onFilterChange()">
+          <option value="">All Owners</option>
+          <option *ngFor="let owner of owners" [value]="owner">{{ owner }}</option>
+        </select>
+      </div>
+
+      <div class="filter-group">
+        <label>Visibility:</label>
+        <select [(ngModel)]="selectedVisibility" (change)="onFilterChange()">
+          <option value="">All</option>
+          <option value="public">Public</option>
+          <option value="private">Private</option>
+        </select>
+      </div>
+
+      <div class="filter-group">
+        <label>Status:</label>
+        <select [(ngModel)]="selectedStatus" (change)="onFilterChange()">
+          <option value="">All</option>
+          <option value="active">Active</option>
+          <option value="inactive">Inactive</option>
+        </select>
+      </div>
+    </div>
+  </div>
+
+  <!-- Loading State -->
+  <div *ngIf="loading" class="loading-container">
+    <div class="loading-spinner">
+      <i class="fas fa-spinner fa-spin"></i>
+      <p>Loading repositories...</p>
+    </div>
+  </div>
+
+  <!-- Error State -->
+  <div *ngIf="error && !loading" class="error-container">
+    <div class="error-message">
+      <i class="fas fa-exclamation-triangle"></i>
+      <p>{{ error }}</p>
+      <button class="retry-btn" (click)="loadRepositories()">Try Again</button>
+    </div>
+  </div>
+
+  <!-- Repositories Table -->
+  <div *ngIf="!loading && !error" class="repositories-section">
+    <div class="section-header">
+      <h2>Repositories ({{ filteredRepositories.length }})</h2>
+      <div class="results-info">
+        Showing {{ currentPage * pageSize + 1 }}-{{ getMinValue((currentPage + 1) * pageSize, totalElements) }} of {{ totalElements }} repositories
+      </div>
+    </div>
+
+    <div *ngIf="filteredRepositories.length === 0" class="no-data">
+      <i class="fab fa-github"></i>
+      <h3>No repositories found</h3>
+      <p>No repositories match your current filters.</p>
+    </div>
+
+    <div *ngIf="filteredRepositories.length > 0" class="repositories-table">
+      <table>
+        <thead>
+          <tr>
+            <th>Repository</th>
+            <th>Owner</th>
+            <th>Visibility</th>
+            <th>Status</th>
+            <th>Created</th>
+            <th>Actions</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr *ngFor="let repo of filteredRepositories">
+            <td class="repository-cell">
+              <div class="repo-info">
+                <div class="repo-name">{{ repo.name }}</div>
+                <div class="repo-full-name">{{ repo.fullName }}</div>
+                <div class="repo-description" *ngIf="repo.description">{{ repo.description }}</div>
+              </div>
+            </td>
+            <td class="owner-cell">
+              <div class="owner-info" (click)="viewUserDetails(repo)">
+                <div class="owner-name">{{ repo.owner.firstName }} {{ repo.owner.lastName }}</div>
+                <div class="owner-email">{{ repo.owner.email }}</div>
+                <div class="owner-github" *ngIf="repo.owner.githubUsername">
+                  <i class="fab fa-github"></i>
+                  {{ repo.owner.githubUsername }}
+                </div>
+              </div>
+            </td>
+            <td class="visibility-cell">
+              <span class="visibility-badge" [class.private]="repo.isPrivate" [class.public]="!repo.isPrivate">
+                <i [class]="getVisibilityIcon(repo.isPrivate)"></i>
+                {{ getVisibilityText(repo.isPrivate) }}
+              </span>
+            </td>
+            <td class="status-cell">
+              <span class="status-badge" [ngClass]="getStatusBadgeClass(repo.isActive)">
+                {{ getStatusText(repo.isActive) }}
+              </span>
+            </td>
+            <td class="date-cell">
+              {{ formatDate(repo.createdAt) }}
+            </td>
+            <td class="actions-cell">
+              <div class="action-buttons">
+                <button 
+                  class="action-btn view" 
+                  (click)="viewRepository(repo)"
+                  title="View repository details">
+                  <i class="fas fa-eye"></i>
+                </button>
+                <button 
+                  class="action-btn sync" 
+                  (click)="syncRepository(repo)"
+                  [disabled]="actionLoading"
+                  title="Sync repository data">
+                  <i class="fas fa-sync-alt"></i>
+                </button>
+                <button 
+                  class="action-btn webhook" 
+                  (click)="subscribeToWebhook(repo)"
+                  [disabled]="actionLoading"
+                  title="Subscribe to webhook">
+                  <i class="fas fa-link"></i>
+                </button>
+                <a 
+                  [href]="repo.url" 
+                  target="_blank" 
+                  class="action-btn github"
+                  title="Open on GitHub">
+                  <i class="fab fa-github"></i>
+                </a>
+              </div>
+            </td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+
+    <!-- Pagination -->
+    <div class="pagination" *ngIf="totalPages > 1">
+      <button 
+        class="page-btn" 
+        (click)="onPageChange(0)"
+        [disabled]="currentPage === 0">
+        <i class="fas fa-angle-double-left"></i>
+      </button>
+      <button 
+        class="page-btn" 
+        (click)="onPageChange(currentPage - 1)"
+        [disabled]="currentPage === 0">
+        <i class="fas fa-angle-left"></i>
+      </button>
+      
+      <button 
+        *ngFor="let page of getPaginationPages()" 
+        class="page-btn" 
+        [class.active]="page === currentPage"
+        (click)="onPageChange(page)">
+        {{ page + 1 }}
+      </button>
+      
+      <button 
+        class="page-btn" 
+        (click)="onPageChange(currentPage + 1)"
+        [disabled]="currentPage === totalPages - 1">
+        <i class="fas fa-angle-right"></i>
+      </button>
+      <button 
+        class="page-btn" 
+        (click)="onPageChange(totalPages - 1)"
+        [disabled]="currentPage === totalPages - 1">
+        <i class="fas fa-angle-double-right"></i>
+      </button>
+    </div>
+  </div>
+</div>
