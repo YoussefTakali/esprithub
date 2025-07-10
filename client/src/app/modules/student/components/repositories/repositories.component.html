@@ -9,14 +9,14 @@
       Refresh
     </button>
   </div>
-
+ 
   <div *ngIf="loading" class="loading-container">
     <div class="loading-spinner">
       <i class="fas fa-spinner fa-spin"></i>
       <p>Loading your repositories...</p>
     </div>
   </div>
-
+ 
   <div *ngIf="error" class="error-container">
     <div class="error-message">
       <i class="fas fa-exclamation-triangle"></i>
@@ -24,14 +24,14 @@
       <button class="retry-btn" (click)="loadRepositories()">Try Again</button>
     </div>
   </div>
-
+ 
   <div *ngIf="!loading && !error" class="repositories-content">
     <div *ngIf="repositories.length === 0" class="empty-state">
       <i class="fab fa-github"></i>
       <h3>No repositories found</h3>
       <p>You don't have access to any repositories yet.</p>
     </div>
-
+ 
     <div *ngIf="repositories.length > 0" class="repositories-grid">
       <div *ngFor="let repo of repositories" class="repository-card">
         <div class="repository-header">
@@ -39,59 +39,44 @@
             <i class="fab fa-github"></i>
             <h3>{{ repo.name }}</h3>
           </div>
-          <div class="repo-privacy">
-            <i [class]="repo.isPrivate ? 'fas fa-lock' : 'fas fa-globe'"></i>
-            <span>{{ repo.isPrivate ? 'Private' : 'Public' }}</span>
-          </div>
         </div>
-
+ 
         <div class="repository-content">
-          <p class="repo-description">{{ repo.description || 'No description available' }}</p>
-          
+          <!-- Project and Group Info -->
           <div class="repo-meta">
-            <div class="meta-item">
-              <i class="fas fa-code-branch"></i>
-              <span>{{ repo.defaultBranch }}</span>
-            </div>
-            <div class="meta-item">
-              <i class="fas fa-users"></i>
-              <span>{{ repo.groupName }}</span>
-            </div>
             <div class="meta-item" *ngIf="repo.projectName">
               <i class="fas fa-project-diagram"></i>
               <span>{{ repo.projectName }}</span>
             </div>
-            <div class="meta-item">
-              <i class="fas fa-user"></i>
-              <span>Owner: {{ repo.ownerName }}</span>
+            <div class="meta-item" *ngIf="repo.groupName">
+              <i class="fas fa-users"></i>
+              <span>{{ repo.groupName }}</span>
+            </div>
+          </div>
+ 
+          <!-- Essential Info Only -->
+          <div class="repo-info">
+            <div class="info-item">
+              <i class="fas fa-code-branch"></i>
+              <span>{{ repo.branchCount || 0 }} branches</span>
+            </div>
+            <div class="info-item">
+              <i class="fas fa-calendar-alt"></i>
+              <span>Created {{ formatCreatedDate(repo.createdAt) }}</span>
             </div>
           </div>
         </div>
-
+ 
         <div class="repository-footer">
           <div class="repo-actions">
             <button class="action-btn details-btn" [routerLink]="['/student/repositories', repo.id]">
               <i class="fas fa-info-circle"></i>
               Details
             </button>
-            <a [href]="repo.url" target="_blank" class="action-btn view-btn">
+            <a [href]="getGitHubUrl(repo)" target="_blank" class="action-btn view-btn">
               <i class="fab fa-github"></i>
               View on GitHub
             </a>
-            <button class="action-btn clone-btn" (click)="copyToClipboard(repo.cloneUrl)" title="Copy HTTPS clone URL">
-              <i class="fas fa-copy"></i>
-              Clone (HTTPS)
-            </button>
-            <button class="action-btn clone-btn" (click)="copyToClipboard(repo.sshUrl)" title="Copy SSH clone URL" *ngIf="repo.sshUrl">
-              <i class="fas fa-key"></i>
-              Clone (SSH)
-            </button>
-          </div>
-          <div class="repo-access">
-            <span class="access-badge" [class.member]="repo.accessLevel === 'MEMBER'">
-              <i class="fas fa-shield-alt"></i>
-              {{ repo.accessLevel }}
-            </span>
           </div>
         </div>
       </div>
