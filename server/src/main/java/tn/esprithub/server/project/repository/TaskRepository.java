@@ -28,4 +28,24 @@ public interface TaskRepository extends JpaRepository<Task, UUID> {
     // Find active tasks with deadlines (for deadline notifications)
     @Query("SELECT t FROM Task t WHERE t.status != :status AND t.dueDate IS NOT NULL")
     List<Task> findByStatusNotAndDueDateIsNotNull(@Param("status") tn.esprithub.server.project.enums.TaskStatus status);
+
+    // Find all tasks assigned to a user (directly, through groups, or through classes)
+    @Query("SELECT DISTINCT t FROM Task t WHERE " +
+           "t.id IN (SELECT t1.id FROM Task t1 JOIN t1.assignedToStudents s WHERE s.id = :userId) OR " +
+           "t.id IN (SELECT t2.id FROM Task t2 JOIN t2.assignedToGroups g JOIN g.students s WHERE s.id = :userId) OR " +
+           "t.id IN (SELECT t3.id FROM Task t3 JOIN t3.assignedToClasses c WHERE c.id = (SELECT u.classe.id FROM User u WHERE u.id = :userId))")
+    List<Task> findTasksAssignedToUser(@Param("userId") UUID userId);
+
+    // Methods needed by AdminUserDataService
+    @Query("SELECT COUNT(DISTINCT t) FROM Task t WHERE " +
+           "t.id IN (SELECT t1.id FROM Task t1 JOIN t1.assignedToStudents s WHERE s.id = :userId) OR " +
+           "t.id IN (SELECT t2.id FROM Task t2 JOIN t2.assignedToGroups g JOIN g.students s WHERE s.id = :userId) OR " +
+           "t.id IN (SELECT t3.id FROM Task t3 JOIN t3.assignedToClasses c WHERE c.id = (SELECT u.classe.id FROM User u WHERE u.id = :userId))")
+    long countTasksAssignedToUser(@Param("userId") UUID userId);
+
+    @Query("SELECT COUNT(DISTINCT t) FROM Task t WHERE t.status = 'COMPLETED' AND (" +
+           "t.id IN (SELECT t1.id FROM Task t1 JOIN t1.assignedToStudents s WHERE s.id = :userId) OR " +
+           "t.id IN (SELECT t2.id FROM Task t2 JOIN t2.assignedToGroups g JOIN g.students s WHERE s.id = :userId) OR " +
+           "t.id IN (SELECT t3.id FROM Task t3 JOIN t3.assignedToClasses c WHERE c.id = (SELECT u.classe.id FROM User u WHERE u.id = :userId)))")
+    long countCompletedTasksForUser(@Param("userId") UUID userId);
 }

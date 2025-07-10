@@ -7,12 +7,11 @@ import lombok.Data;
 import lombok.EqualsAndHashCode;
 import lombok.NoArgsConstructor;
 import lombok.experimental.SuperBuilder;
+import org.hibernate.annotations.CreationTimestamp;
 import tn.esprithub.server.common.entity.BaseEntity;
-import tn.esprithub.server.user.entity.User;
 
 import java.time.LocalDateTime;
-import java.util.ArrayList;
-import java.util.List;
+import java.util.UUID;
 
 @Entity
 @Table(name = "submissions")
@@ -23,24 +22,26 @@ import java.util.List;
 @EqualsAndHashCode(callSuper = true)
 public class Submission extends BaseEntity {
 
-    @ManyToOne(fetch = FetchType.LAZY)
-    @JoinColumn(name = "task_id", nullable = false)
-    private Task task;
+    @Column(name = "task_id", nullable = false)
+    private UUID taskId;
 
-    @ManyToOne(fetch = FetchType.LAZY)
-    @JoinColumn(name = "student_id", nullable = false)
-    private User student;
+    @Column(name = "user_id", nullable = false)
+    private UUID userId;
 
-    @ManyToOne(fetch = FetchType.LAZY)
-    @JoinColumn(name = "group_id")
-    private Group group;
+    @Column(name = "group_id")
+    private UUID groupId;
 
-    @Column(name = "submitted_at", nullable = false)
+    @Column(name = "commit_hash", nullable = false, length = 40)
+    private String commitHash;
+
+    @CreationTimestamp
+    @Column(name = "submitted_at", nullable = false, updatable = false)
     private LocalDateTime submittedAt;
 
     @Enumerated(EnumType.STRING)
     @Column(name = "status", nullable = false)
-    private SubmissionStatus status;
+    @Builder.Default
+    private SubmissionStatus status = SubmissionStatus.SUBMITTED;
 
     @Column(name = "grade")
     private Double grade;
@@ -54,9 +55,8 @@ public class Submission extends BaseEntity {
     @Column(name = "graded_at")
     private LocalDateTime gradedAt;
 
-    @ManyToOne(fetch = FetchType.LAZY)
-    @JoinColumn(name = "graded_by")
-    private User gradedBy;
+    @Column(name = "graded_by")
+    private UUID gradedBy;
 
     @Builder.Default
     @Column(name = "is_late", nullable = false)
@@ -66,26 +66,8 @@ public class Submission extends BaseEntity {
     @Column(name = "attempt_number", nullable = false)
     private Integer attemptNumber = 1;
 
-    @Builder.Default
-    @OneToMany(mappedBy = "submission", cascade = CascadeType.ALL, orphanRemoval = true)
-    private List<SubmissionFile> files = new ArrayList<>();
-
     @Column(name = "notes", columnDefinition = "TEXT")
     private String notes;
-
-    @PrePersist
-    protected void onCreate() {
-        if (submittedAt == null) {
-            submittedAt = LocalDateTime.now();
-        }
-        if (status == null) {
-            status = SubmissionStatus.SUBMITTED;
-        }
-        // Check if submission is late
-        if (task != null && task.getDueDate() != null) {
-            isLate = submittedAt.isAfter(task.getDueDate());
-        }
-    }
 
     public enum SubmissionStatus {
         DRAFT,
@@ -95,7 +77,7 @@ public class Submission extends BaseEntity {
         RESUBMITTED
     }
 
-    // Helper methods
+    // Helper methods (without entity dependencies)
     public boolean isGraded() {
         return status == SubmissionStatus.GRADED && grade != null;
     }
@@ -112,15 +94,5 @@ public class Submission extends BaseEntity {
             return 0.0;
         }
         return (grade / maxGrade) * 100;
-    }
-
-    public void addFile(SubmissionFile file) {
-        files.add(file);
-        file.setSubmission(this);
-    }
-
-    public void removeFile(SubmissionFile file) {
-        files.remove(file);
-        file.setSubmission(null);
     }
 }

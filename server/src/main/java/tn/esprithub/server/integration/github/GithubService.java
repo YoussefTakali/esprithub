@@ -21,15 +21,17 @@ public class GithubService {
     private final RestTemplate restTemplate = new RestTemplate();
     private final ObjectMapper objectMapper = new ObjectMapper();
 
-    public String createRepositoryForUser(String repoName, String githubToken) {
+   public String createRepositoryForUser(String repoName, String githubToken, boolean isPrivate, String gitignoreTemplate) {
         // Try to create repository in organization first, fallback to user account
         String url = "https://api.github.com/orgs/" + organizationName + "/repos";
         Map<String, Object> body = new HashMap<>();
         body.put("name", repoName);
-        body.put("private", true);
-        body.put("auto_init", true);
+        body.put("private", isPrivate);
+        body.put("auto_init", true); // Always create README
         body.put("description", "Repository for group project: " + repoName);
-        
+        if (gitignoreTemplate != null && !gitignoreTemplate.isBlank()) {
+            body.put("gitignore_template", gitignoreTemplate);
+        }
         HttpHeaders headers = getHeaders(githubToken);
         HttpEntity<Map<String, Object>> entity = new HttpEntity<>(body, headers);
         
@@ -58,7 +60,6 @@ public class GithubService {
         
         throw new GitHubException("Failed to create repository");
     }
-
     public void inviteUserToRepo(String repoFullName, String githubUsername, String githubToken) {
         String url = GITHUB_API_BASE + repoFullName + "/collaborators/" + githubUsername;
         HttpHeaders headers = getHeaders(githubToken);

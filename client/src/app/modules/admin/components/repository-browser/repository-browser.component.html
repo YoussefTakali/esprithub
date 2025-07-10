@@ -1,0 +1,379 @@
+<div class="repository-browser">
+  <!-- Header -->
+  <div class="repo-header">
+    <div class="header-content">
+      <button class="back-btn" (click)="goBack()">
+        <i class="fas fa-arrow-left"></i>
+        Back to Users
+      </button>
+      <div class="repo-title" *ngIf="repository">
+        <h1>{{ repository.name }}</h1>
+        <p class="repo-full-name">{{ repository?.fullName }}</p>
+        <p class="repo-description" *ngIf="repository.description">{{ repository?.description }}</p>
+      </div>
+    </div>
+    <div class="header-actions" *ngIf="repository">
+      <div class="repo-meta">
+        <span class="visibility-badge" [class.private]="repository.isPrivate" [class.public]="!repository.isPrivate">
+          <i class="fas" [class.fa-lock]="repository.isPrivate" [class.fa-globe]="!repository.isPrivate"></i>
+          {{ repository?.isPrivate ? 'Private' : 'Public' }}
+        </span>
+        <span class="default-branch">
+          <i class="fas fa-code-branch"></i>
+          {{ repository?.defaultBranch }}
+        </span>
+      </div>
+      <div class="action-buttons">
+        <button class="action-btn sync" (click)="syncRepository()" [disabled]="actionLoading" title="Sync repository data">
+          <i class="fas fa-sync-alt" [class.fa-spin]="actionLoading"></i>
+          Sync
+        </button>
+        <button class="action-btn github" (click)="openOnGitHub()" title="Open on GitHub">
+          <i class="fab fa-github"></i>
+          GitHub
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Loading State -->
+  <div *ngIf="loading" class="loading-container">
+    <div class="loading-spinner">
+      <i class="fas fa-spinner fa-spin"></i>
+      <p>Loading repository...</p>
+    </div>
+  </div>
+
+  <!-- Error State -->
+  <div *ngIf="error && !loading" class="error-container">
+    <div class="error-message">
+      <i class="fas fa-exclamation-triangle"></i>
+      <p>{{ error }}</p>
+      <button class="retry-btn" (click)="loadRepository(repository?.id || '')">Try Again</button>
+    </div>
+  </div>
+
+  <!-- Repository Content -->
+  <div *ngIf="!loading && !error && repository" class="repo-content">
+    <!-- Branch Selector -->
+    <div class="branch-selector" *ngIf="branches.length > 0">
+      <label>Branch:</label>
+      <select [(ngModel)]="currentBranch" (change)="changeBranch(currentBranch)">
+        <option *ngFor="let branch of branches" [value]="branch">{{ branch }}</option>
+      </select>
+    </div>
+
+    <!-- Navigation Tabs -->
+    <div class="tabs-container">
+      <div class="tabs">
+        <button 
+          class="tab" 
+          [class.active]="activeTab === 'overview'"
+          (click)="setActiveTab('overview')">
+          <i class="fas fa-info-circle"></i>
+          Overview
+        </button>
+        <button 
+          class="tab" 
+          [class.active]="activeTab === 'files'"
+          (click)="setActiveTab('files')">
+          <i class="fas fa-folder"></i>
+          Files
+        </button>
+        <button 
+          class="tab" 
+          [class.active]="activeTab === 'commits'"
+          (click)="setActiveTab('commits')">
+          <i class="fas fa-history"></i>
+          Commits
+        </button>
+        <button 
+          class="tab" 
+          [class.active]="activeTab === 'branches'"
+          (click)="setActiveTab('branches')">
+          <i class="fas fa-code-branch"></i>
+          Branches
+        </button>
+        <button 
+          class="tab" 
+          [class.active]="activeTab === 'webhook'"
+          (click)="setActiveTab('webhook')">
+          <i class="fas fa-webhook"></i>
+          Webhook
+        </button>
+      </div>
+    </div>
+
+    <!-- Tab Content -->
+    <div class="tab-content">
+      <!-- Overview Tab -->
+      <div *ngIf="activeTab === 'overview'" class="overview-tab">
+        <div class="overview-grid" *ngIf="githubDetails">
+          <div class="stats-card">
+            <h3>Repository Statistics</h3>
+            <div class="stats-grid">
+              <div class="stat-item">
+                <div class="stat-value">{{ githubDetails.starCount }}</div>
+                <div class="stat-label">Stars</div>
+              </div>
+              <div class="stat-item">
+                <div class="stat-value">{{ githubDetails.forkCount }}</div>
+                <div class="stat-label">Forks</div>
+              </div>
+              <div class="stat-item">
+                <div class="stat-value">{{ formatFileSize(githubDetails.size * 1024) }}</div>
+                <div class="stat-label">Size</div>
+              </div>
+              <div class="stat-item">
+                <div class="stat-value">{{ githubDetails.branches.length }}</div>
+                <div class="stat-label">Branches</div>
+              </div>
+            </div>
+          </div>
+
+          <div class="languages-card" *ngIf="githubDetails.languages && objectKeys(githubDetails.languages).length > 0">
+            <h3>Languages</h3>
+            <div class="languages-list">
+              <div *ngFor="let lang of objectKeys(githubDetails.languages)" class="language-item">
+                <div class="language-color" [style.background-color]="getLanguageColor(lang)"></div>
+                <span class="language-name">{{ lang }}</span>
+                <span class="language-percentage">{{ getLanguagePercentage(lang) }}%</span>
+              </div>
+            </div>
+          </div>
+
+          <div class="activity-card">
+            <h3>Recent Activity</h3>
+            <div class="activity-info">
+              <div class="activity-item">
+                <label>Created:</label>
+                <span>{{ formatDate(githubDetails.createdAt) }}</span>
+              </div>
+              <div class="activity-item">
+                <label>Last Updated:</label>
+                <span>{{ formatDate(githubDetails.updatedAt) }}</span>
+              </div>
+              <div class="activity-item">
+                <label>Last Push:</label>
+                <span>{{ formatDate(githubDetails.pushedAt) }}</span>
+              </div>
+            </div>
+          </div>
+
+          <div class="contributors-card" *ngIf="githubDetails.contributors && githubDetails.contributors.length > 0">
+            <h3>Contributors</h3>
+            <div class="contributors-list">
+              <div *ngFor="let contributor of githubDetails.contributors" class="contributor-item">
+                <img [src]="contributor.avatarUrl" [alt]="contributor.login" class="contributor-avatar">
+                <div class="contributor-info">
+                  <div class="contributor-name">{{ contributor.login }}</div>
+                  <div class="contributor-contributions">{{ contributor.contributions }} contributions</div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Files Tab -->
+      <div *ngIf="activeTab === 'files'" class="files-tab">
+        <div class="file-browser">
+          <div class="file-navigation">
+            <div class="breadcrumb">
+              <button class="breadcrumb-item" (click)="loadFiles('')">
+                <i class="fas fa-home"></i>
+                Root
+              </button>
+              <ng-container *ngFor="let part of currentPath.split('/'); let i = index">
+                <span class="breadcrumb-separator">/</span>
+                <button class="breadcrumb-item" (click)="loadFiles(currentPath.split('/').slice(0, i + 1).join('/'))">
+                  {{ part }}
+                </button>
+              </ng-container>
+            </div>
+            <button *ngIf="currentPath" class="up-btn" (click)="navigateUp()">
+              <i class="fas fa-level-up-alt"></i>
+              Up
+            </button>
+          </div>
+
+          <div class="file-list">
+            <!-- Show folders first -->
+            <div *ngFor="let file of files" 
+                 class="file-item" 
+                 [class.folder]="file.fileType === 'dir'"
+                 [class.file]="file.fileType !== 'dir'"
+                 (click)="navigateToFolder(file)"
+                 (keydown.enter)="navigateToFolder(file)"
+                 tabindex="0"
+                 role="button"
+                 [attr.aria-label]="file.fileType === 'dir' ? 'Open folder ' + file.fileName : 'Open file ' + file.fileName">
+              <div class="file-icon">
+                <i [class]="getFileIcon(file)" [style.color]="getFileColor(file)"></i>
+              </div>
+              <div class="file-info">
+                <div class="file-name" [title]="file.filePath">{{ file.fileName }}</div>
+                <div class="file-meta">
+                  <span *ngIf="file.fileSize && file.fileType !== 'dir'" class="file-size">
+                    {{ formatFileSize(file.fileSize) }}
+                  </span>
+                  <span *ngIf="file.language && file.fileType !== 'dir'" class="file-language">
+                    {{ file.language }}
+                  </span>
+                  <span *ngIf="file.lastModified" class="file-date">
+                    {{ formatDateTime(file.lastModified) }}
+                  </span>
+                </div>
+              </div>
+              <div class="file-actions" *ngIf="file.fileType !== 'dir'">
+                <button class="action-btn view" (click)="openFile(file, $event)" title="View file">
+                  <i class="fas fa-eye"></i>
+                </button>
+                <button class="action-btn download" (click)="downloadFile(file, $event)" title="Download">
+                  <i class="fas fa-download"></i>
+                </button>
+              </div>
+            </div>
+            
+            <!-- Empty state -->
+            <div *ngIf="files.length === 0" class="empty-folder">
+              <i class="fas fa-folder-open"></i>
+              <p>This folder is empty</p>
+            </div>
+          </div>
+
+          <div *ngIf="selectedFile && fileContent" class="file-viewer">
+            <div class="file-viewer-header">
+              <h4>{{ selectedFile }}</h4>
+              <button class="close-btn" (click)="selectedFile = null; fileContent = null">
+                <i class="fas fa-times"></i>
+              </button>
+            </div>
+            <div class="file-content">
+              <pre><code>{{ fileContent }}</code></pre>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Commits Tab -->
+      <div *ngIf="activeTab === 'commits'" class="commits-tab">
+        <div *ngIf="commitsLoading" class="loading-spinner">
+          <i class="fas fa-spinner fa-spin"></i>
+          <p>Loading commits...</p>
+        </div>
+
+        <div *ngIf="!commitsLoading && commits.length === 0" class="no-data">
+          <i class="fas fa-history"></i>
+          <h3>No commits found</h3>
+          <p>No commits found for this branch.</p>
+        </div>
+
+        <div *ngIf="!commitsLoading && commits.length > 0" class="commits-list">
+          <div *ngFor="let commit of commits" class="commit-item">
+            <div class="commit-info">
+              <div class="commit-message">{{ commit.message }}</div>
+              <div class="commit-meta">
+                <span class="commit-author">{{ commit.authorName }}</span>
+                <span class="commit-date">{{ formatDateTime(commit.authorDate) }}</span>
+                <span class="commit-sha">{{ commit.sha?.substring(0, 7) }}</span>
+              </div>
+            </div>
+            <div class="commit-actions">
+              <a [href]="commit.githubUrl" target="_blank" class="commit-link" *ngIf="commit.githubUrl">
+                <i class="fas fa-external-link-alt"></i>
+              </a>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Branches Tab -->
+      <div *ngIf="activeTab === 'branches'" class="branches-tab">
+        <div *ngIf="branches.length === 0" class="no-data">
+          <i class="fas fa-code-branch"></i>
+          <h3>No branches found</h3>
+          <p>No branches found for this repository.</p>
+        </div>
+
+        <div *ngIf="branches.length > 0" class="branches-list">
+          <div *ngFor="let branch of branches" class="branch-item">
+            <div class="branch-info">
+              <i class="fas fa-code-branch"></i>
+              <span class="branch-name">{{ branch }}</span>
+              <span *ngIf="branch === repository?.defaultBranch" class="default-badge">Default</span>
+            </div>
+            <div class="branch-actions">
+              <button
+                class="switch-btn"
+                (click)="changeBranch(branch)"
+                [disabled]="branch === currentBranch">
+                {{ branch === currentBranch ? 'Current' : 'Switch' }}
+              </button>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Webhook Tab -->
+      <div *ngIf="activeTab === 'webhook'" class="webhook-tab">
+        <div class="webhook-status-card">
+          <h3>Webhook Status</h3>
+          <div *ngIf="webhookSubscription; else noWebhook" class="webhook-info">
+            <div class="webhook-status">
+              <span class="status-badge" [ngClass]="'status-' + webhookSubscription.status.toLowerCase()">
+                <i class="fas fa-webhook"></i>
+                {{ webhookSubscription.status }}
+              </span>
+            </div>
+            <div class="webhook-details">
+              <div class="detail-item">
+                <label>Webhook URL:</label>
+                <span class="webhook-url">{{ webhookSubscription.webhookUrl }}</span>
+              </div>
+              <div class="detail-item">
+                <label>Events:</label>
+                <span>{{ webhookSubscription.events }}</span>
+              </div>
+              <div class="detail-item">
+                <label>Subscribed:</label>
+                <span>{{ formatDate(webhookSubscription.subscriptionDate) }}</span>
+              </div>
+              <div class="detail-item" *ngIf="webhookSubscription.lastDelivery">
+                <label>Last Delivery:</label>
+                <span>{{ formatDateTime(webhookSubscription.lastDelivery) }}</span>
+              </div>
+              <div class="detail-item" *ngIf="webhookSubscription.failureCount > 0">
+                <label>Failures:</label>
+                <span class="failure-count">{{ webhookSubscription.failureCount }}</span>
+              </div>
+            </div>
+            <div class="webhook-actions">
+              <button
+                class="action-btn unsubscribe"
+                (click)="unsubscribeFromWebhook()"
+                [disabled]="actionLoading">
+                <i class="fas fa-unlink"></i>
+                Unsubscribe
+              </button>
+            </div>
+          </div>
+          <ng-template #noWebhook>
+            <div class="no-webhook">
+              <i class="fas fa-webhook"></i>
+              <h4>No Webhook Subscription</h4>
+              <p>This repository is not subscribed to webhooks.</p>
+              <button
+                class="action-btn subscribe"
+                (click)="subscribeToWebhook()"
+                [disabled]="actionLoading">
+                <i class="fas fa-link"></i>
+                Subscribe to Webhook
+              </button>
+            </div>
+          </ng-template>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>

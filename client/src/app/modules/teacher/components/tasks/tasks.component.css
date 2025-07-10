@@ -45,6 +45,7 @@
   transition: all 0.2s ease;
 }
 
+
 .refresh-btn:hover:not(:disabled) {
   background: #680f0a;
   transform: translateY(-1px);

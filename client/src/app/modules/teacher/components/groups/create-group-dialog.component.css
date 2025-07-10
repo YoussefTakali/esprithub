@@ -1,3 +1,66 @@
 .full-width {
   width: 100%;
 }
+
+.repository-visibility {
+  margin: 20px 0;
+}
+
+.repository-visibility h3 {
+  margin: 0 0 16px 0;
+  font-size: 16px;
+  font-weight: 500;
+  color: #333;
+}
+
+.visibility-options {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.visibility-option {
+  border: 1px solid #e1e4e8;
+  border-radius: 6px;
+  padding: 16px;
+  transition: all 0.2s ease;
+  width: 100%;
+}
+
+.visibility-option:hover {
+  border-color: #0366d6;
+  background-color: #f6f8fa;
+}
+
+.visibility-option.mat-radio-checked {
+  border-color: #0366d6;
+  background-color: #f1f8ff;
+}
+
+.option-content {
+  margin-left: 8px;
+}
+
+.option-header {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-bottom: 4px;
+}
+
+.option-header mat-icon {
+  font-size: 16px;
+  width: 16px;
+  height: 16px;
+}
+
+.option-header strong {
+  font-size: 14px;
+  color: #24292e;
+}
+
+.option-description {
+  font-size: 12px;
+  color: #586069;
+  line-height: 1.4;
+}

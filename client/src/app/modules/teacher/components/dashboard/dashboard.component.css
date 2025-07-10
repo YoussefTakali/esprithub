@@ -1,4 +1,7 @@
+/* Teacher Dashboard Modern CSS */
+
 .teacher-dashboard {
+
   padding: 1.5rem;
   max-width: 1200px;
   margin: 0 auto;
@@ -23,6 +26,7 @@
 .header-content p {
   font-size: 1.1rem;
   color: #555;
+
 }
 
 .refresh-btn {

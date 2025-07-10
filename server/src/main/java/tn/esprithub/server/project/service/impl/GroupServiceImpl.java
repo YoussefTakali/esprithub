@@ -19,11 +19,15 @@ import org.slf4j.LoggerFactory;
 import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
+import java.util.Set;
+import java.util.HashSet;
+import java.util.stream.Collectors;
 import tn.esprithub.server.project.dto.GroupCreateDto;
 import tn.esprithub.server.project.dto.GroupUpdateDto;
 import tn.esprithub.server.integration.github.GithubService;
 import tn.esprithub.server.user.entity.User;
 import tn.esprithub.server.repository.service.RepositoryEntityService;
+import tn.esprithub.server.repository.service.RepositoryService;
 
 @Service
 public class GroupServiceImpl implements GroupService {
@@ -34,14 +38,16 @@ public class GroupServiceImpl implements GroupService {
     private final UserRepository userRepository;
     private final GithubService githubService;
     private final RepositoryEntityService repositoryEntityService;
+    private final RepositoryService repositoryService;
 
-    public GroupServiceImpl(GroupRepository groupRepository, ClasseRepository classeRepository, ProjectRepository projectRepository, UserRepository userRepository, GithubService githubService, RepositoryEntityService repositoryEntityService) {
+    public GroupServiceImpl(GroupRepository groupRepository, ClasseRepository classeRepository, ProjectRepository projectRepository, UserRepository userRepository, GithubService githubService, RepositoryEntityService repositoryEntityService, RepositoryService repositoryService) {
         this.groupRepository = groupRepository;
         this.classeRepository = classeRepository;
         this.projectRepository = projectRepository;
         this.userRepository = userRepository;
         this.githubService = githubService;
         this.repositoryEntityService = repositoryEntityService;
+        this.repositoryService = repositoryService;
     }
 
     @Override
@@ -136,8 +142,10 @@ public class GroupServiceImpl implements GroupService {
             
             String teacherToken = teacher.getGithubToken();
             
-            logger.info("Creating GitHub repository with name: {} (original: {})", repoName, baseRepoName);
-            String repoFullName = githubService.createRepositoryForUser(repoName, teacherToken);
+            boolean isPrivate = dto.getIsPrivate() != null ? dto.getIsPrivate() : true;
+            String gitignoreTemplate = dto.getGitignoreTemplate();
+            logger.info("Creating GitHub repository with name: {} (original: {}), private: {}, gitignore: {}", repoName, baseRepoName, isPrivate, gitignoreTemplate);
+            String repoFullName = githubService.createRepositoryForUser(repoName, teacherToken, isPrivate, gitignoreTemplate);
             
             if (repoFullName != null && !repoFullName.isBlank()) {
                 logger.info("GitHub repository created successfully: {}", repoFullName);
@@ -150,7 +158,7 @@ public class GroupServiceImpl implements GroupService {
                         .fullName(repoFullName)
                         .description("Repository for group project: " + repoName)
                         .url(repoUrl)
-                        .isPrivate(true)
+                        .isPrivate(isPrivate)
                         .defaultBranch("main")
                         .cloneUrl("https://github.com/" + repoFullName + ".git")
                         .sshUrl("git@github.com:" + repoFullName + ".git")
@@ -240,18 +248,77 @@ public class GroupServiceImpl implements GroupService {
         if (dto.getStudentIds() == null || dto.getStudentIds().isEmpty()) {
             throw new IllegalArgumentException("Group must have at least one student");
         }
+
+        // Get existing group to compare students
+        Group group = groupRepository.findById(id).orElseThrow(() -> new IllegalArgumentException("Group not found with provided id"));
+
+        // Get current student IDs for comparison
+        Set<UUID> currentStudentIds = group.getStudents().stream()
+            .map(User::getId)
+            .collect(Collectors.toSet());
+
+        // Get new student IDs
+        Set<UUID> newStudentIds = new HashSet<>(dto.getStudentIds());
+
+        // Find newly added students (students in new list but not in current list)
+        Set<UUID> addedStudentIds = newStudentIds.stream()
+            .filter(studentId -> !currentStudentIds.contains(studentId))
+            .collect(Collectors.toSet());
+
         Classe managedClasse = classeRepository.findById(dto.getClasseId()).orElseThrow(() -> new IllegalArgumentException("Classe not found with provided id"));
         Project managedProject = projectRepository.findById(dto.getProjectId()).orElseThrow(() -> new IllegalArgumentException("Project not found with provided id"));
         var managedStudentIds = dto.getStudentIds();
         var managedStudents = managedStudentIds.stream()
             .map(studentId -> userRepository.findById(studentId).orElseThrow(() -> new IllegalArgumentException("Student not found with id: " + studentId)))
             .collect(java.util.stream.Collectors.toCollection(java.util.ArrayList::new));
-        Group group = groupRepository.findById(id).orElseThrow(() -> new IllegalArgumentException("Group not found with provided id"));
+
+        // Update group properties
         group.setName(dto.getName());
         group.setClasse(managedClasse);
         group.setProject(managedProject);
         group.setStudents(new java.util.ArrayList<>(managedStudents));
-        return groupRepository.save(group);
+
+        // Save the updated group
+        Group savedGroup = groupRepository.save(group);
+
+        // Add new students as repository collaborators if group has an associated repository
+        if (!addedStudentIds.isEmpty() && group.getRepository() != null) {
+            addNewStudentsAsRepositoryCollaborators(group, addedStudentIds, managedProject);
+        }
+
+        return savedGroup;
+    }
+
+    /**
+     * Helper method to add new students as repository collaborators
+     */
+    private void addNewStudentsAsRepositoryCollaborators(Group group, Set<UUID> addedStudentIds, Project project) {
+        try {
+            String repoFullName = group.getRepository().getFullName();
+            String teacherEmail = project.getCreatedBy().getEmail();
+
+            logger.info("Adding {} new students as collaborators to repository: {}", addedStudentIds.size(), repoFullName);
+
+            for (UUID studentId : addedStudentIds) {
+                try {
+                    User student = userRepository.findById(studentId).orElse(null);
+                    if (student != null && student.getGithubUsername() != null && !student.getGithubUsername().trim().isEmpty()) {
+                        // Add student as repository collaborator with push permission
+                        repositoryService.addCollaborator(repoFullName, student.getGithubUsername(), "push", teacherEmail);
+                        logger.info("Successfully added student {} ({}) as collaborator to repository {}",
+                            student.getEmail(), student.getGithubUsername(), repoFullName);
+                    } else {
+                        logger.warn("Student with ID {} not found or has no GitHub username, skipping repository invitation", studentId);
+                    }
+                } catch (Exception e) {
+                    logger.error("Failed to add student with ID {} as repository collaborator: {}", studentId, e.getMessage());
+                    // Continue with other students even if one fails
+                }
+            }
+        } catch (Exception e) {
+            logger.error("Error adding new students as repository collaborators: {}", e.getMessage());
+            // Don't throw exception to avoid breaking the group update process
+        }
     }
 
     @Override

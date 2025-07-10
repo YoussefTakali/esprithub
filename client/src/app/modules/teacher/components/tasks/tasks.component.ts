@@ -50,6 +50,7 @@ export class TeacherTasksComponent implements OnInit {
   groupMembersInput: string = '';
   groupMemberSuggestions: any[] = [];
   selectedGroupMembers: any[] = [];
+  groupIsPrivate: boolean = true; // Default to private repository
 
   // For add member
   addMemberInput: string = '';
@@ -296,6 +297,7 @@ export class TeacherTasksComponent implements OnInit {
     this.selectedGroupMembers = [];
     this.groupMembersInput = '';
     this.groupMemberSuggestions = [];
+    this.groupIsPrivate = true; // Reset to default
     this.teacherData.getStudentsByClassId(classId).subscribe((students: any[]) => {
       // Exclude students already in a group for this project/class
       const usedIds = (project.groups || []).flatMap((g: any) => g.memberIds || []);
@@ -336,7 +338,8 @@ export class TeacherTasksComponent implements OnInit {
       name: this.groupNameInput,
       projectId: this.createGroupProject.id,
       classeId: this.createGroupClassId,
-      studentIds: this.selectedGroupMembers.map(m => m.id)
+      studentIds: this.selectedGroupMembers.map(m => m.id),
+      isPrivate: this.groupIsPrivate
     };
     this.repoCreationInProgress = true;
     this.repoCreationStep = 'repo';

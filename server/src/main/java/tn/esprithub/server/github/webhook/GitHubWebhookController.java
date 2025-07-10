@@ -7,6 +7,8 @@ import org.springframework.web.bind.annotation.*;
 import tn.esprithub.server.notification.NotificationService;
 import tn.esprithub.server.ai.CodeReviewService;
 import tn.esprithub.server.ai.dto.CodeReviewResult;
+import tn.esprithub.server.github.service.GitHubWebhookService;
+import tn.esprithub.server.github.service.RepositoryDataSyncService;
 import tn.esprithub.server.project.entity.Group;
 import tn.esprithub.server.project.repository.GroupRepository;
 import tn.esprithub.server.user.entity.User;
@@ -26,6 +28,8 @@ public class GitHubWebhookController {
     private final CodeReviewService codeReviewService;
     private final GroupRepository groupRepository;
     private final UserRepository userRepository;
+    private final GitHubWebhookService gitHubWebhookService;
+    private final RepositoryDataSyncService repositoryDataSyncService;
 
     /**
      * Endpoint pour recevoir les webhooks GitHub
@@ -34,11 +38,33 @@ public class GitHubWebhookController {
     public ResponseEntity<String> handleGitHubWebhook(
             @RequestHeader("X-GitHub-Event") String eventType,
             @RequestHeader("X-GitHub-Delivery") String deliveryId,
-            @RequestBody Map<String, Object> payload) {
-        
+            @RequestHeader(value = "X-GitHub-Signature-256", required = false) String signature,
+            @RequestBody String rawPayload) {
+
         log.info("Received GitHub webhook: {} - {}", eventType, deliveryId);
-        
+
         try {
+            // Validate webhook signature if provided
+            if (signature != null && !gitHubWebhookService.validateWebhookSignature(signature, rawPayload)) {
+                log.warn("Invalid webhook signature for delivery: {}", deliveryId);
+                return ResponseEntity.status(401).body("Invalid signature");
+            }
+
+            // Parse payload
+            @SuppressWarnings("unchecked")
+            Map<String, Object> payload = new com.fasterxml.jackson.databind.ObjectMapper().readValue(rawPayload, Map.class);
+
+            // Update webhook delivery status
+            String webhookId = extractWebhookId(payload);
+            if (webhookId != null) {
+                gitHubWebhookService.updateWebhookDelivery(webhookId, true, null);
+            }
+
+            // Extract repository name for data sync
+            @SuppressWarnings("unchecked")
+            Map<String, Object> repository = (Map<String, Object>) payload.get("repository");
+            String repositoryFullName = repository != null ? (String) repository.get("full_name") : null;
+
             switch (eventType) {
                 case "push":
                     handlePushEvent(payload);
@@ -49,14 +75,52 @@ public class GitHubWebhookController {
                 case "issues":
                     handleIssueEvent(payload);
                     break;
+                case "create":
+                    handleCreateEvent(payload);
+                    break;
+                case "delete":
+                    handleDeleteEvent(payload);
+                    break;
+                case "release":
+                    handleReleaseEvent(payload);
+                    break;
+                case "fork":
+                    handleForkEvent(payload);
+                    break;
+                case "watch":
+                    handleWatchEvent(payload);
+                    break;
                 default:
                     log.info("Unhandled GitHub event type: {}", eventType);
             }
-            
+
+            // Sync repository data after processing the event
+            if (repositoryFullName != null) {
+                try {
+                    repositoryDataSyncService.syncRepositoryData(repositoryFullName, eventType, payload);
+                } catch (Exception e) {
+                    log.error("Error syncing repository data for: {}", repositoryFullName, e);
+                    // Don't fail the webhook processing if sync fails
+                }
+            }
+
             return ResponseEntity.ok("Webhook processed successfully");
-            
+
         } catch (Exception e) {
             log.error("Error processing GitHub webhook", e);
+
+            // Update webhook delivery status with error
+            try {
+                @SuppressWarnings("unchecked")
+                Map<String, Object> payload = new com.fasterxml.jackson.databind.ObjectMapper().readValue(rawPayload, Map.class);
+                String webhookId = extractWebhookId(payload);
+                if (webhookId != null) {
+                    gitHubWebhookService.updateWebhookDelivery(webhookId, false, e.getMessage());
+                }
+            } catch (Exception ignored) {
+                // Ignore errors in error handling
+            }
+
             return ResponseEntity.internalServerError().body("Error processing webhook");
         }
     }
@@ -307,6 +371,162 @@ public class GitHubWebhookController {
     }
 
     /**
+     * Extract webhook ID from payload for tracking
+     */
+    private String extractWebhookId(Map<String, Object> payload) {
+        try {
+            @SuppressWarnings("unchecked")
+            Map<String, Object> repository = (Map<String, Object>) payload.get("repository");
+            if (repository != null) {
+                return (String) repository.get("id");
+            }
+        } catch (Exception e) {
+            log.debug("Could not extract webhook ID from payload", e);
+        }
+        return null;
+    }
+
+    /**
+     * Handle branch/tag creation events
+     */
+    private void handleCreateEvent(Map<String, Object> payload) {
+        @SuppressWarnings("unchecked")
+        Map<String, Object> repository = (Map<String, Object>) payload.get("repository");
+        String refType = (String) payload.get("ref_type");
+        String ref = (String) payload.get("ref");
+
+        if (repository == null) {
+            log.warn("Invalid create event payload");
+            return;
+        }
+
+        String repositoryName = (String) repository.get("full_name");
+        log.info("Processing create event: {} {} created in {}", refType, ref, repositoryName);
+
+        List<String> recipientEmails = getRecipientsForRepository(repositoryName);
+        if (!recipientEmails.isEmpty()) {
+            String eventDescription = String.format("%s '%s' created",
+                    refType.substring(0, 1).toUpperCase() + refType.substring(1), ref);
+            notificationService.sendGitHubEventNotification(
+                "create", repositoryName, ref, eventDescription, "System", recipientEmails
+            );
+        }
+    }
+
+    /**
+     * Handle branch/tag deletion events
+     */
+    private void handleDeleteEvent(Map<String, Object> payload) {
+        @SuppressWarnings("unchecked")
+        Map<String, Object> repository = (Map<String, Object>) payload.get("repository");
+        String refType = (String) payload.get("ref_type");
+        String ref = (String) payload.get("ref");
+
+        if (repository == null) {
+            log.warn("Invalid delete event payload");
+            return;
+        }
+
+        String repositoryName = (String) repository.get("full_name");
+        log.info("Processing delete event: {} {} deleted from {}", refType, ref, repositoryName);
+
+        List<String> recipientEmails = getRecipientsForRepository(repositoryName);
+        if (!recipientEmails.isEmpty()) {
+            String eventDescription = String.format("%s '%s' deleted",
+                    refType.substring(0, 1).toUpperCase() + refType.substring(1), ref);
+            notificationService.sendGitHubEventNotification(
+                "delete", repositoryName, ref, eventDescription, "System", recipientEmails
+            );
+        }
+    }
+
+    /**
+     * Handle release events
+     */
+    private void handleReleaseEvent(Map<String, Object> payload) {
+        @SuppressWarnings("unchecked")
+        Map<String, Object> repository = (Map<String, Object>) payload.get("repository");
+        @SuppressWarnings("unchecked")
+        Map<String, Object> release = (Map<String, Object>) payload.get("release");
+        String action = (String) payload.get("action");
+
+        if (repository == null || release == null) {
+            log.warn("Invalid release event payload");
+            return;
+        }
+
+        String repositoryName = (String) repository.get("full_name");
+        String tagName = (String) release.get("tag_name");
+        String releaseName = (String) release.get("name");
+
+        log.info("Processing release event: {} - {} {} in {}", action, tagName, releaseName, repositoryName);
+
+        List<String> recipientEmails = getRecipientsForRepository(repositoryName);
+        if (!recipientEmails.isEmpty()) {
+            String eventDescription = String.format("Release %s: %s (%s)", action, releaseName, tagName);
+            notificationService.sendGitHubEventNotification(
+                "release", repositoryName, tagName, eventDescription, "System", recipientEmails
+            );
+        }
+    }
+
+    /**
+     * Handle fork events
+     */
+    private void handleForkEvent(Map<String, Object> payload) {
+        @SuppressWarnings("unchecked")
+        Map<String, Object> repository = (Map<String, Object>) payload.get("repository");
+        @SuppressWarnings("unchecked")
+        Map<String, Object> forkee = (Map<String, Object>) payload.get("forkee");
+
+        if (repository == null || forkee == null) {
+            log.warn("Invalid fork event payload");
+            return;
+        }
+
+        String repositoryName = (String) repository.get("full_name");
+        String forkeeName = (String) forkee.get("full_name");
+
+        log.info("Processing fork event: {} forked to {}", repositoryName, forkeeName);
+
+        List<String> recipientEmails = getRecipientsForRepository(repositoryName);
+        if (!recipientEmails.isEmpty()) {
+            String eventDescription = String.format("Repository forked to %s", forkeeName);
+            notificationService.sendGitHubEventNotification(
+                "fork", repositoryName, "main", eventDescription, "System", recipientEmails
+            );
+        }
+    }
+
+    /**
+     * Handle watch (star) events
+     */
+    private void handleWatchEvent(Map<String, Object> payload) {
+        @SuppressWarnings("unchecked")
+        Map<String, Object> repository = (Map<String, Object>) payload.get("repository");
+        String action = (String) payload.get("action");
+
+        if (repository == null) {
+            log.warn("Invalid watch event payload");
+            return;
+        }
+
+        String repositoryName = (String) repository.get("full_name");
+        log.info("Processing watch event: {} - {}", action, repositoryName);
+
+        // Watch events are usually less critical, so we might not notify for all of them
+        if ("started".equals(action)) {
+            List<String> recipientEmails = getRecipientsForRepository(repositoryName);
+            if (!recipientEmails.isEmpty()) {
+                String eventDescription = "Repository starred";
+                notificationService.sendGitHubEventNotification(
+                    "watch", repositoryName, "main", eventDescription, "System", recipientEmails
+                );
+            }
+        }
+    }
+
+    /**
      * Endpoint de test pour vérifier que le webhook fonctionne
      */
     @GetMapping("/test")
@@ -316,4 +536,31 @@ public class GitHubWebhookController {
             "timestamp", java.time.LocalDateTime.now().toString()
         ));
     }
-} 
+
+    /**
+     * Get webhook status for repository
+     */
+    @GetMapping("/repository/{repositoryId}/status")
+    public ResponseEntity<Map<String, Object>> getWebhookStatus(@PathVariable String repositoryId) {
+        log.info("🔍 Getting webhook status for repository: {}", repositoryId);
+        
+        try {
+            // For now, return a basic status - this can be enhanced later
+            Map<String, Object> status = Map.of(
+                "repositoryId", repositoryId,
+                "webhookActive", true,
+                "lastEventReceived", System.currentTimeMillis(),
+                "eventsProcessed", 0,
+                "status", "active"
+            );
+            
+            return ResponseEntity.ok(status);
+        } catch (Exception e) {
+            log.error("❌ Error getting webhook status for repository: {}", repositoryId, e);
+            return ResponseEntity.internalServerError().body(Map.of(
+                "error", "Failed to get webhook status",
+                "message", e.getMessage()
+            ));
+        }
+    }
+}

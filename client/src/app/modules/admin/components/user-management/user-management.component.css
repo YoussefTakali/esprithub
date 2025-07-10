@@ -490,6 +490,15 @@
   font-size: 0.85rem;
 }
 
+.action-btn.view {
+  background: #7b1fa2;
+  color: white;
+}
+
+.action-btn.view:hover:not(:disabled) {
+  background: #6a1b9a;
+}
+
 .action-btn.edit {
   background: #350401;
   color: white;

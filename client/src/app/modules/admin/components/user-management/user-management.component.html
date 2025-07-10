@@ -191,6 +191,9 @@
               </td>
               <td>
                 <div class="action-buttons">
+                  <button class="action-btn view" (click)="onViewUser(user)" [disabled]="saving" title="View user details">
+                    <i class="fas fa-eye"></i>
+                  </button>
                   <button class="action-btn edit" (click)="onEditUser(user)" [disabled]="saving" title="Edit user">
                     <i class="fas fa-edit"></i>
                   </button>

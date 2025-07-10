@@ -49,6 +49,13 @@ export class RepositoryDetailComponent implements OnInit, OnDestroy {
   branchSuccessMessage = '';
   branchErrorMessage = '';
 
+  // Add a property to hold recent commits for the template
+  recentCommits: any[] = [];
+
+  // Latest commit banner data
+  latestCommitBanner: any = null;
+  commitCount: number = 0;
+
   private readonly subscriptions = new Subscription();
 
   constructor(
@@ -60,7 +67,7 @@ export class RepositoryDetailComponent implements OnInit, OnDestroy {
 
   ngOnInit(): void {
     this.subscriptions.add(
-      this.route.params.subscribe(params => {
+      this.route.params.subscribe((params: any) => {
         this.repoOwner = params['owner'];
         this.repoName = params['name'];
         this.loadRepository();
@@ -68,7 +75,7 @@ export class RepositoryDetailComponent implements OnInit, OnDestroy {
     );
 
     this.subscriptions.add(
-      this.route.queryParams.subscribe(params => {
+      this.route.queryParams.subscribe((params: any) => {
         this.activeTab = params['tab'] ?? 'code';
         this.selectedBranch = params['branch'] ?? 'main';
         this.currentPath = params['path'] ?? '';
@@ -87,14 +94,15 @@ export class RepositoryDetailComponent implements OnInit, OnDestroy {
     const fullName = `${this.repoOwner}/${this.repoName}`;
     
     this.repositoryService.getTeacherRepositories().subscribe({
-      next: (repos) => {
-        this.repository = repos.find(repo => repo.fullName === fullName) || null;
+      next: (repos: Repository[]) => {
+        this.repository = repos.find((repo: Repository) => repo.fullName === fullName) || null;
         if (this.repository) {
           this.selectedBranch = this.repository.defaultBranch || 'main';
           this.loadRepositoryBranches();
           this.loadRepositoryFiles();
           this.loadRepositoryStats();
           this.loadRepositoryCollaborators();
+          this.loadLatestCommit();
         } else {
           this.snackBar.open('Repository not found', 'Close', { 
             duration: 3000,
@@ -106,7 +114,7 @@ export class RepositoryDetailComponent implements OnInit, OnDestroy {
         }
         this.loading = false;
       },
-      error: (error) => {
+      error: (error: any) => {
         console.error('Error loading repository:', error);
         this.snackBar.open('Failed to load repository', 'Close', { 
           duration: 3000,
@@ -124,12 +132,12 @@ export class RepositoryDetailComponent implements OnInit, OnDestroy {
     
     console.log('Loading branches for repository:', this.repository.fullName);
     this.repositoryService.getRepositoryBranches(this.repository.fullName).subscribe({
-      next: (branches) => {
+      next: (branches: string[]) => {
         console.log('Received branches:', branches);
         this.repositoryBranches = branches ?? [];
         console.log('Set repositoryBranches to:', this.repositoryBranches);
       },
-      error: (error) => {
+      error: (error: any) => {
         console.error('Error loading branches:', error);
         this.snackBar.open('Failed to load repository branches', 'Close', {
           duration: 3000,
@@ -145,10 +153,10 @@ export class RepositoryDetailComponent implements OnInit, OnDestroy {
     if (!this.repository) return;
     
     this.repositoryService.getRepositoryFiles(this.repository.fullName, this.selectedBranch).subscribe({
-      next: (files) => {
+      next: (files: string[]) => {
         this.repositoryFiles = files ?? [];
       },
-      error: (error) => {
+      error: (error: any) => {
         console.error('Error loading files:', error);
         this.snackBar.open('Failed to load repository files', 'Close', {
           duration: 3000,
@@ -162,12 +170,22 @@ export class RepositoryDetailComponent implements OnInit, OnDestroy {
 
   loadRepositoryStats(): void {
     if (!this.repository) return;
-    
+    this.loading = true;
     this.repositoryService.getRepositoryStats(this.repository.fullName).subscribe({
-      next: (stats) => {
+      next: (stats: RepositoryStats) => {
         this.repositoryStats = stats;
+        // Process and expose all commit details for the template
+        this.recentCommits = (stats.recentCommits || []).map((commit: any) => ({
+          message: commit.message,
+          author: commit.author,
+          date: commit.date,
+          sha: commit.sha,
+          url: commit.url,
+          avatarUrl: commit.avatarUrl || `https://github.com/identicons/${encodeURIComponent(commit.author)}.png`
+        }));
+        this.loading = false;
       },
-      error: (error) => {
+      error: (error: any) => {
         console.error('Error loading stats:', error);
         this.snackBar.open('Failed to load repository statistics', 'Close', {
           duration: 3000,
@@ -175,22 +193,18 @@ export class RepositoryDetailComponent implements OnInit, OnDestroy {
           verticalPosition: 'bottom',
           panelClass: ['custom-snackbar', 'error-snackbar']
         });
+        this.loading = false;
       }
     });
   }
 
   loadRepositoryCollaborators(): void {
     if (!this.repository) return;
-    
     this.repositoryService.getCollaborators(this.repository.fullName).subscribe({
-      next: (collaborators) => {
+      next: (collaborators: any[]) => {
         this.repositoryCollaborators = collaborators ?? [];
-        // Update the repository object to match the template expectations
-        if (this.repository) {
-          this.repository.collaborators = collaborators?.map(c => c.username) ?? [];
-        }
       },
-      error: (error) => {
+      error: (error: any) => {
         console.error('Error loading collaborators:', error);
         this.snackBar.open('Failed to load repository collaborators', 'Close', {
           duration: 3000,
@@ -341,7 +355,26 @@ export class RepositoryDetailComponent implements OnInit, OnDestroy {
   }
 
   formatDate(dateString: string): string {
-    return new Date(dateString).toLocaleDateString();
+    const date = new Date(dateString);
+    const now = new Date();
+    const diffInMs = now.getTime() - date.getTime();
+    const diffInMinutes = Math.floor(diffInMs / (1000 * 60));
+    const diffInHours = Math.floor(diffInMs / (1000 * 60 * 60));
+    const diffInDays = Math.floor(diffInHours / 24);
+
+    console.log('Date comparison:', { dateString, date, now, diffInMs, diffInMinutes, diffInHours });
+
+    if (diffInMinutes < 1) {
+      return 'just now';
+    } else if (diffInMinutes < 60) {
+      return diffInMinutes === 1 ? '1 minute ago' : `${diffInMinutes} minutes ago`;
+    } else if (diffInHours < 24) {
+      return diffInHours === 1 ? '1 hour ago' : `${diffInHours} hours ago`;
+    } else if (diffInDays < 7) {
+      return diffInDays === 1 ? '1 day ago' : `${diffInDays} days ago`;
+    } else {
+      return date.toLocaleDateString();
+    }
   }
 
   getLanguageColor(language: string): string {
@@ -376,7 +409,7 @@ export class RepositoryDetailComponent implements OnInit, OnDestroy {
     };
     
     this.repositoryService.updateRepository(this.repository.fullName, settings).subscribe({
-      next: (response) => {
+      next: () => {
         this.snackBar.open('Repository settings updated successfully', 'Close', {
           duration: 3000,
           horizontalPosition: 'center',
@@ -388,7 +421,7 @@ export class RepositoryDetailComponent implements OnInit, OnDestroy {
           this.repository.description = this.repositoryDescription;
         }
       },
-      error: (error) => {
+      error: (error: any) => {
         console.error('Error updating repository settings:', error);
         let errorMessage = 'Failed to update repository settings';
         
@@ -446,8 +479,8 @@ export class RepositoryDetailComponent implements OnInit, OnDestroy {
     if (this.collaborator.trim() && this.repository) {
       // Call backend to add collaborator
       this.repositoryService.addCollaborator(this.repository.fullName, this.collaborator).subscribe({
-        next: (response) => {
-          this.snackBar.open(`Added ${this.collaborator} as a collaborator`, 'Close', {
+        next: () => {
+          this.snackBar.open(`Invitation sent to ${this.collaborator}`, 'Close', {
             duration: 3000,
             horizontalPosition: 'center',
             verticalPosition: 'bottom',
@@ -455,20 +488,20 @@ export class RepositoryDetailComponent implements OnInit, OnDestroy {
           });
           this.collaborator = '';
           this.showAddCollab = false;
-          // Reload collaborators to get updated list
+          // Reload collaborators to get updated list including pending invitations
           this.loadRepositoryCollaborators();
         },
-        error: (error) => {
+        error: (error: any) => {
           console.error('Error adding collaborator:', error);
           let errorMessage = 'Failed to add collaborator';
-          
+
           // Extract more specific error message if available
           if (error?.error?.error) {
             errorMessage = error.error.error;
           } else if (error?.message) {
             errorMessage = error.message;
           }
-          
+
           this.snackBar.open(errorMessage, 'Close', {
             duration: 4000,
             horizontalPosition: 'center',
@@ -490,7 +523,7 @@ export class RepositoryDetailComponent implements OnInit, OnDestroy {
   removeCollaborator(collaborator: string): void {
     if (confirm(`Remove ${collaborator} from this repository?`) && this.repository) {
       this.repositoryService.removeCollaborator(this.repository.fullName, collaborator).subscribe({
-        next: (response) => {
+        next: () => {
           this.snackBar.open(`Removed ${collaborator} from repository`, 'Close', {
             duration: 3000,
             horizontalPosition: 'center',
@@ -500,7 +533,7 @@ export class RepositoryDetailComponent implements OnInit, OnDestroy {
           // Reload collaborators to get updated list
           this.loadRepositoryCollaborators();
         },
-        error: (error) => {
+        error: (error: any) => {
           console.error('Error removing collaborator:', error);
           let errorMessage = 'Failed to remove collaborator';
           
@@ -522,16 +555,90 @@ export class RepositoryDetailComponent implements OnInit, OnDestroy {
     }
   }
 
+  createCollaboratorBranch(username: string): void {
+    if (!this.repository || !username) return;
+
+    const branchName = username.toLowerCase().replace(/[^a-z0-9]/g, '-');
+
+    this.repositoryService.createBranch(this.repository.fullName, branchName, this.selectedBranch).subscribe({
+      next: () => {
+        this.snackBar.open(`Branch "${branchName}" created for ${username}`, 'Close', {
+          duration: 3000,
+          horizontalPosition: 'center',
+          verticalPosition: 'bottom',
+          panelClass: ['custom-snackbar']
+        });
+        // Reload branches to get updated list
+        this.loadRepositoryBranches();
+      },
+      error: (error: any) => {
+        console.error('Error creating branch for collaborator:', error);
+        let errorMessage = 'Failed to create branch';
+
+        if (error?.error?.error) {
+          errorMessage = error.error.error;
+        } else if (error?.message) {
+          errorMessage = error.message;
+        }
+
+        this.snackBar.open(errorMessage, 'Close', {
+          duration: 4000,
+          horizontalPosition: 'center',
+          verticalPosition: 'bottom',
+          panelClass: ['custom-snackbar', 'error-snackbar']
+        });
+      }
+    });
+  }
+
+  loadLatestCommit(): void {
+    if (!this.repository) return;
+
+    const [owner, repo] = this.repository.fullName.split('/');
+
+    this.repositoryService.getLatestCommit(owner, repo, '', this.selectedBranch).subscribe({
+      next: (commits: any) => {
+        console.log('Latest commit response:', commits);
+        if (commits && commits.length > 0) {
+          const latestCommit = commits[0];
+          console.log('Latest commit data:', latestCommit);
+          console.log('Commit date:', latestCommit.commit.author.date);
+          console.log('Current time:', new Date().toISOString());
+
+          // Parse the commit date properly
+          const commitDate = new Date(latestCommit.commit.author.date);
+          const now = new Date();
+          const diffInMs = now.getTime() - commitDate.getTime();
+          const diffInMinutes = Math.floor(diffInMs / (1000 * 60));
+
+          console.log('Time difference in minutes:', diffInMinutes);
+
+          this.latestCommitBanner = {
+            author: latestCommit.commit.author.name,
+            message: latestCommit.commit.message,
+            sha: latestCommit.sha.substring(0, 7),
+            time: latestCommit.commit.author.date,
+            avatarUrl: latestCommit.author?.avatar_url || `https://github.com/identicons/${encodeURIComponent(latestCommit.commit.author.name)}.png`
+          };
+          this.commitCount = commits.length;
+        }
+      },
+      error: (error: any) => {
+        console.error('Error loading latest commit:', error);
+      }
+    });
+  }
+
   // Collaborator management
   onCollaboratorInputChange(): void {
     const query = this.collaborator.trim();
     if (query.length > 2) {
       this.repositoryService.searchUsers(query).subscribe({
-        next: (users) => {
+        next: (users: UserSummary[]) => {
           this.userSuggestions = users;
           this.showUserSuggestions = users.length > 0;
         },
-        error: (error) => {
+        error: (error: any) => {
           console.error('Error searching users:', error);
           this.userSuggestions = [];
           this.showUserSuggestions = false;
@@ -565,7 +672,7 @@ export class RepositoryDetailComponent implements OnInit, OnDestroy {
   createBranch(): void {
     if (this.newBranchName.trim() && this.repository) {
       this.repositoryService.createBranch(this.repository.fullName, this.newBranchName, this.selectedBranch).subscribe({
-        next: (response) => {
+        next: () => {
           this.branchSuccessMessage = `Branch "${this.newBranchName}" created successfully!`;
           this.branchErrorMessage = '';
           this.snackBar.open(`Branch "${this.newBranchName}" created successfully!`, 'Close', {
@@ -585,7 +692,7 @@ export class RepositoryDetailComponent implements OnInit, OnDestroy {
             this.branchSuccessMessage = '';
           }, 3000);
         },
-        error: (error) => {
+        error: (error: any) => {
           console.error('Error creating branch:', error);
           let errorMessage = 'Failed to create branch';
           
@@ -619,7 +726,7 @@ export class RepositoryDetailComponent implements OnInit, OnDestroy {
   deleteBranch(branchName: string): void {
     if (confirm(`Delete branch "${branchName}"? This cannot be undone.`) && this.repository) {
       this.repositoryService.deleteBranch(this.repository.fullName, branchName).subscribe({
-        next: (response) => {
+        next: () => {
           this.snackBar.open(`Branch "${branchName}" deleted successfully`, 'Close', {
             duration: 3000,
             horizontalPosition: 'center',
@@ -629,7 +736,7 @@ export class RepositoryDetailComponent implements OnInit, OnDestroy {
           // Reload branches to get updated list
           this.loadRepositoryBranches();
         },
-        error: (error) => {
+        error: (error: any) => {
           console.error('Error deleting branch:', error);
           let errorMessage = 'Failed to delete branch';
           
@@ -678,7 +785,7 @@ export class RepositoryDetailComponent implements OnInit, OnDestroy {
       if (confirm('This will permanently delete the repository. Are you absolutely sure?')) {
         console.log('Starting repository deletion...');
         this.repositoryService.deleteRepository(this.repository.fullName).subscribe({
-          next: (response) => {
+          next: () => {
             console.log('Repository deleted successfully, showing snackbar');
             const snackBarRef = this.snackBar.open(`Repository "${this.repoName}" deleted successfully`, 'Close', {
               duration: 3000,
@@ -689,7 +796,7 @@ export class RepositoryDetailComponent implements OnInit, OnDestroy {
             console.log('Success snackbar ref:', snackBarRef);
             this.router.navigate(['/teacher/repositories']);
           },
-          error: (error) => {
+          error: (error: any) => {
             console.error('Error deleting repository:', error);
             let errorMessage = 'Failed to delete repository';
             
@@ -727,5 +834,20 @@ export class RepositoryDetailComponent implements OnInit, OnDestroy {
       });
       console.log('Validation snackbar ref:', snackBarRef);
     }
+  }
+
+  copyToClipboard(text: string) {
+    navigator.clipboard.writeText(text);
+  }
+
+  onImageError(event: Event, authorName: string) {
+    const img = event.target as HTMLImageElement;
+    if (img) {
+      img.src = `https://github.com/identicons/${encodeURIComponent(authorName)}.png`;
+    }
+  }
+
+  encodeURI(text: string): string {
+    return encodeURIComponent(text);
   }
 }

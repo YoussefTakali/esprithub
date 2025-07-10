@@ -1,4 +1,5 @@
 import { Component, OnInit } from '@angular/core';
+import { Router } from '@angular/router';
 import { firstValueFrom } from 'rxjs';
 import { UserService } from '../../../../shared/services/user.service';
 import { AcademicService } from '../../../../shared/services/academic.service';
@@ -34,7 +35,8 @@ export class UserManagementComponent implements OnInit {
   constructor(
     private readonly userService: UserService,
     private readonly academicService: AcademicService,
-    private readonly snackbarService: SnackbarService
+    private readonly snackbarService: SnackbarService,
+    private readonly router: Router
   ) {}
 
   ngOnInit(): void {
@@ -52,6 +54,7 @@ export class UserManagementComponent implements OnInit {
       ]);
       
       this.users = users ?? [];
+      console.log('Loaded users:', this.users);
       this.departments = departments ?? [];
     } catch (error) {
       console.error('Error loading users:', error);
@@ -65,6 +68,16 @@ export class UserManagementComponent implements OnInit {
     this.showCreateForm = true;
     this.editingUser = null;
     this.resetCreateForm();
+  }
+
+  onViewUser(user: User): void {
+    console.log('Navigating to user details:', user);
+    console.log('User ID:', user.id);
+    if (user.id) {
+      this.router.navigate(['/admin/users', user.id]);
+    } else {
+      console.error('User ID is missing!', user);
+    }
   }
 
   onEditUser(user: User): void {

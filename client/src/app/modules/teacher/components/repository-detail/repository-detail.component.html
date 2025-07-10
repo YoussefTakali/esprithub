@@ -109,12 +109,30 @@
         </div>
 
         <div class="collaborators-list">
-          <div class="collaborator-item" *ngFor="let collaborator of (repository?.collaborators || [])">
+          <div class="collaborator-item" *ngFor="let collaborator of (repositoryCollaborators || [])">
             <div class="collaborator-info">
-              <img src="https://github.com/identicons/{{ collaborator }}.png" class="collaborator-avatar" alt="Collaborator">
-              <span class="collaborator-name">{{ collaborator }}</span>
+              <img [src]="collaborator.avatar_url || 'https://github.com/identicons/' + (collaborator.username || collaborator.email) + '.png'" class="collaborator-avatar" alt="Collaborator">
+              <div class="collaborator-details">
+                <span class="collaborator-name">{{ collaborator.username || collaborator.email }}</span>
+                <span *ngIf="collaborator.pending" class="pending-label" title="Invitation Pending">
+                  <i class="fas fa-clock"></i> Pending
+                  <span *ngIf="collaborator.email">({{ collaborator.email }})</span>
+                </span>
+                <span *ngIf="!collaborator.pending" class="active-label" title="Active Collaborator">
+                  <i class="fas fa-check-circle"></i> Active
+                </span>
+              </div>
             </div>
-            <button class="delete-btn" (click)="removeCollaborator(collaborator)">Remove</button>
+            <div class="collaborator-actions">
+              <button class="create-branch-btn" *ngIf="!collaborator.pending && collaborator.username"
+                      (click)="createCollaboratorBranch(collaborator.username)"
+                      title="Create branch for {{ collaborator.username }}">
+                <i class="fas fa-code-branch"></i> Create Branch
+              </button>
+              <button class="delete-btn" (click)="removeCollaborator(collaborator.username || collaborator.email)">
+                {{ collaborator.pending ? 'Cancel Invitation' : 'Remove' }}
+              </button>
+            </div>
           </div>
         </div>
 
@@ -194,16 +212,27 @@
       <div *ngIf="loading" class="loading-state">
         <p>Loading commits...</p>
       </div>
-      <ul class="commit-list" *ngIf="!loading && repositoryStats?.recentCommits?.length">
-        <li *ngFor="let commit of (repositoryStats?.recentCommits || [])">
-          <img src="https://github.com/identicons/{{ commit.author }}.png" alt="Author" width="20" height="20" />
-          <div>
-            <strong>{{ commit.message }}</strong>
-            <div>{{ commit.author }} • {{ formatDate(commit.date) }}</div>
+      <ul class="commit-list" *ngIf="!loading && recentCommits.length">
+        <li *ngFor="let commit of recentCommits">
+          <img [src]="commit.avatarUrl"
+               (error)="onImageError($event, commit.author)"
+               alt="Author" width="32" height="32" style="border-radius:50%;margin-right:8px;" />
+          <div style="display:inline-block;vertical-align:top;">
+            <a [href]="commit.url" target="_blank" rel="noopener" style="font-weight:bold;">{{ commit.message }}</a>
+            <div style="font-size:13px;color:#555;">
+              <span>{{ commit.author }}</span>
+              •
+              <span>{{ formatDate(commit.date) }}</span>
+              •
+              <span style="font-family:monospace;">{{ commit.sha.slice(0,7) }}</span>
+              <button (click)="$event.stopPropagation();copyToClipboard(commit.sha)" title="Copy SHA" style="background:none;border:none;cursor:pointer;padding:0 4px;">
+                <i class="fas fa-copy"></i>
+              </button>
+            </div>
           </div>
         </li>
       </ul>
-      <div *ngIf="!loading && (!repositoryStats?.recentCommits?.length)" class="empty-state">
+      <div *ngIf="!loading && !recentCommits.length" class="empty-state">
         <p>No commits found.</p>
       </div>
     </div>
@@ -237,6 +266,27 @@
 
 <!-- Code Tab Content -->
 <div *ngIf="activeTab === 'code'" class="code-content">
+  <!-- Commit Banner -->
+  <div *ngIf="latestCommitBanner" class="commit-banner">
+    <div class="commit-left">
+      <img [src]="latestCommitBanner.avatarUrl" alt="avatar" class="commit-avatar" />
+      <div class="commit-info">
+        <strong>{{ latestCommitBanner.author }}</strong>
+        <span class="commit-message">{{ latestCommitBanner.message }}</span>
+      </div>
+    </div>
+    <div class="commit-right">
+      <code class="commit-sha">{{ latestCommitBanner.sha }}</code>
+      <span class="commit-time">{{ latestCommitBanner.time | timeAgo }}</span>
+      <div class="commit-debug" style="font-size: 11px; color: #666;">
+        Raw: {{ latestCommitBanner.time }}
+      </div>
+      <div class="commit-count" *ngIf="commitCount > 0">
+        <span>{{ commitCount }} commits</span>
+      </div>
+    </div>
+  </div>
+
   <!-- Branch Info Bar -->
   <div class="branch-info">
     <div class="branch-selector">
@@ -259,13 +309,15 @@
         </div>
       </div>
     </div>
-    <div class="commit-info">
+    <div class="commit-info" *ngIf="recentCommits.length > 0">
       <div class="latest-commit">
-        <img src="https://github.com/identicons/{{ repoOwner }}.png" class="author-avatar" alt="Author">
-        <span class="commit-author">{{ repoOwner }}</span>
-        <span class="commit-message">Initial commit</span>
-        <span class="commit-hash">#abc123</span>
-        <span class="commit-time">2 hours ago</span>
+        <img [src]="recentCommits[0].avatarUrl"
+             (error)="onImageError($event, recentCommits[0].author)"
+             class="author-avatar" alt="Author">
+        <span class="commit-author">{{ recentCommits[0].author }}</span>
+        <span class="commit-message">{{ recentCommits[0].message }}</span>
+        <span class="commit-hash">#{{ recentCommits[0].sha.slice(0,7) }}</span>
+        <span class="commit-time">{{ formatDate(recentCommits[0].date) }}</span>
       </div>
     </div>
   </div>
@@ -288,8 +340,8 @@
               <a href="#" class="file-name">{{ file }}</a>
             </div>
           </td>
-          <td class="commit-message-cell">Initial commit</td>
-          <td class="commit-date-cell">2 hours ago</td>
+          <td class="commit-message-cell">{{ recentCommits.length > 0 ? recentCommits[0].message : 'No commits' }}</td>
+          <td class="commit-date-cell">{{ recentCommits.length > 0 ? formatDate(recentCommits[0].date) : 'N/A' }}</td>
         </tr>
       </tbody>
     </table>
@@ -320,3 +372,118 @@
     </div>
   </div>
 </div>
+
+<style>
+.pending-label {
+  color: #bfa700;
+  font-size: 13px;
+  margin-left: 8px;
+  opacity: 0.8;
+}
+.collaborator-item[ng-reflect-ng-for-of] .pending-label {
+  font-style: italic;
+}
+
+.collaborator-details {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.collaborator-name {
+  font-weight: 500;
+}
+
+.active-label {
+  color: #28a745;
+  font-size: 13px;
+  opacity: 0.8;
+}
+
+.active-label i {
+  margin-right: 4px;
+}
+
+.collaborator-actions {
+  display: flex;
+  gap: 8px;
+  align-items: center;
+}
+
+.create-branch-btn {
+  background: #007bff;
+  color: white;
+  border: none;
+  padding: 6px 12px;
+  border-radius: 4px;
+  font-size: 12px;
+  cursor: pointer;
+  transition: background-color 0.2s;
+}
+
+.create-branch-btn:hover {
+  background: #0056b3;
+}
+
+.create-branch-btn i {
+  margin-right: 4px;
+}
+
+.commit-banner {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  background: #f8f9fa;
+  border: 1px solid #e9ecef;
+  border-radius: 6px;
+  padding: 12px 16px;
+  margin-bottom: 16px;
+}
+
+.commit-left {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.commit-avatar {
+  width: 32px;
+  height: 32px;
+  border-radius: 50%;
+}
+
+.commit-info {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.commit-message {
+  color: #586069;
+  font-size: 14px;
+}
+
+.commit-right {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  font-size: 14px;
+}
+
+.commit-sha {
+  background: #f1f3f4;
+  padding: 2px 6px;
+  border-radius: 3px;
+  font-family: 'Courier New', monospace;
+  font-size: 12px;
+}
+
+.commit-time {
+  color: #586069;
+}
+
+.commit-count {
+  color: #0366d6;
+  font-weight: 500;
+}
+</style>
