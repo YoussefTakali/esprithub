@@ -23,6 +23,9 @@ import tn.esprithub.server.user.dto.UserSummaryDto;
 import tn.esprithub.server.user.util.UserMapper;
 import tn.esprithub.server.common.enums.UserRole;
 import tn.esprithub.server.common.exception.BusinessException;
+import tn.esprithub.server.academic.dto.ChiefNotificationDto;
+import tn.esprithub.server.project.entity.Task;
+import tn.esprithub.server.project.repository.TaskRepository;
 
 import java.util.List;
 import java.util.UUID;
@@ -42,6 +45,7 @@ public class ChiefAcademicServiceImpl implements ChiefAcademicService {
     private final NiveauRepository niveauRepository;
     private final ClasseRepository classeRepository;
     private final UserRepository userRepository;
+    private final TaskRepository taskRepository;
     
     private final DepartementMapper departementMapper;
     private final NiveauMapper niveauMapper;
@@ -96,6 +100,9 @@ public class ChiefAcademicServiceImpl implements ChiefAcademicService {
         
         User chief = getUserAndValidateRole(chiefId, UserRole.CHIEF);
         Departement department = getDepartementByChief(chief);
+        
+        // Ignore any departementId sent by the frontend (chief context)
+        niveauDto.setDepartementId(null);
         
         // Validate that niveau with same year doesn't exist in this department
         if (niveauRepository.existsByDepartementIdAndAnnee(department.getId(), niveauDto.getAnnee())) {
@@ -203,6 +210,9 @@ public class ChiefAcademicServiceImpl implements ChiefAcademicService {
         
         User chief = getUserAndValidateRole(chiefId, UserRole.CHIEF);
         Departement department = getDepartementByChief(chief);
+        
+        // Ignore any departementId sent by the frontend (chief context)
+        classeDto.setDepartementId(null);
         
         // Validate that niveau belongs to chief's department
         Niveau niveau = niveauRepository.findById(classeDto.getNiveauId())
@@ -454,6 +464,40 @@ public class ChiefAcademicServiceImpl implements ChiefAcademicService {
         return students.stream()
                 .map(userMapper::toUserSummaryDto)
                 .toList();
+    }
+
+    @Override
+    @Transactional(readOnly = true)
+    public List<ChiefNotificationDto> getRecentNotificationsForChief(UUID chiefId, int limit) {
+        Departement dept = getDepartementByChief(getUserAndValidateRole(chiefId, UserRole.CHIEF));
+        List<Niveau> niveaux = dept.getNiveaux();
+        List<UUID> classeIds = new java.util.ArrayList<>();
+        for (Niveau n : niveaux) {
+            if (n.getClasses() != null) {
+                for (Classe c : n.getClasses()) {
+                    classeIds.add(c.getId());
+                }
+            }
+        }
+        // Récupérer toutes les tâches assignées à ces classes
+        List<Task> allTasks = new java.util.ArrayList<>();
+        for (UUID classeId : classeIds) {
+            allTasks.addAll(taskRepository.findByAssignedToClasses_Id(classeId));
+        }
+        // Trier par date de création décroissante
+        allTasks.sort((a, b) -> b.getCreatedAt().compareTo(a.getCreatedAt()));
+        // Prendre les N plus récentes
+        List<Task> recentTasks = allTasks.stream().limit(limit).toList();
+
+        List<ChiefNotificationDto> notifications = new java.util.ArrayList<>();
+        for (Task task : recentTasks) {
+            ChiefNotificationDto notif = new ChiefNotificationDto();
+            notif.setIcon("fas fa-tasks");
+            notif.setText("Task: " + task.getTitle() + " (due: " + task.getDueDate() + ")");
+            notif.setDate(task.getCreatedAt());
+            notifications.add(notif);
+        }
+        return notifications;
     }
 
     // Helper methods

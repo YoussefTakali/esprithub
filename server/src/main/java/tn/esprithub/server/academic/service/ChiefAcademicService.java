@@ -42,4 +42,7 @@ public interface ChiefAcademicService {
     List<UserSummaryDto> getUnassignedUsersInMyDepartement(UUID chiefId);
     List<UserSummaryDto> getTeachersInMyDepartement(UUID chiefId);
     List<UserSummaryDto> getStudentsInMyDepartement(UUID chiefId);
+
+    // Dashboard: notifications dynamiques
+    List<tn.esprithub.server.academic.dto.ChiefNotificationDto> getRecentNotificationsForChief(UUID chiefId, int limit);
 }

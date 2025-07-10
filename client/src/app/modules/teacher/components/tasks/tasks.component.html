@@ -74,71 +74,105 @@
         </div>
       </div>
     </div>
-    <!-- Main Content - Task list -->
-    <div class="main-content">
-      <div class="content-header">
-        <h1 class="content-title">Tasks for {{ selectedProject?.name || 'All Projects' }}</h1>
-        <div class="header-actions">
-          <div class="search-container">
-            <i class="fas fa-search search-icon"></i>
-            <input type="text" 
-                   placeholder="Search tasks..." 
-                   class="search-input"
-                   [(ngModel)]="searchTerm">
-          </div>
-          <button class="add-task-btn" (click)="addTask()">
-            <i class="fas fa-plus"></i>
-            Add Task
-          </button>
+    <div class="teacher-tasks">
+      <!-- Header -->
+      <div class="tasks-header">
+        <div class="header-content">
+          <h1>My Tasks</h1>
+          <p>Manage your assignments and track your progress</p>
+        </div>
+        <button class="refresh-btn" (click)="ngOnInit()">
+          <i class="fas fa-sync-alt"></i>
+          Refresh
+        </button>
+        <button class="add-task-btn" (click)="addTask()">
+          <i class="fas fa-plus"></i>
+          Add Task
+        </button>
+      </div>
+
+      <!-- Search -->
+      <div class="search-section">
+        <div class="search-box">
+          <i class="fas fa-search"></i>
+          <input type="text" placeholder="Search tasks..." [(ngModel)]="searchTerm">
         </div>
       </div>
-      <div class="task-grid">
-        <div *ngFor="let task of filteredTasks" class="task-card">
-          <div class="task-header">
-            <div class="task-title">{{ task.title }}</div>
-            <span class="task-status-dropdown"
-              [ngClass]="{
+
+      <!-- Loading State -->
+      <div *ngIf="loading" class="loading-container">
+        <div class="loading-spinner">
+          <i class="fas fa-spinner fa-spin"></i>
+          <p>Loading your tasks...</p>
+        </div>
+      </div>
+
+      <!-- Error State -->
+      <div *ngIf="error" class="error-container">
+        <div class="error-message">
+          <i class="fas fa-exclamation-triangle"></i>
+          <p>{{ error }}</p>
+          <button class="retry-btn" (click)="ngOnInit()">Try Again</button>
+        </div>
+      </div>
+
+      <!-- Tasks List -->
+      <div *ngIf="!loading && !error" class="tasks-content">
+        <!-- Empty State -->
+        <div *ngIf="filteredTasks.length === 0" class="empty-state">
+          <i class="fas fa-tasks"></i>
+          <h3>No tasks found</h3>
+          <p>No tasks match your current filters.</p>
+        </div>
+        <!-- Tasks Grid -->
+        <div *ngIf="filteredTasks.length > 0" class="tasks-grid">
+          <div *ngFor="let task of filteredTasks" class="task-card" [class.overdue]="isOverdue(task.dueDate, task.status)">
+            <!-- Task Header -->
+            <div class="task-header">
+              <div class="task-title">{{ task.title }}</div>
+              <span class="status-badge" [ngClass]="{
                 'status-pending': task.status === 'DRAFT',
                 'status-in-progress': task.status === 'IN_PROGRESS',
                 'status-completed': task.status === 'COMPLETED',
                 'status-published': task.status === 'PUBLISHED',
                 'status-closed': task.status === 'CLOSED'
-              }"
-              (click)="toggleStatusDropdown(task)" tabindex="0" (keydown.enter)="toggleStatusDropdown(task)">
-              {{ task.status | titlecase }}
-              <i class="fas fa-caret-down"></i>
-              <div *ngIf="task.showStatusDropdown" class="status-dropdown">
-                <div *ngFor="let status of taskStatuses" (click)="changeTaskStatus(task, status)" tabindex="0" (keydown.enter)="changeTaskStatus(task, status)">{{ status | titlecase }}</div>
+              }">
+                {{ task.status | titlecase }}
+              </span>
+            </div>
+            <!-- Task Content -->
+            <div class="task-content">
+              <p class="task-description">{{ task.description }}</p>
+              <div class="task-meta">
+                <div *ngIf="task.projectNames?.length" class="meta-item">
+                  <i class="fas fa-folder-open"></i>
+                  <span>{{ task.projectNames.join(', ') }}</span>
+                </div>
+                <div *ngIf="task.classNames?.length" class="meta-item">
+                  <i class="fas fa-graduation-cap"></i>
+                  <span>{{ task.classNames.join(', ') }}</span>
+                </div>
+                <div *ngIf="task.groupNames?.length" class="meta-item">
+                  <i class="fas fa-users"></i>
+                  <span>{{ task.groupNames.join(', ') }}</span>
+                </div>
+                <div *ngIf="task.studentNames?.length" class="meta-item">
+                  <i class="fas fa-user"></i>
+                  <span>{{ task.studentNames.join(', ') }}</span>
+                </div>
               </div>
-            </span>
-            <span class="task-visibility" (click)="toggleTaskVisibility(task)" tabindex="0" (keydown.enter)="toggleTaskVisibility(task)">
-              <i class="fas" [ngClass]="task.visible ? 'fa-eye' : 'fa-eye-slash'"></i>
-            </span>
-          </div>
-          <div class="task-description">{{ task.description }}</div>
-          <div class="task-assigned-to task-scope">
-            <ng-container *ngIf="task.projectNames?.length">
-              <span>Projects: {{ task.projectNames.join(', ') }}</span>
-            </ng-container>
-            <ng-container *ngIf="task.classNames?.length">
-              <span>Classes: {{ task.classNames.join(', ') }}</span>
-            </ng-container>
-            <ng-container *ngIf="task.groupNames?.length">
-              <span>Groups: {{ task.groupNames.join(', ') }}</span>
-            </ng-container>
-            <ng-container *ngIf="task.studentNames?.length">
-              <span>Students: {{ task.studentNames.join(', ') }}</span>
-            </ng-container>
-          </div>
-          <div class="task-meta">
-            <div class="task-due-date"><i class="fas fa-calendar-alt meta-icon"></i> Due: {{ task.dueDate | date:'medium' }}</div>
-            <div class="task-assignee" *ngIf="task.assignedToStudent"><i class="fas fa-user meta-icon"></i> {{ getStudentName(task.assignedToStudent) }}</div>
-            <div class="task-assignee" *ngIf="task.assignedToGroup"><i class="fas fa-users meta-icon"></i> Group</div>
-            <div class="task-assignee" *ngIf="task.assignedToClasse"><i class="fas fa-graduation-cap meta-icon"></i> Class</div>
-          </div>
-          <div class="task-actions">
-            <button class="action-btn edit-btn" (click)="editTask(task)"><i class="fas fa-edit"></i> Edit</button>
-            <button class="action-btn delete-btn" (click)="confirmDeleteTask(task)"><i class="fas fa-trash"></i> Delete</button>
+            </div>
+            <!-- Task Footer -->
+            <div class="task-footer">
+              <div class="due-date">
+                <i class="fas fa-calendar"></i>
+                <span>Due: {{ task.dueDate | date:'medium' }}</span>
+              </div>
+              <div class="task-actions">
+                <button class="action-btn edit-btn" (click)="editTask(task)"><i class="fas fa-edit"></i> Edit</button>
+                <button class="action-btn delete-btn" (click)="confirmDeleteTask(task)"><i class="fas fa-trash"></i> Delete</button>
+              </div>
+            </div>
           </div>
         </div>
       </div>

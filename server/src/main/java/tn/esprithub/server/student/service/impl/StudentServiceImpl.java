@@ -29,12 +29,15 @@ import tn.esprithub.server.github.service.GitHubRepositoryService;
 import tn.esprithub.server.github.dto.GitHubRepositoryDetailsDto;
 import tn.esprithub.server.repository.repository.RepositoryEntityRepository;
 import tn.esprithub.server.project.entity.Group;
+import tn.esprithub.server.notification.repository.NotificationRepository;
 
 import java.time.DayOfWeek;
 import java.time.LocalDateTime;
 import java.time.temporal.ChronoUnit;
 import java.util.*;
 import java.util.stream.Collectors;
+
+import jakarta.annotation.Resource;
 
 @Service
 @RequiredArgsConstructor
@@ -47,6 +50,8 @@ public class StudentServiceImpl implements StudentService {
     private final GitHubRepositoryService gitHubRepositoryService;
     private final RepositoryEntityRepository repositoryEntityRepository;
     private final org.springframework.web.client.RestTemplate restTemplate = new org.springframework.web.client.RestTemplate();
+    @Resource
+    private NotificationRepository notificationRepository;
 
     @Override
     public StudentDashboardDto getStudentDashboard(String studentEmail) {
@@ -1974,7 +1979,17 @@ public class StudentServiceImpl implements StudentService {
     }
 
     private List<StudentDashboardDto.NotificationDto> getRecentNotificationsForDashboard(User student) {
-        return new ArrayList<>();
+        return notificationRepository.findTop10ByStudentOrderByTimestampDesc(student)
+            .stream()
+            .map(n -> StudentDashboardDto.NotificationDto.builder()
+                .id(n.getId().toString())
+                .title(n.getTitle())
+                .message(n.getMessage())
+                .type(n.getType())
+                .timestamp(n.getTimestamp())
+                .isRead(n.isRead())
+                .build())
+            .toList();
     }
 
     @Override

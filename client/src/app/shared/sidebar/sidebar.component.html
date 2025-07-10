@@ -112,6 +112,14 @@
 
     <!-- Links for TEACHER -->
     <ng-container *ngIf="userRole === 'teacher' || userRole === 'TEACHER'">
+      <!-- Teacher Dashboard -->
+      <li class="s-link" [routerLink]="'/teacher/dashboard'" routerLinkActive="active">
+        <div class="s-icon-container">
+          <i class="fas fa-tachometer-alt s-icon"></i>
+        </div>
+        <div class="s-link-text">Teacher Dashboard</div>
+      </li>
+
       <!-- Home -->
       <li class="s-link" [routerLink]="'/'" routerLinkActive="active">
         <div class="s-icon-container">

@@ -1,10 +1,28 @@
-<div class="department-classes">
-  <h2>Department Classes</h2>
-  
+<div class="student-dashboard">
+  <!-- Header -->
+  <div class="dashboard-header">
+    <div class="header-content">
+      <h1>Class Management</h1>
+      <p>View and manage your department's classes in a modern, card-based UI.</p>
+    </div>
+    <div style="display: flex; gap: 1rem; align-items: center;">
+      <button class="refresh-btn" (click)="loadClasses()" [disabled]="loading">
+        <i class="fas fa-sync-alt" [class.spinning]="loading"></i>
+        Refresh
+      </button>
+      <button class="create-btn" (click)="openCreateForm()" [disabled]="saving">
+        <i class="fas fa-plus"></i>
+        Create Class
+      </button>
+    </div>
+  </div>
+
   <!-- Loading State -->
   <div *ngIf="loading" class="loading-container">
-    <div class="spinner"></div>
-    <p>Loading classes...</p>
+    <div class="loading-spinner">
+      <i class="fas fa-spinner fa-spin"></i>
+      <p>Loading classes...</p>
+    </div>
   </div>
 
   <!-- Error State -->
@@ -16,12 +34,81 @@
     </div>
   </div>
 
+  <!-- Create/Edit Form -->
+  <div *ngIf="showForm" class="form-overlay">
+    <div class="form-container">
+      <div class="form-header">
+        <h2>{{ editingClass ? 'Edit Class' : 'Create Class' }}</h2>
+        <button class="close-btn" (click)="closeForm()" [disabled]="saving">
+          <i class="fas fa-times"></i>
+        </button>
+      </div>
+      <form [formGroup]="classForm" (ngSubmit)="onSubmit()" class="class-form">
+        <div class="form-group">
+          <label for="name">Class Name *</label>
+          <input id="name" type="text" formControlName="nom" placeholder="Enter class name (e.g., L1-INFO-A, M2-GC-1)" required [disabled]="saving" class="form-input">
+        </div>
+        <div class="form-group">
+          <label for="niveauId">Academic Level *</label>
+          <select id="niveauId" formControlName="niveauId" required [disabled]="saving" class="form-select">
+            <option value="">Select a level</option>
+            <option *ngFor="let level of levels" [value]="level.id">{{ level.nom }} - Year {{ level.annee }}</option>
+          </select>
+        </div>
+        <div class="form-group">
+          <label for="capacity">Student Capacity *</label>
+          <input id="capacity" type="number" formControlName="capacite" placeholder="Maximum number of students" min="1" max="100" required [disabled]="saving" class="form-input">
+        </div>
+        <div class="form-group">
+          <label for="description">Description</label>
+          <textarea id="description" formControlName="description" placeholder="Enter class description" rows="3" [disabled]="saving" class="form-textarea"></textarea>
+        </div>
+        <div class="form-actions">
+          <button type="button" class="cancel-btn" (click)="closeForm()" [disabled]="saving">Cancel</button>
+          <button type="submit" class="submit-btn" [disabled]="saving || classForm.invalid">
+            <i *ngIf="saving" class="fas fa-spinner fa-spin"></i>
+            {{ editingClass ? 'Update' : 'Create' }} Class
+          </button>
+        </div>
+      </form>
+    </div>
+  </div>
+
   <!-- Classes List -->
-  <div *ngIf="!loading && !error" class="classes-list">
-    <div *ngFor="let classe of classes" class="class-card">
-      <h3>{{ classe.nom }}</h3>
-      <p>Code: {{ classe.code }}</p>
-      <p>Capacity: {{ classe.capacite }}</p>
+  <div *ngIf="!loading && !error" class="classes-container">
+    <div *ngIf="classes.length === 0" class="no-data">
+      <i class="fas fa-layer-group"></i>
+      <h3>No classes found</h3>
+      <p>Get started by creating your first class.</p>
+      <button class="create-btn" (click)="openCreateForm()"><i class="fas fa-plus"></i> Create Class</button>
+    </div>
+    <div *ngIf="classes.length > 0" class="classes-grid">
+      <div *ngFor="let classe of classes" class="class-card">
+        <div class="level-header">
+          <h3>{{ classe.nom }}</h3>
+          <div class="level-actions">
+            <button class="btn-edit" (click)="openEditForm(classe)"><i class="fas fa-edit"></i></button>
+            <button class="btn-delete" (click)="deleteClass(classe)"><i class="fas fa-trash"></i></button>
+          </div>
+        </div>
+        <div class="card-content">
+          <div class="level-details">
+            <div class="detail-item"><span class="label">Department:</span><span class="value">{{ classe.departementNom }}</span></div>
+            <div class="detail-item"><span class="label">Academic Year:</span><span class="value">{{ classe.niveauAnnee }}</span></div>
+            <div class="detail-item"><span class="label">Capacity:</span><span class="value">{{ classe.capacite }}</span></div>
+            <div class="detail-item"><span class="label">Status:</span><span class="status-badge" [class.active]="classe.isActive" [class.inactive]="!classe.isActive">{{ classe.isActive ? 'Active' : 'Inactive' }}</span></div>
+          </div>
+          <div class="description" *ngIf="classe.description"><p>{{ classe.description }}</p></div>
+        </div>
+        <div class="card-footer" *ngIf="classe.students && classe.students.length > 0">
+          <div class="classes-section">
+            <h4>Students ({{ classe.students.length }})</h4>
+            <div class="classes-list">
+              <span *ngFor="let student of classe.students" class="class-tag">{{ student.fullName }}</span>
+            </div>
+          </div>
+        </div>
+      </div>
     </div>
   </div>
 </div>

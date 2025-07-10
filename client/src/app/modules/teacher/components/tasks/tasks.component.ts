@@ -22,6 +22,10 @@ export class TeacherTasksComponent implements OnInit {
   filteredTasks: any[] = [];
   selectedClass: any = null;
 
+  // Ajout pour le template harmonisé
+  loading: boolean = false;
+  error: string = '';
+
   // Map of studentId to student object for fast lookup
   studentMap: { [id: string]: any } = {};
 
@@ -115,6 +119,8 @@ export class TeacherTasksComponent implements OnInit {
   ) {}
 
   ngOnInit() {
+    this.loading = true;
+    this.error = '';
     this.teacherData.getMyClassesWithCourses().subscribe(async classes => {
       // Build student map for all classes
       const allStudentIds = new Set<string>();
@@ -202,7 +208,14 @@ export class TeacherTasksComponent implements OnInit {
         });
         this.selectedProject = null;
         this.selectedClass = null;
+        this.loading = false;
+      }, err => {
+        this.error = 'Failed to load tasks.';
+        this.loading = false;
       });
+    }, err => {
+      this.error = 'Failed to load classes.';
+      this.loading = false;
     });
   }
 
@@ -796,5 +809,15 @@ export class TeacherTasksComponent implements OnInit {
         error: () => this.snackbar.showError('Failed to delete task.')
       });
     }
+  }
+
+  /**
+   * Returns true if the task is overdue (dueDate in the past and not completed/closed)
+   */
+  isOverdue(dueDate: string, status: string): boolean {
+    if (!dueDate) return false;
+    const now = new Date();
+    const due = new Date(dueDate);
+    return due < now && status !== 'COMPLETED' && status !== 'CLOSED';
   }
 }

@@ -343,3 +343,143 @@
     justify-content: center;
   }
 }
+
+.department-pro-card {
+  background: #fff;
+  border-radius: 18px;
+  box-shadow: 0 4px 24px rgba(167, 22, 23, 0.08), 0 1.5px 6px rgba(0,0,0,0.04);
+  padding: 2rem 2.5rem 1.5rem 2.5rem;
+  margin-bottom: 2.5rem;
+  display: flex;
+  flex-direction: column;
+  gap: 1.5rem;
+  max-width: 700px;
+  margin-left: auto;
+  margin-right: auto;
+}
+
+.pro-card-header {
+  display: flex;
+  align-items: center;
+  gap: 2rem;
+}
+
+.pro-avatar-section {
+  flex-shrink: 0;
+}
+
+.pro-avatar {
+  width: 80px;
+  height: 80px;
+  border-radius: 50%;
+  border: 3px solid #e9ecef;
+  background: #f8f9fa;
+  object-fit: cover;
+  box-shadow: 0 2px 8px rgba(167,22,23,0.08);
+}
+
+.pro-card-title-section {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+}
+
+.pro-dept-title {
+  font-size: 2rem;
+  font-weight: 800;
+  margin: 0;
+  color: #a71617;
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+}
+
+.pro-badge {
+  display: inline-block;
+  padding: 0.25em 0.8em;
+  border-radius: 12px;
+  font-size: 0.95em;
+  font-weight: 600;
+  margin-left: 0.5em;
+  vertical-align: middle;
+}
+
+.pro-badge-code {
+  background: #f1f3f4;
+  color: #a71617;
+  border: 1px solid #e9ecef;
+}
+
+.pro-badge-active {
+  background: #eafaf1;
+  color: #27ae60;
+  border: 1px solid #b7e4c7;
+}
+
+.pro-badge-inactive {
+  background: #fff0f0;
+  color: #e74c3c;
+  border: 1px solid #f5c6cb;
+}
+
+.pro-badges-row {
+  margin-top: 0.25rem;
+  margin-bottom: 0.25rem;
+}
+
+.pro-chief-row {
+  margin-top: 0.25rem;
+  font-size: 1.05em;
+}
+
+.pro-label {
+  color: #6c757d;
+  font-weight: 500;
+  margin-right: 0.3em;
+}
+
+.pro-value {
+  color: #212529;
+  font-weight: 600;
+}
+
+.pro-card-content {
+  display: flex;
+  flex-direction: column;
+  gap: 1.2rem;
+}
+
+.pro-info-grid {
+  display: flex;
+  gap: 2.5rem;
+  flex-wrap: wrap;
+}
+
+.pro-info-item {
+  min-width: 160px;
+  margin-bottom: 0.5rem;
+}
+
+.pro-description {
+  margin-top: 0.5rem;
+  font-size: 1.05em;
+  color: #495057;
+  background: #f8f9fa;
+  border-radius: 8px;
+  padding: 0.75em 1em;
+}
+
+@media (max-width: 900px) {
+  .department-pro-card {
+    padding: 1.2rem 1rem 1rem 1rem;
+  }
+  .pro-card-header {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 1rem;
+  }
+  .pro-info-grid {
+    gap: 1.2rem;
+  }
+}

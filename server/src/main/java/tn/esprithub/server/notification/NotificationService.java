@@ -12,6 +12,9 @@ import tn.esprithub.server.project.repository.ProjectRepository;
 import tn.esprithub.server.user.entity.User;
 import tn.esprithub.server.user.repository.UserRepository;
 import tn.esprithub.server.project.enums.TaskStatus;
+import tn.esprithub.server.notification.entity.Notification;
+import tn.esprithub.server.notification.repository.NotificationRepository;
+import org.springframework.beans.factory.annotation.Autowired;
 
 import java.time.LocalDateTime;
 import java.time.temporal.ChronoUnit;
@@ -30,6 +33,7 @@ public class NotificationService {
     private final TaskRepository taskRepository;
     private final ProjectRepository projectRepository;
     private final UserRepository userRepository;
+    private final NotificationRepository notificationRepository;
 
     // Configuration des seuils d'alerte (en jours)
     private static final int CRITICAL_DEADLINE_DAYS = 1;
@@ -53,6 +57,17 @@ public class NotificationService {
             try {
                 emailService.sendNotificationEmail(email, subject, emailContent);
                 log.info("GitHub event notification sent to: {}", email);
+                // --- Add: Persist notification for student ---
+                userRepository.findByEmail(email).ifPresent(student -> {
+                    Notification notif = new Notification();
+                    notif.setTitle(subject);
+                    notif.setMessage(commitMessage);
+                    notif.setType("INFO");
+                    notif.setTimestamp(LocalDateTime.now());
+                    notif.setRead(false);
+                    notif.setStudent(student);
+                    notificationRepository.save(notif);
+                });
             } catch (Exception e) {
                 log.error("Failed to send GitHub event email to: {}", email, e);
             }

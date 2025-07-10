@@ -35,6 +35,12 @@
               {{ currentUser.role }}
             </div>
           </div>
+          <div class="profile-field" *ngIf="currentUser.classeNom">
+            <label>Class</label>
+            <div class="field-value">
+              {{ currentUser.classeNom }}
+            </div>
+          </div>
           
           <div class="profile-field" *ngIf="currentUser.githubUsername">
             <label>GitHub Username</label>

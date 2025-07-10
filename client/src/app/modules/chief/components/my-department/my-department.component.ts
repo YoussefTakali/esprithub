@@ -59,13 +59,8 @@ export class MyDepartmentComponent implements OnInit {
         departementId: '1'
       };
 
-      if (!this.currentUser?.departementId) {
-        this.error = 'No department assigned to this chief.';
-        return;
-      }
-
-      // Load department details
-      this.academicService.getDepartementById(this.currentUser.departementId).subscribe({
+      // Appel direct à l'API chief pour récupérer le département du chef
+      this.academicService.getMyDepartment().subscribe({
         next: (dept) => {
           this.department = dept;
           this.populateForm();
@@ -110,7 +105,7 @@ export class MyDepartmentComponent implements OnInit {
 
       const formData = this.departmentForm.value;
 
-      this.academicService.updateDepartement(this.department.id, formData).subscribe({
+      this.academicService.updateMyDepartment(formData).subscribe({
         next: (updatedDept) => {
           this.department = updatedDept;
           this.success = 'Department information updated successfully!';

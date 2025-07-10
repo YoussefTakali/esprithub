@@ -1,10 +1,8 @@
 <div class="student-schedule">
-  <div class="schedule-header">
-    <div class="header-content">
-      <h1>My Schedule</h1>
-      <p>View your upcoming tasks, deadlines, and events</p>
-    </div>
-    <button class="refresh-btn" (click)="refresh()" [disabled]="loading">
+  <div class="section-header">
+    <h2><i class="fas fa-calendar-alt"></i> My Schedule</h2>
+    <span class="section-subtitle">View your upcoming tasks, deadlines, and events</span>
+    <button class="refresh-btn" (click)="refresh()" [disabled]="loading" style="margin-left:auto;">
       <i class="fas fa-sync-alt" [class.spinning]="loading"></i>
       Refresh
     </button>

@@ -3,34 +3,187 @@
 }
 
 .members-list {
-  display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
-  gap: 1rem;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 2rem;
+  margin-top: 2rem;
 }
-
 .member-card {
-  background: white;
-  border-radius: 8px;
-  padding: 1rem;
-  box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+  background: #fff;
+  border-radius: 16px;
+  box-shadow: 0 4px 16px rgba(79, 70, 229, 0.08);
+  padding: 1.5rem 2rem;
+  min-width: 320px;
+  max-width: 400px;
+  margin-bottom: 1rem;
+  transition: box-shadow 0.2s;
+}
+.member-card:hover {
+  box-shadow: 0 8px 32px rgba(167, 22, 23, 0.12);
+}
+.member-header {
+  font-size: 1.3rem;
+  font-weight: 700;
+  color: #1a1a1a;
+  margin-bottom: 0.5rem;
+}
+.member-info {
+  font-size: 1.05rem;
+  color: #333;
+}
+.member-label {
+  font-weight: 600;
+  color: #a71617;
+}
+.class-badge {
+  display: inline-block;
+  background: #e9ecef;
+  color: #a71617;
+  border-radius: 12px;
+  padding: 0.2em 0.8em;
+  font-size: 0.95em;
+  font-weight: 600;
+  margin-left: 0.5em;
+  cursor: pointer;
+  transition: background 0.2s, color 0.2s;
+}
+.class-badge.clickable:hover {
+  background: #a71617;
+  color: #fff;
+}
+.class-badge.no-class {
+  background: #f1f3f4;
+  color: #888;
+  cursor: default;
+}
+.active {
+  color: #27ae60;
+  font-weight: bold;
+}
+.inactive {
+  color: #e74c3c;
+  font-weight: bold;
 }
 
-.loading-container, .error-container {
+/* Modal styles */
+.modal-overlay {
+  position: fixed;
+  top: 0; left: 0; right: 0; bottom: 0;
+  background: rgba(0,0,0,0.18);
+  z-index: 1000;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+.modal-content {
+  background: #fff;
+  border-radius: 16px;
+  box-shadow: 0 8px 32px rgba(79, 70, 229, 0.18);
+  padding: 2rem 2.5rem;
+  min-width: 340px;
+  max-width: 480px;
+  position: relative;
+}
+.modal-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 1.2rem;
+}
+.close-btn {
+  background: none;
+  border: none;
+  font-size: 1.3rem;
+  color: #a71617;
+  cursor: pointer;
+  transition: color 0.2s;
+}
+.close-btn:hover {
+  color: #e74c3c;
+}
+.class-members-list {
+  list-style: none;
+  padding: 0;
+  margin: 0;
+}
+.class-members-list li {
+  padding: 0.5em 0;
+  border-bottom: 1px solid #f1f3f4;
+  font-size: 1.08rem;
+  display: flex;
+  align-items: center;
+  gap: 0.5em;
+}
+.class-members-list li:last-child {
+  border-bottom: none;
+}
+.member-role {
+  color: #888;
+  font-size: 0.98em;
+}
+.no-data {
+  color: #888;
   text-align: center;
-  padding: 2rem;
+  margin: 1.5em 0;
 }
 
-.spinner {
-  width: 40px;
-  height: 40px;
-  border: 4px solid #f3f3f3;
-  border-top: 4px solid #350401;
-  border-radius: 50%;
+.dashboard-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 2rem;
+  background: #fff;
+  padding: 1.5rem;
+  border-radius: 16px;
+  box-shadow: 0 4px 16px rgba(79, 70, 229, 0.08);
+  border: 1px solid #f1f3f4;
+  position: relative;
+  overflow: hidden;
+}
+.dashboard-header::before {
+  content: "";
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  height: 3px;
+  background: linear-gradient(90deg, #a71617 0%, #212529 100%);
+}
+.header-content h1 {
+  font-size: 2rem;
+  font-weight: 800;
+  margin-bottom: 0.5rem;
+  color: #a71617;
+  letter-spacing: -0.025em;
+  line-height: 1.1;
+}
+.header-content p {
+  font-size: 1rem;
+  color: #6c757d;
+  margin: 0;
+  font-weight: 400;
+}
+.refresh-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0.75rem 1.5rem;
+  border: none;
+  border-radius: 8px;
+  font-size: 0.95rem;
+  font-weight: 500;
+  cursor: pointer;
+  background: #a71617;
+  color: #fff;
+  transition: background 0.2s;
+}
+.refresh-btn:hover:not(:disabled) {
+  background: #d31c1c;
+}
+.refresh-btn:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+.refresh-btn .fa-sync-alt.spinning {
   animation: spin 1s linear infinite;
-  margin: 0 auto 1rem;
-}
-
-@keyframes spin {
-  0% { transform: rotate(0deg); }
-  100% { transform: rotate(360deg); }
 }

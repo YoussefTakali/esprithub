@@ -117,9 +117,16 @@ export class DepartmentLevelsComponent implements OnInit {
       this.error = '';
       this.success = '';
       const formData = this.levelForm.value;
+      // On ne garde que les champs utiles pour le chief
+      const payload = {
+        nom: formData.nom,
+        annee: formData.annee,
+        description: formData.description,
+        departementId: '' // champ factice pour satisfaire TypeScript
+      };
       if (this.editingLevel) {
         // Update existing level
-        this.academicService.updateNiveauInMyDepartment(this.editingLevel.id, formData).subscribe({
+        this.academicService.updateNiveauInMyDepartment(this.editingLevel.id, payload).subscribe({
           next: (updatedLevel) => {
             const index = this.levels.findIndex(l => l.id === updatedLevel.id);
             if (index !== -1) {
@@ -139,7 +146,7 @@ export class DepartmentLevelsComponent implements OnInit {
         });
       } else {
         // Create new level
-        this.academicService.createNiveauInMyDepartment(formData).subscribe({
+        this.academicService.createNiveauInMyDepartment(payload).subscribe({
           next: (newLevel) => {
             this.levels.unshift(newLevel);
             this.filterLevels();

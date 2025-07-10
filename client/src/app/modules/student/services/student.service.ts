@@ -12,6 +12,8 @@ export interface StudentDashboard {
   upcomingDeadlines: TaskDeadline[];
   recentNotifications: Notification[];
   progressStats: ProgressStats;
+  // Add className for student's class
+  className?: string;
 }
  
 export interface TaskDeadline {

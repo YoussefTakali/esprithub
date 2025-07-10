@@ -1,28 +1,70 @@
-<div class="department-members">
-  <h2>Department Members</h2>
-  
-  <!-- Loading State -->
-  <div *ngIf="loading" class="loading-container">
-    <div class="spinner"></div>
-    <p>Loading members...</p>
+<div class="dashboard-header">
+  <div class="header-content">
+    <h1>Department Members</h1>
+    <p>View and manage all members (students & teachers) in your department, with class assignment overview.</p>
   </div>
+  <div style="display: flex; gap: 1rem; align-items: center;">
+    <button class="refresh-btn" (click)="loadMembers()" [disabled]="loading">
+      <i class="fas fa-sync-alt" [class.spinning]="loading"></i>
+      Refresh
+    </button>
+  </div>
+</div>
 
-  <!-- Error State -->
-  <div *ngIf="error && !loading" class="error-container">
-    <div class="error-message">
-      <i class="fas fa-exclamation-triangle"></i>
-      <p>{{ error }}</p>
-      <button class="retry-btn" (click)="loadMembers()">Try Again</button>
+<!-- Loading State -->
+<div *ngIf="loading" class="loading-container">
+  <div class="spinner"></div>
+  <p>Loading members...</p>
+</div>
+
+<!-- Error State -->
+<div *ngIf="error && !loading" class="error-container">
+  <div class="error-message">
+    <i class="fas fa-exclamation-triangle"></i>
+    <p>{{ error }}</p>
+    <button class="retry-btn" (click)="loadMembers()">Try Again</button>
+  </div>
+</div>
+
+<!-- Members List -->
+<div *ngIf="!loading && !error" class="members-list">
+  <div *ngFor="let member of members" class="member-card">
+    <div class="member-header">
+      <span class="member-name">{{ member.fullName }}</span>
+    </div>
+    <div class="member-info">
+      <span class="member-label">Email:</span> <span>{{ member.email }}</span><br>
+      <span class="member-label">Role:</span> <span>{{ member.role }}</span><br>
+      <span class="member-label">Status:</span> <span [class.active]="member.isActive" [class.inactive]="!member.isActive">{{ member.isActive ? 'Active' : 'Inactive' }}</span><br>
+      <span class="member-label">Class:</span>
+      <ng-container *ngIf="member.classeNom; else noClass">
+        <span class="class-badge clickable" (click)="showClassMembers(member.classeNom)">{{ member.classeNom }}</span>
+      </ng-container>
+      <ng-template #noClass><span class="class-badge no-class">No class assigned</span></ng-template>
     </div>
   </div>
+</div>
 
-  <!-- Members List -->
-  <div *ngIf="!loading && !error" class="members-list">
-    <div *ngFor="let member of members" class="member-card">
-      <h3>{{ member.fullName }}</h3>
-      <p>Email: {{ member.email }}</p>
-      <p>Role: {{ member.role }}</p>
-      <p>Status: {{ member.isActive ? 'Active' : 'Inactive' }}</p>
+<!-- Modal pour afficher les membres d'une classe -->
+<div *ngIf="showClassModal" class="modal-overlay" (click)="closeClassModal()">
+  <div class="modal-content" (click)="$event.stopPropagation()">
+    <div class="modal-header">
+      <h3>Members of class: <span class="class-badge">{{ selectedClassName }}</span></h3>
+      <button class="close-btn" (click)="closeClassModal()"><i class="fas fa-times"></i></button>
+    </div>
+    <div *ngIf="classMembersLoading" class="loading-container">
+      <div class="spinner"></div>
+      <p>Loading class members...</p>
+    </div>
+    <div *ngIf="!classMembersLoading">
+      <div *ngIf="classMembers.length === 0" class="no-data">
+        <p>No members in this class.</p>
+      </div>
+      <ul *ngIf="classMembers.length > 0" class="class-members-list">
+        <li *ngFor="let m of classMembers">
+          <span class="member-name">{{ m.fullName }}</span> <span class="member-role">({{ m.role }})</span> <span [class.active]="m.isActive" [class.inactive]="!m.isActive">{{ m.isActive ? 'Active' : 'Inactive' }}</span>
+        </li>
+      </ul>
     </div>
   </div>
 </div>

@@ -7,8 +7,12 @@ import org.springframework.web.bind.annotation.*;
 import tn.esprithub.server.academic.dto.DepartementDto;
 import tn.esprithub.server.academic.dto.NiveauDto;
 import tn.esprithub.server.academic.dto.ClasseDto;
+import tn.esprithub.server.academic.dto.ChiefNotificationDto;
 import tn.esprithub.server.academic.service.ChiefAcademicService;
 import tn.esprithub.server.user.dto.UserSummaryDto;
+import tn.esprithub.server.user.repository.UserRepository;
+import tn.esprithub.server.user.entity.User;
+import java.util.Optional;
 
 import java.util.List;
 import java.util.UUID;
@@ -20,13 +24,27 @@ import java.util.UUID;
 public class ChiefAcademicController {
 
     private final ChiefAcademicService chiefAcademicService;
+    private final UserRepository userRepository;
 
-    public ChiefAcademicController(ChiefAcademicService chiefAcademicService) {
+    public ChiefAcademicController(ChiefAcademicService chiefAcademicService, UserRepository userRepository) {
         this.chiefAcademicService = chiefAcademicService;
+        this.userRepository = userRepository;
     }
 
     private UUID getCurrentChiefId(Authentication authentication) {
-        return UUID.fromString(authentication.getName());
+        String identifier = authentication.getName();
+        try {
+            // Si c'est un UUID, on le retourne directement
+            return UUID.fromString(identifier);
+        } catch (IllegalArgumentException e) {
+            // Sinon, on suppose que c'est un email et on cherche l'utilisateur
+            Optional<User> userOpt = userRepository.findByEmail(identifier);
+            if (userOpt.isPresent()) {
+                return userOpt.get().getId();
+            } else {
+                throw new IllegalArgumentException("No user found with email: " + identifier);
+            }
+        }
     }
 
     // Department operations (only for chief's own department)
@@ -123,5 +141,11 @@ public class ChiefAcademicController {
     public ResponseEntity<List<UserSummaryDto>> getStudents(Authentication authentication) {
         UUID chiefId = getCurrentChiefId(authentication);
         return ResponseEntity.ok(chiefAcademicService.getStudentsInMyDepartement(chiefId));
+    }
+
+    @GetMapping("/notifications")
+    public List<ChiefNotificationDto> getChiefNotifications(Authentication authentication) {
+        UUID chiefId = getCurrentChiefId(authentication);
+        return chiefAcademicService.getRecentNotificationsForChief(chiefId, 5);
     }
 }

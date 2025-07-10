@@ -1,5 +1,125 @@
 <div class="teacher-dashboard">
-  <h1>Welcome, Teacher!</h1>
-  <p>This is your dashboard. Here you can see an overview of your classes, projects, and tasks.</p>
-  <!-- Add dashboard widgets/stats here -->
+  <!-- Header -->
+  <div class="dashboard-header">
+    <div class="header-content">
+      <h1>Teacher Dashboard</h1>
+      <p>Welcome! Here is an overview of your activity.</p>
+    </div>
+    <button class="refresh-btn" (click)="ngOnInit()" title="Refresh">
+      <i class="fas fa-sync-alt"></i>
+      Refresh
+    </button>
+  </div>
+
+  <!-- Main statistics -->
+  <div class="stats-grid">
+    <div class="stat-card classes">
+      <div class="stat-icon"><i class="fas fa-graduation-cap"></i></div>
+      <div class="stat-content">
+        <h3>{{ myClasses.length }}</h3>
+        <p>Classes</p>
+      </div>
+    </div>
+    <div class="stat-card projects">
+      <div class="stat-icon"><i class="fas fa-folder-open"></i></div>
+      <div class="stat-content">
+        <h3>{{ myProjects.length }}</h3>
+        <p>Projects</p>
+      </div>
+    </div>
+    <div class="stat-card groups">
+      <div class="stat-icon"><i class="fas fa-users"></i></div>
+      <div class="stat-content">
+        <h3>{{ myGroups.length }}</h3>
+        <p>Groups</p>
+      </div>
+    </div>
+    <div class="stat-card tasks">
+      <div class="stat-icon"><i class="fas fa-tasks"></i></div>
+      <div class="stat-content">
+        <h3>{{ myTasks.length }}</h3>
+        <p>Tasks</p>
+      </div>
+    </div>
+    <div class="stat-card completion">
+      <div class="stat-icon"><i class="fas fa-chart-line"></i></div>
+      <div class="stat-content">
+        <h3>{{ taskCompletionRate }}%</h3>
+        <p>Task Completion</p>
+        <div class="progress-bar">
+          <div class="progress-fill" [style.width.%]="taskCompletionRate"></div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Deadlines section (upcoming tasks) -->
+  <div class="dashboard-row">
+    <div class="dashboard-card deadlines-card">
+      <div class="card-header">
+        <h2><i class="fas fa-clock"></i> Upcoming Deadlines</h2>
+      </div>
+      <div class="card-content">
+        <div *ngIf="myTasks.length === 0" class="empty-state">
+          <i class="fas fa-calendar-check"></i>
+          <p>No upcoming tasks</p>
+        </div>
+        <div *ngFor="let task of myTasks | slice:0:5" class="deadline-item">
+          <div class="deadline-content">
+            <h4>{{ task.title || task.name }}</h4>
+            <div class="deadline-meta">
+              <span class="deadline-date">
+                <i class="fas fa-calendar"></i>
+                {{ task.deadline | date:'shortDate' }}
+              </span>
+              <span class="deadline-status">
+                <span class="status-badge">{{ task.status || 'To do' }}</span>
+              </span>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Quick Actions -->
+    <div class="dashboard-card actions-card">
+      <div class="card-header">
+        <h2><i class="fas fa-bolt"></i> Quick Actions</h2>
+      </div>
+      <div class="card-content actions-list">
+        <button class="action-btn" routerLink="../projects">Create Project</button>
+        <button class="action-btn" routerLink="../tasks">Create Task</button>
+        <button class="action-btn" routerLink="../groups">Create Group</button>
+      </div>
+    </div>
+
+    <!-- Recent Notifications Widget -->
+    <div class="dashboard-card notifications-card">
+      <div class="card-header">
+        <h2><i class="fas fa-bell"></i> Recent Notifications</h2>
+      </div>
+      <div class="card-content">
+        <div *ngIf="recentNotifications.length === 0" class="empty-state">
+          <i class="fas fa-bell-slash"></i>
+          <p>No notifications</p>
+        </div>
+        <div *ngFor="let notif of recentNotifications" class="notification-item" [class.unread]="!notif.read">
+          <div class="notification-icon">
+            <i class="fas" [ngClass]="{
+              'fa-folder-open': notif.type === 'project',
+              'fa-tasks': notif.type === 'task',
+              'fa-file-alt': notif.type === 'submission',
+              'fa-bell': notif.type !== 'project' && notif.type !== 'task' && notif.type !== 'submission'
+            }"></i>
+          </div>
+          <div class="notification-content">
+            <p>{{ notif.message }}</p>
+            <small>{{ notif.createdAt | date:'short' }}</small>
+          </div>
+          <div *ngIf="!notif.read" class="unread-indicator"></div>
+        </div>
+      </div>
+    </div>
+
+  </div>
 </div>
