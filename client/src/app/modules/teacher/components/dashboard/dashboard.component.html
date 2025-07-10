@@ -14,13 +14,6 @@
 
   <!-- Main statistics -->
   <div class="stats-grid">
-    <div class="stat-card classes">
-      <div class="stat-icon"><i class="fas fa-graduation-cap"></i></div>
-      <div class="stat-content">
-        <h3>{{ myClasses.length }}</h3>
-        <p>Classes</p>
-      </div>
-    </div>
     <div class="stat-card projects">
       <div class="stat-icon"><i class="fas fa-folder-open"></i></div>
       <div class="stat-content">
@@ -35,11 +28,25 @@
         <p>Groups</p>
       </div>
     </div>
-    <div class="stat-card tasks">
-      <div class="stat-icon"><i class="fas fa-tasks"></i></div>
+    <div class="stat-card students">
+      <div class="stat-icon"><i class="fas fa-user-graduate"></i></div>
       <div class="stat-content">
-        <h3>{{ myTasks.length }}</h3>
-        <p>Tasks</p>
+        <h3>{{ myStudents?.length || 0 }}</h3>
+        <p>Students</p>
+      </div>
+    </div>
+    <div class="stat-card repositories">
+      <div class="stat-icon"><i class="fab fa-github"></i></div>
+      <div class="stat-content">
+        <h3>{{ myRepositories?.length || 0 }}</h3>
+        <p>Repositories</p>
+      </div>
+    </div>
+    <div class="stat-card repository-activity">
+      <div class="stat-icon"><i class="fas fa-code-branch"></i></div>
+      <div class="stat-content">
+        <h3>{{ totalCommits }}</h3>
+        <p>Total Commits</p>
       </div>
     </div>
     <div class="stat-card completion">
@@ -49,6 +56,118 @@
         <p>Task Completion</p>
         <div class="progress-bar">
           <div class="progress-fill" [style.width.%]="taskCompletionRate"></div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Task Progress Section -->
+  <div class="dashboard-card">
+    <h2>Task Progress</h2>
+    <div class="task-stats-container">
+      <div class="task-overview">
+        <div class="task-stat-card completed">
+          <div class="task-icon">
+            <i class="fas fa-check-circle"></i>
+          </div>
+          <div class="task-info">
+            <div class="task-number">{{ statistics.completedTasks }}</div>
+            <div class="task-label">Completed Tasks</div>
+          </div>
+        </div>
+        <div class="task-stat-card pending">
+          <div class="task-icon">
+            <i class="fas fa-clock"></i>
+          </div>
+          <div class="task-info">
+            <div class="task-number">{{ statistics.pendingTasks }}</div>
+            <div class="task-label">Pending Tasks</div>
+          </div>
+        </div>
+      </div>
+      <div class="task-distribution">
+        <h3>Task Distribution</h3>
+        <div class="distribution-chart">
+          <div *ngFor="let item of statistics.taskDistribution" 
+               class="distribution-bar" 
+               [style.width.%]="item.percentage"
+               [style.background-color]="item.color">
+            <span class="distribution-label">{{ item.status }}: {{ item.count }}</span>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Group Progress Section -->
+  <div class="dashboard-card">
+    <h2>Group Progress</h2>
+    <div class="groups-progress-container">
+      <div *ngFor="let group of statistics.groupProgress" class="group-progress-card">
+        <div class="group-header">
+          <div class="group-info">
+            <h4>{{ group.groupName }}</h4>
+            <p>{{ group.projectName }}</p>
+          </div>
+          <div class="group-stats">
+            <span class="member-count">
+              <i class="fas fa-users"></i>
+              {{ group.memberCount }}
+            </span>
+          </div>
+        </div>
+        <div class="progress-info">
+          <div class="progress-text">
+            <span>{{ group.completedTasks }}/{{ group.totalTasks }} tasks completed</span>
+            <span class="progress-percentage">{{ group.progress | number:'1.0-0' }}%</span>
+          </div>
+          <div class="progress-bar">
+            <div class="progress-fill" 
+                 [style.width.%]="group.progress"
+                 [style.background-color]="getProgressColor(group.progress)">
+            </div>
+          </div>
+        </div>
+        <div *ngIf="group.repositoryName" class="repository-info">
+          <i class="fab fa-github"></i>
+          <span>{{ group.repositoryName }}</span>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Repository Activity Section -->
+  <div class="dashboard-card">
+    <h2>Repository Activity</h2>
+    <div class="repo-stats-container">
+      <div class="repo-overview">
+        <div class="repo-stat-item">
+          <i class="fas fa-code-branch"></i>
+          <div>
+            <div class="repo-stat-number">{{ statistics.totalCommits }}</div>
+            <div class="repo-stat-label">Total Commits</div>
+          </div>
+        </div>
+      </div>
+      <div class="repo-list">
+        <div *ngFor="let repo of statistics.repositoryStats" class="repo-item">
+          <div class="repo-info">
+            <div class="repo-name">{{ repo.name }}</div>
+            <div class="repo-meta">
+              <span class="repo-language">{{ repo.language }}</span>
+              <span class="repo-activity">{{ formatDate(repo.lastActivity) }}</span>
+            </div>
+          </div>
+          <div class="repo-stats">
+            <div class="repo-stat">
+              <i class="fas fa-code-branch"></i>
+              <span>{{ repo.commits }}</span>
+            </div>
+            <div class="repo-stat">
+              <i class="fas fa-users"></i>
+              <span>{{ repo.contributors }}</span>
+            </div>
+          </div>
         </div>
       </div>
     </div>

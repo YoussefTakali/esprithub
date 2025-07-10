@@ -4,42 +4,44 @@ import { Pipe, PipeTransform } from '@angular/core';
   name: 'timeAgo'
 })
 export class TimeAgoPipe implements PipeTransform {
+
   transform(value: string | Date): string {
     if (!value) return '';
 
     const date = new Date(value);
     const now = new Date();
-
-    // Debug logging
-    console.log('TimeAgo pipe - Input:', value);
-    console.log('TimeAgo pipe - Parsed date:', date);
-    console.log('TimeAgo pipe - Current time:', now);
-
-    // Check if date is valid
-    if (isNaN(date.getTime())) {
-      console.error('Invalid date:', value);
-      return 'Invalid date';
-    }
-
-    const diffInMs = now.getTime() - date.getTime();
-    const diffInSeconds = Math.floor(diffInMs / 1000);
-    const diffInMinutes = Math.floor(diffInMs / (1000 * 60));
-    const diffInHours = Math.floor(diffInMs / (1000 * 60 * 60));
-    const diffInDays = Math.floor(diffInHours / 24);
-
-    console.log('TimeAgo pipe - Diff in seconds:', diffInSeconds);
-    console.log('TimeAgo pipe - Diff in minutes:', diffInMinutes);
+    const diffInSeconds = Math.floor((now.getTime() - date.getTime()) / 1000);
 
     if (diffInSeconds < 60) {
       return 'just now';
-    } else if (diffInMinutes < 60) {
-      return diffInMinutes === 1 ? '1 minute ago' : `${diffInMinutes} minutes ago`;
-    } else if (diffInHours < 24) {
-      return diffInHours === 1 ? '1 hour ago' : `${diffInHours} hours ago`;
-    } else if (diffInDays < 7) {
-      return diffInDays === 1 ? '1 day ago' : `${diffInDays} days ago`;
-    } else {
-      return date.toLocaleDateString();
     }
+
+    const diffInMinutes = Math.floor(diffInSeconds / 60);
+    if (diffInMinutes < 60) {
+      return `${diffInMinutes} minute${diffInMinutes > 1 ? 's' : ''} ago`;
+    }
+
+    const diffInHours = Math.floor(diffInMinutes / 60);
+    if (diffInHours < 24) {
+      return `${diffInHours} hour${diffInHours > 1 ? 's' : ''} ago`;
+    }
+
+    const diffInDays = Math.floor(diffInHours / 24);
+    if (diffInDays < 7) {
+      return `${diffInDays} day${diffInDays > 1 ? 's' : ''} ago`;
+    }
+
+    const diffInWeeks = Math.floor(diffInDays / 7);
+    if (diffInWeeks < 4) {
+      return `${diffInWeeks} week${diffInWeeks > 1 ? 's' : ''} ago`;
+    }
+
+    const diffInMonths = Math.floor(diffInDays / 30);
+    if (diffInMonths < 12) {
+      return `${diffInMonths} month${diffInMonths > 1 ? 's' : ''} ago`;
+    }
+
+    const diffInYears = Math.floor(diffInDays / 365);
+    return `${diffInYears} year${diffInYears > 1 ? 's' : ''} ago`;
   }
 }

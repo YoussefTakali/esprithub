@@ -11,9 +11,6 @@
             <button class="tree-icon arrow-icon" (click)="toggleClass(classe)">
               <i class="fas" [class.fa-chevron-right]="!classe.expanded" [class.fa-chevron-down]="classe.expanded"></i>
             </button>
-            <span class="tree-icon">
-              <i class="fas fa-graduation-cap"></i>
-            </span>
             <span class="tree-label">
               {{ classe.name || classe.className }}
               <span *ngIf="classe.courseName" class="course-name">({{ classe.courseName }})</span>
@@ -157,7 +154,6 @@
                   <span>{{ task.projectNames.join(', ') }}</span>
                 </div>
                 <div *ngIf="task.classNames?.length" class="meta-item">
-                  <i class="fas fa-graduation-cap"></i>
                   <span>{{ task.classNames.join(', ') }}</span>
                 </div>
                 <div *ngIf="task.groupNames?.length" class="meta-item">
