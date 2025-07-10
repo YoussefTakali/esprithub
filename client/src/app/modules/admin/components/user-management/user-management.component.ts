@@ -189,4 +189,15 @@ export class UserManagementComponent implements OnInit {
     const department = this.departments.find(d => d.id === departmentId);
     return department?.nom ?? 'Unknown';
   }
+
+  importData(event: Event){
+  
 }
+
+exportData()
+{
+
+}
+}
+
+

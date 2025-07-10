@@ -1,4 +1,3 @@
-
 <div class="student-dashboard">
   <!-- Header -->onShowAllStudents()
   <div class="dashboard-header">
@@ -29,7 +28,7 @@
       </button>
     </div>
   </div>
-
+ 
   <!-- Loading State -->
   <div *ngIf="loading" class="loading-container">
     <div class="loading-spinner">
@@ -37,7 +36,7 @@
       <p>Loading classes...</p>
     </div>
   </div>
-
+ 
   <!-- Error State -->
   <div *ngIf="error && !loading" class="error-container">
     <div class="error-message">
@@ -46,7 +45,7 @@
       <button class="retry-btn" (click)="loadData()">Try Again</button>
     </div>
   </div>
-
+ 
   <!-- Create/Edit Form -->
   <div *ngIf="showCreateForm" class="form-overlay">
     <div class="form-container">
@@ -95,7 +94,7 @@
       </form>
     </div>
   </div>
-
+ 
   <!-- Classes List -->
   <div *ngIf="!loading && !error" class="classes-container">
     <div *ngIf="classes.length === 0" class="no-data">
@@ -137,3 +136,4 @@
   </div>
   <button class="show-students-btn" (click)="onShowAllStudents()">Show All Students</button>
 </div>
+ 

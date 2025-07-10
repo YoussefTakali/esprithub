@@ -201,5 +201,4 @@ public class AdminAcademicController {
         adminAcademicService.deleteCourse(id);
         return ResponseEntity.ok().build();
     }
-
 }
