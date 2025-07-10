@@ -22,6 +22,9 @@ import { RepositoriesComponent } from './components/repositories/repositories.co
 import { RepositoryDetailComponent } from './components/repository-detail/repository-detail.component';
 import { CreateGroupDialogComponent } from './components/groups/create-group-dialog.component';
 import { EditTaskDialogModule } from './components/tasks/edit-task-dialog.module';
+import { StatisticsComponent } from './components/statistics/statistics.component';
+import { RepositoryService } from './services/repository.service';
+import { TimeAgoPipe } from './pipes/time-ago.pipe';
 
 const routes: Routes = [
   { path: 'dashboard', component: TeacherDashboardComponent },
@@ -29,6 +32,7 @@ const routes: Routes = [
   { path: 'projects', component: TeacherProjectsComponent },
   { path: 'repositories', component: RepositoriesComponent },
   { path: 'repositories/:owner/:name', component: RepositoryDetailComponent },
+  { path: 'statistics', component: StatisticsComponent },
   { path: '', redirectTo: 'dashboard', pathMatch: 'full' },
   { path: '**', redirectTo: 'dashboard' }
 ];
@@ -40,7 +44,9 @@ const routes: Routes = [
     TeacherProjectsComponent,
     RepositoriesComponent,
     RepositoryDetailComponent,
-    CreateGroupDialogComponent
+    CreateGroupDialogComponent,
+    StatisticsComponent,
+    TimeAgoPipe
   ],
   imports: [
     CommonModule,
@@ -61,6 +67,9 @@ const routes: Routes = [
     MatTooltipModule,
     MatRadioModule,
     EditTaskDialogModule
+  ],
+  providers: [
+    RepositoryService
   ]
 })
 export class TeacherModule { }

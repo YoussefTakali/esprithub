@@ -27,10 +27,10 @@
     <div class="repo-card" *ngFor="let repo of filteredRepositories">
       <div class="repo-header">
         <span class="repo-name">{{ repo.name }}</span>
-        <span class="repo-visibility" [class.private]="repo.isPrivate">
-          <i class="fas {{ repo.isPrivate ? 'fa-lock' : 'fa-globe' }}"></i>
-          {{ repo.isPrivate ? 'Private' : 'Public' }}
-        </span>
+    <span class="repo-visibility" [class.private]="repo.private">
+  <i class="fas {{ repo.private ? 'fa-lock' : 'fa-globe' }}"></i>
+  {{ repo.private ? 'Private' : 'Public' }}
+</span>
       </div>
       <div class="repo-description">{{ repo.description || 'No description' }}</div>
       <div class="repo-meta">

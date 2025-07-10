@@ -86,6 +86,26 @@ public class RepositoryController {
         RepositoryDto repository = repositoryService.createRepository(name, description, isPrivate, authentication.getName());
         return ResponseEntity.ok(repository);
     }
+       // Get latest commit for a specific path
+    @GetMapping("/latest-commit")
+    public ResponseEntity<?> getLatestCommit(
+            @RequestParam String owner,
+            @RequestParam String repo,
+            @RequestParam String path,
+            @RequestParam(value = "branch", defaultValue = "main") String branch,
+            Authentication authentication) {
+        try {
+            log.info("Fetching latest commit for path: {} in repo: {}/{}, branch: {} by teacher: {}",
+                    path, owner, repo, branch, authentication.getName());
+
+            Object latestCommit = repositoryService.getLatestCommit(owner, repo, path, branch, authentication.getName());
+            return ResponseEntity.ok(latestCommit);
+        } catch (Exception e) {
+            log.error("Error fetching latest commit: {}", e.getMessage());
+            return ResponseEntity.status(500).body("Error fetching commit: " + e.getMessage() +
+                    " for path: " + path + " in repo: " + owner + "/" + repo + ", branch: " + branch);
+        }
+    }
 
     @GetMapping("/{owner}/{repo}/stats")
     public ResponseEntity<RepositoryStatsDto> getRepositoryStats(

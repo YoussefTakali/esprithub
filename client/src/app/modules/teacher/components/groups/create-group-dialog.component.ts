@@ -19,7 +19,8 @@ export class CreateGroupDialogComponent {
     this.students = data.students;
     this.form = this.fb.group({
       groupName: ['', Validators.required],
-      members: [[], Validators.required]
+      members: [[], Validators.required],
+      isPrivate: [true] // Default to private repository
     });
   }
 

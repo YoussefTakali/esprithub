@@ -14,6 +14,35 @@
     </mat-select>
   </mat-form-field>
 
+  <div class="repository-visibility">
+    <h3>Repository Visibility</h3>
+    <mat-radio-group formControlName="isPrivate" class="visibility-options">
+      <mat-radio-button [value]="false" class="visibility-option">
+        <div class="option-content">
+          <div class="option-header">
+            <mat-icon>public</mat-icon>
+            <strong>Public</strong>
+          </div>
+          <div class="option-description">
+            Anyone on the internet can see this repository. You choose who can commit.
+          </div>
+        </div>
+      </mat-radio-button>
+
+      <mat-radio-button [value]="true" class="visibility-option">
+        <div class="option-content">
+          <div class="option-header">
+            <mat-icon>lock</mat-icon>
+            <strong>Private</strong>
+          </div>
+          <div class="option-description">
+            You choose who can see and commit to this repository.
+          </div>
+        </div>
+      </mat-radio-button>
+    </mat-radio-group>
+  </div>
+
   <div mat-dialog-actions align="end">
     <button mat-button type="button" (click)="onCancel()">Cancel</button>
     <button mat-flat-button color="primary" type="submit" [disabled]="form.invalid">Create</button>

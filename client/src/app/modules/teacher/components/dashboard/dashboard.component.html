@@ -1,5 +1,127 @@
 <div class="teacher-dashboard">
-  <h1>Welcome, Teacher!</h1>
-  <p>This is your dashboard. Here you can see an overview of your classes, projects, and tasks.</p>
-  <!-- Add dashboard widgets/stats here -->
+  <h1>Teacher Dashboard</h1>
+
+  <div *ngIf="loading" class="dashboard-loading">Loading dashboard...</div>
+  <div *ngIf="error" class="dashboard-error">{{ error }}</div>
+
+  <div *ngIf="dashboard && !loading">
+    <div class="dashboard-cards">
+      <div class="dashboard-card">
+        <h2>Classes</h2>
+        <div *ngIf="dashboard.classes.length; else noClasses">
+          <ul>
+            <li *ngFor="let c of dashboard.classes">
+              <strong>{{ c.name }}</strong> (Level: {{ c.level }}) - {{ c.studentCount }} students
+            </li>
+          </ul>
+        </div>
+        <ng-template #noClasses><span>No classes found.</span></ng-template>
+      </div>
+      <div class="dashboard-card">
+        <h2>Projects</h2>
+        <div *ngIf="dashboard.projects.length; else noProjects">
+          <ul>
+            <li *ngFor="let p of dashboard.projects">
+              <strong>{{ p.name }}</strong> (Status: {{ p.status }})<br>
+              Deadline: <span [ngClass]="{'overdue': p.deadline && isOverdue(p.deadline)}" >{{ p.deadline ? (p.deadline | date:'short') : 'N/A' }}</span>
+            </li>
+          </ul>
+        </div>
+        <ng-template #noProjects><span>No projects found.</span></ng-template>
+      </div>
+      <div class="dashboard-card">
+        <h2>Repositories</h2>
+        <div *ngIf="dashboard.repositories.length; else noRepos">
+          <ul>
+            <li *ngFor="let r of dashboard.repositories">
+              <a [href]="r.url" target="_blank"><strong>{{ r.name }}</strong></a><br>
+              Commits: {{ r.commitCount }} | Collaborators: {{ r.collaboratorCount }}
+            </li>
+          </ul>
+        </div>
+        <ng-template #noRepos><span>No repositories found.</span></ng-template>
+      </div>
+      <div class="dashboard-card">
+        <h2>Total Commits</h2>
+        <div class="big-number">{{ dashboard.totalCommits }}</div>
+      </div>
+      <div class="dashboard-card">
+        <h2>Overdue Students</h2>
+        <div *ngIf="dashboard.overdueStudents.length; else noOverdue">
+          <table class="overdue-table">
+            <thead>
+              <tr>
+                <th>Student</th>
+                <th>Class</th>
+                <th>Project</th>
+                <th>Task</th>
+                <th>Deadline</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr *ngFor="let s of dashboard.overdueStudents">
+                <td>{{ s.studentName }}</td>
+                <td>{{ s.class }}</td>
+                <td>{{ s.project }}</td>
+                <td>{{ s.task }}</td>
+                <td>{{ s.deadline | date:'short' }}</td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+        <ng-template #noOverdue><span>No overdue students 🎉</span></ng-template>
+      </div>
+    </div>
+  </div>
 </div>
+
+<style>
+.teacher-dashboard {
+  max-width: 1200px;
+  margin: 0 auto;
+  padding: 24px;
+}
+.dashboard-cards {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 24px;
+}
+.dashboard-card {
+  background: #fff;
+  border-radius: 8px;
+  box-shadow: 0 2px 8px rgba(0,0,0,0.07);
+  padding: 20px;
+  flex: 1 1 320px;
+  min-width: 280px;
+}
+.big-number {
+  font-size: 2.5em;
+  font-weight: bold;
+  color: #1976d2;
+  text-align: center;
+}
+.dashboard-loading, .dashboard-error {
+  color: #b71c1c;
+  font-weight: bold;
+  margin: 20px 0;
+}
+.overdue-table {
+  width: 100%;
+  border-collapse: collapse;
+}
+.overdue-table th, .overdue-table td {
+  border: 1px solid #eee;
+  padding: 6px 10px;
+  text-align: left;
+}
+.overdue-table th {
+  background: #f5f5f5;
+}
+.overdue-table tr:nth-child(even) {
+  background: #fafafa;
+}
+.overdue {
+  color: #d32f2f;
+  font-weight: bold;
+}
+</style>

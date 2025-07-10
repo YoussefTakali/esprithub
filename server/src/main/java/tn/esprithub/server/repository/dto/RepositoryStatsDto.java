@@ -41,7 +41,10 @@ public class RepositoryStatsDto {
         private String author;
         private LocalDateTime date;
         private String url;
+        private String avatarUrl;
     }
+    
+    
     
     @Data
     @Builder

@@ -9,4 +9,7 @@ export interface Group {
   repoError?: string;
   repositoryId?: string;
   repositoryFullName?: string;
+  repositoryName?: string;
+  repositoryCloneUrl?: string;
+  hasRepository?: boolean;
 }

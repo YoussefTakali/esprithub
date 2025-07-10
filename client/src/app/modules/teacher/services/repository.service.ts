@@ -8,7 +8,8 @@ export interface Repository {
   fullName: string;
   description: string;
   url: string;
-  isPrivate: boolean;
+  private: boolean;
+  isPrivate?: boolean;
   createdAt: string;
   updatedAt: string;
   defaultBranch: string;
@@ -49,6 +50,7 @@ export interface CommitInfo {
   author: string;
   date: string;
   url: string;
+  avatarUrl?: string;
 }
 
 export interface BranchActivity {
@@ -148,6 +150,11 @@ export class RepositoryService {
   // Get repository commits
   getCommits(repoFullName: string, branch: string = 'main', page: number = 1): Observable<CommitInfo[]> {
     return this.http.get<CommitInfo[]>(`${this.apiUrl}/${repoFullName}/commits?branch=${branch}&page=${page}`);
+  }
+
+  // Get latest commit for a specific path
+  getLatestCommit(owner: string, repo: string, path: string, branch: string = 'main'): Observable<any> {
+    return this.http.get<any>(`${this.apiUrl}/latest-commit?owner=${owner}&repo=${repo}&path=${encodeURIComponent(path)}&branch=${branch}`);
   }
 
   // Update repository settings

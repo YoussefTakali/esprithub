@@ -43,7 +43,15 @@
                       <i class="fas fa-users"></i>
                     </span>
                     <button class="tree-label" (click)="filterByGroup(group)">
-                      {{ group.name }}
+                      <span class="group-name">{{ group.name }}</span>
+                      <span *ngIf="group.hasRepository && group.repositoryName" class="repository-info">
+                        <i class="fab fa-github"></i>
+                        {{ group.repositoryName }}
+                      </span>
+                      <span *ngIf="!group.hasRepository" class="no-repo-info">
+                        <i class="fas fa-exclamation-triangle"></i>
+                        No Repository
+                      </span>
                     </button>
                     <button class="add-icon" (click)="openAddMemberModal(group)">
                       <i class="fas fa-plus"></i>
@@ -190,6 +198,39 @@
           <span>Repository creation failed. Please try again.</span>
         </div>
       </div>
+
+      <!-- Repository Visibility -->
+      <div class="repository-visibility">
+        <h4>Repository Visibility</h4>
+        <div class="visibility-options">
+          <label class="visibility-option" [class.selected]="!groupIsPrivate">
+            <input type="radio" name="visibility" [value]="false" [(ngModel)]="groupIsPrivate" [checked]="!groupIsPrivate">
+            <div class="option-content">
+              <div class="option-header">
+                <i class="fas fa-globe"></i>
+                <strong>Public</strong>
+              </div>
+              <div class="option-description">
+                Anyone on the internet can see this repository. You choose who can commit.
+              </div>
+            </div>
+          </label>
+
+          <label class="visibility-option" [class.selected]="groupIsPrivate">
+            <input type="radio" name="visibility" [value]="true" [(ngModel)]="groupIsPrivate" [checked]="groupIsPrivate">
+            <div class="option-content">
+              <div class="option-header">
+                <i class="fas fa-lock"></i>
+                <strong>Private</strong>
+              </div>
+              <div class="option-description">
+                You choose who can see and commit to this repository.
+              </div>
+            </div>
+          </label>
+        </div>
+      </div>
+
       <div class="modal-actions">
         <button class="create-btn-red" type="submit">Create</button>
         <button class="cancel-btn" type="button" (click)="closeCreateGroupModal()">Cancel</button>
