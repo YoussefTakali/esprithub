@@ -177,9 +177,7 @@
  
         <!-- GitHub-style Diff View -->
         <div class="github-diff-view" *ngIf="change.expanded">
-          <div style="background: yellow; padding: 10px; margin: 10px;">
-            DIFF VIEW IS EXPANDED FOR: {{ change.file }}
-          </div>
+       
  
           <!-- For binary files -->
           <div class="binary-file-message" *ngIf="change.isBinary">

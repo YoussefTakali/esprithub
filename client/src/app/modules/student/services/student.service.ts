@@ -265,73 +265,73 @@ export class StudentService {
  
   constructor(private readonly http: HttpClient) {}
  
+
   // Dashboard methods
   getDashboard(): Observable<StudentDashboard> {
-    return this.http.get<StudentDashboard>(`${this.apiUrl}/dashboard`);
+    return this.http.get<StudentDashboard>(`${this.apiUrl}/dashboard`)
   }
- 
+
   // Task methods
-  getTasks(page: number = 0, size: number = 10): Observable<StudentTask[]> {
-    return this.http.get<TasksResponse>(`${this.apiUrl}/tasks?page=${page}&size=${size}`)
-      .pipe(
-        map(response => response.content || [])
-      );
+  getTasks(page = 0, size = 10): Observable<StudentTask[]> {
+    return this.http
+      .get<TasksResponse>(`${this.apiUrl}/tasks?page=${page}&size=${size}`)
+      .pipe(map((response) => response.content || []))
   }
- 
+
   getTaskDetails(taskId: string): Observable<StudentTask> {
-    return this.http.get<StudentTask>(`${this.apiUrl}/tasks/${taskId}`);
+    return this.http.get<StudentTask>(`${this.apiUrl}/tasks/${taskId}`)
   }
- 
+
   updateTaskStatus(taskId: string, status: string): Observable<void> {
-    return this.http.put<void>(`${this.apiUrl}/tasks/${taskId}/status`, { status });
+    return this.http.put<void>(`${this.apiUrl}/tasks/${taskId}/status`, { status })
   }
- 
+
   submitTask(taskId: string, submissionRequest: any): Observable<any> {
-    const formData = new FormData();
-    formData.append('repositoryId', submissionRequest.repositoryId);
-    formData.append('branch', submissionRequest.branch);
+    const formData = new FormData()
+    formData.append("repositoryId", submissionRequest.repositoryId)
+    formData.append("branch", submissionRequest.branch)
     if (submissionRequest.commitHash) {
-      formData.append('commitHash', submissionRequest.commitHash);
+      formData.append("commitHash", submissionRequest.commitHash)
     }
-    formData.append('notes', submissionRequest.notes);
-   
+    formData.append("notes", submissionRequest.notes)
+
     if (submissionRequest.files && submissionRequest.files.length > 0) {
       submissionRequest.files.forEach((file: File) => {
-        formData.append('files', file);
-      });
+        formData.append("files", file)
+      })
     }
-   
-    return this.http.post<any>(`${this.apiUrl}/tasks/${taskId}/submit`, formData);
+
+    return this.http.post<any>(`${this.apiUrl}/tasks/${taskId}/submit`, formData)
   }
- 
+
   // Group methods
   getGroups(): Observable<StudentGroup[]> {
-    return this.http.get<StudentGroup[]>(`${this.apiUrl}/groups`);
+    return this.http.get<StudentGroup[]>(`${this.apiUrl}/groups`)
   }
- 
+
   getGroupDetails(groupId: string): Observable<StudentGroup> {
-    return this.http.get<StudentGroup>(`${this.apiUrl}/groups/${groupId}`);
+    return this.http.get<StudentGroup>(`${this.apiUrl}/groups/${groupId}`)
   }
- 
+
   getGroupRepositories(groupId: string): Observable<Repository[]> {
-    return this.http.get<Repository[]>(`${this.apiUrl}/groups/${groupId}/repositories`);
+    return this.http.get<Repository[]>(`${this.apiUrl}/groups/${groupId}/repositories`)
   }
- 
+
   // Project methods
   getProjects(): Observable<StudentProject[]> {
     return this.http.get<any[]>(`${this.apiUrl}/projects`).pipe(
-      map(projects =>
-        (projects ?? []).map(project => {
-          let tasks = project.tasks;
-          if (typeof tasks === 'string') {
+      map((projects) =>
+        (projects ?? []).map((project) => {
+          let tasks = project.tasks
+          if (typeof tasks === "string") {
             try {
-              tasks = JSON.parse(tasks);
+              tasks = JSON.parse(tasks)
             } catch {
-              tasks = [];
+              tasks = []
             }
           }
           if (!Array.isArray(tasks)) {
-            tasks = [];
+            tasks = []
           }
           return {
             ...project,
@@ -341,161 +341,443 @@ export class StudentService {
             groups: project.groups ?? [],
             tasks,
             classes: project.classes ?? [],
-            createdByName: project.createdByName ?? project.createdBy ?? 'N/A',
-          };
-        })
-      )
-    );
+            createdByName: project.createdByName ?? project.createdBy ?? "N/A",
+          }
+        }),
+      ),
+    )
   }
- 
+
   getProjectDetails(projectId: string): Observable<StudentProject> {
-    return this.http.get<StudentProject>(`${this.apiUrl}/projects/${projectId}`);
+    return this.http.get<StudentProject>(`${this.apiUrl}/projects/${projectId}`)
   }
- 
+
   // Submission methods
-  getSubmissions(page: number = 0, size: number = 10): Observable<any> {
-    return this.http.get<any>(`${this.apiUrl}/submissions?page=${page}&size=${size}`);
+  getSubmissions(page = 0, size = 10): Observable<any> {
+    return this.http.get<any>(`${this.apiUrl}/submissions?page=${page}&size=${size}`)
   }
- 
+
   // Repository methods
   getRepositories(): Observable<Repository[]> {
-    return this.http.get<Repository[]>(`${this.apiUrl}/repositories`);
+    return this.http.get<Repository[]>(`${this.apiUrl}/repositories`)
   }
- 
+
   getStudentRepositories(): Observable<Repository[]> {
-    return this.http.get<Repository[]>(`${this.apiUrl}/repositories`);
+    return this.http.get<Repository[]>(`${this.apiUrl}/repositories`)
   }
- 
+
   getRepositoryDetails(repositoryId: string): Observable<any> {
-    return this.http.get<any>(`${this.apiUrl}/repositories/${repositoryId}`);
+    return this.http.get<any>(`${this.apiUrl}/repositories/${repositoryId}`)
   }
- 
+
   getGitHubRepositoryDetails(repositoryId: string): Observable<any> {
-    return this.http.get<any>(`${this.apiUrl}/repositories/${repositoryId}/github-details`);
+    return this.http.get<any>(`${this.apiUrl}/repositories/${repositoryId}/github-details`)
   }
- 
+
   getRepositoryBranchesById(repositoryId: string): Observable<string[]> {
-    return this.http.get<string[]>(`${this.apiUrl}/repositories/${repositoryId}/branches`);
+    return this.http.get<string[]>(`${this.apiUrl}/repositories/${repositoryId}/branches`)
   }
- 
+
   getAllGitHubRepositories(): Observable<any[]> {
-    const url = `${this.apiUrl}/github-repositories`;
-    console.log('Calling getAllGitHubRepositories with URL:', url);
-    return this.http.get<any[]>(url);
+    const url = `${this.apiUrl}/github-repositories`
+    console.log("Calling getAllGitHubRepositories with URL:", url)
+    return this.http.get<any[]>(url)
   }
- 
+
   // Schedule methods
   getSchedule(): Observable<StudentSchedule> {
-    return this.http.get<StudentSchedule>(`${this.apiUrl}/schedule`);
+    return this.http.get<StudentSchedule>(`${this.apiUrl}/schedule`)
   }
- 
+
   // Profile methods
   getProfile(): Observable<any> {
-    return this.http.get<any>(`${this.apiUrl}/profile`);
+    return this.http.get<any>(`${this.apiUrl}/profile`)
   }
- 
+
   updateProfile(profileData: any): Observable<any> {
-    return this.http.put<any>(`${this.apiUrl}/profile`, profileData);
+    return this.http.put<any>(`${this.apiUrl}/profile`, profileData)
   }
- 
+
   // Notification methods
   markNotificationAsRead(notificationId: string): Observable<void> {
-    return this.http.put<void>(`${this.apiUrl}/notifications/${notificationId}/read`, {});
+    return this.http.put<void>(`${this.apiUrl}/notifications/${notificationId}/read`, {})
   }
- 
+
   // GitHub Repository Operations
   getRepositoryOverview(owner: string, repo: string, branch: string): Observable<any> {
-    return this.http.get<any>(`${this.apiUrl}/github/${owner}/${repo}/overview?branch=${branch}`);
+    return this.http.get<any>(`${this.apiUrl}/github/${owner}/${repo}/overview?branch=${branch}`)
   }
- 
+
   getRepositoryCommits(owner: string, repo: string, branch: string, page: number, size: number): Observable<any> {
-    return this.http.get<any>(`${this.apiUrl}/github/${owner}/${repo}/commits?branch=${branch}&page=${page}&per_page=${size}`);
+    return this.http.get<any>(
+      `${this.apiUrl}/github/${owner}/${repo}/commits?branch=${branch}&page=${page}&per_page=${size}`,
+    )
   }
- 
+
   getCommitDetails(owner: string, repo: string, sha: string): Observable<any> {
-    return this.http.get<any>(`${this.apiUrl}/github/${owner}/${repo}/commits/${sha}`);
+    return this.http.get<any>(`${this.apiUrl}/github/${owner}/${repo}/commits/${sha}`)
   }
- 
+
   getRepositoryContributors(owner: string, repo: string): Observable<any> {
-    return this.http.get<any>(`${this.apiUrl}/github/${owner}/${repo}/contributors`);
+    return this.http.get<any>(`${this.apiUrl}/github/${owner}/${repo}/contributors`)
   }
- 
+
   getRepositoryBranches(owner: string, repo: string): Observable<any> {
-    return this.http.get<any>(`${this.apiUrl}/github/${owner}/${repo}/branches`);
+    return this.http.get<any>(`${this.apiUrl}/github/${owner}/${repo}/branches`)
   }
- 
+
   getRepositoryFiles(owner: string, repo: string, path: string, branch: string): Observable<any> {
-    return this.http.get<any>(`${this.apiUrl}/github/${owner}/${repo}/files?path=${path}&branch=${branch}`);
+    return this.http.get<any>(`${this.apiUrl}/github/${owner}/${repo}/files?path=${path}&branch=${branch}`)
   }
- 
+
   getFileContent(owner: string, repo: string, path: string, branch: string): Observable<any> {
-    return this.http.get<any>(`${this.apiUrl}/github/${owner}/${repo}/file-content?path=${path}&branch=${branch}`);
+    return this.http.get<any>(`${this.apiUrl}/github/${owner}/${repo}/file-content?path=${path}&branch=${branch}`)
   }
- 
+
   getRepositoryFileTree(owner: string, repo: string, branch?: string): Observable<any> {
-    let url = `${this.apiUrl}/github/${owner}/${repo}/file-tree`;
+    let url = `${this.apiUrl}/github/${owner}/${repo}/file-tree`
     if (branch) {
-      url += `?branch=${branch}`;
+      url += `?branch=${branch}`
     }
-    return this.http.get<any>(url);
+    return this.http.get<any>(url)
   }
- 
+
   // File modification operations
-  createFile(owner: string, repo: string, path: string, content: string, message: string, branch: string = 'main'): Observable<any> {
-    const url = `${this.apiUrl}/github/${owner}/${repo}/files`;
-    const body = { path, content, message, branch };
-    return this.http.post<any>(url, body);
+  createFile(
+    owner: string,
+    repo: string,
+    path: string,
+    content: string,
+    message: string,
+    branch = "main",
+  ): Observable<any> {
+    const url = `${this.apiUrl}/github/${owner}/${repo}/files`
+    const body = { path, content, message, branch }
+    return this.http.post<any>(url, body)
   }
- 
-  updateFile(owner: string, repo: string, path: string, content: string, message: string, sha: string, branch: string = 'main'): Observable<any> {
-    const url = `${this.apiUrl}/github/${owner}/${repo}/files`;
-    const body = { path, content, message, sha, branch };
-    return this.http.put<any>(url, body);
+
+  updateFile(
+    owner: string,
+    repo: string,
+    path: string,
+    content: string,
+    message: string,
+    sha: string,
+    branch = "main",
+  ): Observable<any> {
+    const url = `${this.apiUrl}/github/${owner}/${repo}/files`
+    const body = { path, content, message, sha, branch }
+    return this.http.put<any>(url, body)
   }
- 
-  deleteFile(owner: string, repo: string, path: string, message: string, sha: string, branch: string = 'main'): Observable<any> {
-    const params = new URLSearchParams();
-    params.append('path', path);
-    params.append('message', message);
-    params.append('sha', sha);
-    params.append('branch', branch);
-   
-    const url = `${this.apiUrl}/github/${owner}/${repo}/files?${params.toString()}`;
-    return this.http.delete<any>(url);
+
+  deleteFile(
+    owner: string,
+    repo: string,
+    path: string,
+    message: string,
+    sha: string,
+    branch = "main",
+  ): Observable<any> {
+    const params = new URLSearchParams()
+    params.append("path", path)
+    params.append("message", message)
+    params.append("sha", sha)
+    params.append("branch", branch)
+
+    const url = `${this.apiUrl}/github/${owner}/${repo}/files?${params.toString()}`
+    return this.http.delete<any>(url)
   }
- 
-  createBranch(owner: string, repo: string, branchName: string, fromBranch: string = 'main'): Observable<any> {
-    const url = `${this.apiUrl}/github/${owner}/${repo}/branches`;
-    const body = { name: branchName, from: fromBranch };
-    return this.http.post<any>(url, body);
+
+  createBranch(owner: string, repo: string, branchName: string, fromBranch = "main"): Observable<any> {
+    const url = `${this.apiUrl}/github/${owner}/${repo}/branches`
+    const body = { name: branchName, from: fromBranch }
+    return this.http.post<any>(url, body)
   }
- 
+
   // File upload methods
-  uploadFile(owner: string, repo: string, file: File, filePath: string, commitMessage: string, branch: string): Observable<any> {
-    const formData = new FormData();
-    formData.append('file', file);
-    formData.append('path', filePath);  // Changed from 'filePath' to 'path'
-    formData.append('message', commitMessage);  // Changed from 'commitMessage' to 'message'
-    formData.append('branch', branch);
- 
-    const uploadUrl = `${this.apiUrl}/github/${owner}/${repo}/upload`;  // Changed from 'upload-file' to 'upload'
-    console.log('Upload URL:', uploadUrl);
-    console.log('Upload parameters:', { owner, repo, filePath, commitMessage, branch });
- 
-    return this.http.post<any>(uploadUrl, formData);
+  uploadFile(
+    owner: string,
+    repo: string,
+    file: File,
+    filePath: string,
+    commitMessage: string,
+    branch: string,
+  ): Observable<any> {
+    const formData = new FormData()
+    formData.append("file", file)
+    formData.append("path", filePath) // Changed from 'filePath' to 'path'
+    formData.append("message", commitMessage) // Changed from 'commitMessage' to 'message'
+    formData.append("branch", branch)
+
+    const uploadUrl = `${this.apiUrl}/github/${owner}/${repo}/upload` // Changed from 'upload-file' to 'upload'
+    console.log("Upload URL:", uploadUrl)
+    console.log("Upload parameters:", { owner, repo, filePath, commitMessage, branch })
+
+    return this.http.post<any>(uploadUrl, formData)
   }
- 
-  uploadMultipleFiles(owner: string, repo: string, files: File[], basePath: string, commitMessage: string, branch: string): Observable<any> {
-    const formData = new FormData();
-    files.forEach(file => formData.append('files', file));
-    formData.append('basePath', basePath);
-    formData.append('message', commitMessage);  // Changed from 'commitMessage' to 'message'
-    formData.append('branch', branch);
- 
-    const uploadUrl = `${this.apiUrl}/github/${owner}/${repo}/upload-multiple`;  // Changed from 'upload-multiple-files' to 'upload-multiple'
-    console.log('Multiple upload URL:', uploadUrl);
- 
-    return this.http.post<any>(uploadUrl, formData);
+
+  uploadMultipleFiles(
+    owner: string,
+    repo: string,
+    files: File[],
+    basePath: string,
+    commitMessage: string,
+    branch: string,
+  ): Observable<any> {
+    const formData = new FormData()
+    files.forEach((file) => formData.append("files", file))
+    formData.append("basePath", basePath)
+    formData.append("message", commitMessage) // Changed from 'commitMessage' to 'message'
+    formData.append("branch", branch)
+
+    const uploadUrl = `${this.apiUrl}/github/${owner}/${repo}/upload-multiple` // Changed from 'upload-multiple-files' to 'upload-multiple'
+    console.log("Multiple upload URL:", uploadUrl)
+
+    return this.http.post<any>(uploadUrl, formData)
+  }
+
+  // ===== MISSING METHODS THAT THE COMPONENT NEEDS =====
+
+  // Repository statistics methods
+  getRepositoryStats(owner: string, repo: string, branch: string): Observable<any> {
+    return this.http.get<any>(`${this.apiUrl}/github/${owner}/${repo}/stats?branch=${branch}`)
+  }
+
+  getCommitCount(owner: string, repo: string, branch: string): Observable<any> {
+    return this.http.get<any>(`${this.apiUrl}/github/${owner}/${repo}/commit-count?branch=${branch}`)
+  }
+
+  // Repository languages
+  getRepositoryLanguages(owner: string, repo: string): Observable<any> {
+    return this.http.get<any>(`${this.apiUrl}/github/${owner}/${repo}/languages`)
+  }
+
+  // Repository activity and insights
+  getRepositoryActivity(owner: string, repo: string, period = "30days"): Observable<any> {
+    return this.http.get<any>(`${this.apiUrl}/github/${owner}/${repo}/activity?period=${period}`)
+  }
+
+  getRepositoryInsights(owner: string, repo: string): Observable<any> {
+    return this.http.get<any>(`${this.apiUrl}/github/${owner}/${repo}/insights`)
+  }
+
+  // Pull requests and issues
+  getRepositoryPullRequests(owner: string, repo: string, state = "all"): Observable<any> {
+    return this.http.get<any>(`${this.apiUrl}/github/${owner}/${repo}/pulls?state=${state}`)
+  }
+
+  getRepositoryIssues(owner: string, repo: string, state = "all"): Observable<any> {
+    return this.http.get<any>(`${this.apiUrl}/github/${owner}/${repo}/issues?state=${state}`)
+  }
+
+  // Repository releases and tags
+  getRepositoryReleases(owner: string, repo: string): Observable<any> {
+    return this.http.get<any>(`${this.apiUrl}/github/${owner}/${repo}/releases`)
+  }
+
+  getRepositoryTags(owner: string, repo: string): Observable<any> {
+    return this.http.get<any>(`${this.apiUrl}/github/${owner}/${repo}/tags`)
+  }
+
+  // Repository comparison
+  compareCommits(owner: string, repo: string, base: string, head: string): Observable<any> {
+    return this.http.get<any>(`${this.apiUrl}/github/${owner}/${repo}/compare/${base}...${head}`)
+  }
+
+  // Repository search
+  searchRepositoryCode(owner: string, repo: string, query: string): Observable<any> {
+    return this.http.get<any>(`${this.apiUrl}/github/${owner}/${repo}/search/code?q=${encodeURIComponent(query)}`)
+  }
+
+  searchRepositoryCommits(owner: string, repo: string, query: string): Observable<any> {
+    return this.http.get<any>(`${this.apiUrl}/github/${owner}/${repo}/search/commits?q=${encodeURIComponent(query)}`)
+  }
+
+  // Repository webhooks and settings
+  getRepositoryWebhooks(owner: string, repo: string): Observable<any> {
+    return this.http.get<any>(`${this.apiUrl}/github/${owner}/${repo}/hooks`)
+  }
+
+  getRepositorySettings(owner: string, repo: string): Observable<any> {
+    return this.http.get<any>(`${this.apiUrl}/github/${owner}/${repo}/settings`)
+  }
+
+  // Repository collaborators and permissions
+  getRepositoryCollaborators(owner: string, repo: string): Observable<any> {
+    return this.http.get<any>(`${this.apiUrl}/github/${owner}/${repo}/collaborators`)
+  }
+
+  // Repository clone and download
+  getRepositoryArchive(owner: string, repo: string, format = "zipball", ref = "main"): Observable<any> {
+    return this.http.get<any>(`${this.apiUrl}/github/${owner}/${repo}/archive/${format}/${ref}`, {
+      responseType: "blob" as "json",
+    })
+  }
+
+  // Repository README and documentation
+  getRepositoryReadme(owner: string, repo: string, branch?: string): Observable<any> {
+    let url = `${this.apiUrl}/github/${owner}/${repo}/readme`
+    if (branch) {
+      url += `?branch=${branch}`
+    }
+    return this.http.get<any>(url)
+  }
+
+  // Repository license
+  getRepositoryLicense(owner: string, repo: string): Observable<any> {
+    return this.http.get<any>(`${this.apiUrl}/github/${owner}/${repo}/license`)
+  }
+
+  // Repository topics and metadata
+  getRepositoryTopics(owner: string, repo: string): Observable<any> {
+    return this.http.get<any>(`${this.apiUrl}/github/${owner}/${repo}/topics`)
+  }
+
+  updateRepositoryTopics(owner: string, repo: string, topics: string[]): Observable<any> {
+    return this.http.put<any>(`${this.apiUrl}/github/${owner}/${repo}/topics`, { names: topics })
+  }
+
+  // Repository forks
+  getRepositoryForks(owner: string, repo: string): Observable<any> {
+    return this.http.get<any>(`${this.apiUrl}/github/${owner}/${repo}/forks`)
+  }
+
+  forkRepository(owner: string, repo: string, organization?: string): Observable<any> {
+    const body = organization ? { organization } : {}
+    return this.http.post<any>(`${this.apiUrl}/github/${owner}/${repo}/forks`, body)
+  }
+
+  // Repository stargazers and watchers
+  getRepositoryStargazers(owner: string, repo: string): Observable<any> {
+    return this.http.get<any>(`${this.apiUrl}/github/${owner}/${repo}/stargazers`)
+  }
+
+  getRepositoryWatchers(owner: string, repo: string): Observable<any> {
+    return this.http.get<any>(`${this.apiUrl}/github/${owner}/${repo}/subscribers`)
+  }
+
+  // Repository traffic and analytics
+  getRepositoryTraffic(owner: string, repo: string): Observable<any> {
+    return this.http.get<any>(`${this.apiUrl}/github/${owner}/${repo}/traffic`)
+  }
+
+  getRepositoryClones(owner: string, repo: string): Observable<any> {
+    return this.http.get<any>(`${this.apiUrl}/github/${owner}/${repo}/traffic/clones`)
+  }
+
+  getRepositoryViews(owner: string, repo: string): Observable<any> {
+    return this.http.get<any>(`${this.apiUrl}/github/${owner}/${repo}/traffic/views`)
+  }
+
+  // Repository deployment and environments
+  getRepositoryDeployments(owner: string, repo: string): Observable<any> {
+    return this.http.get<any>(`${this.apiUrl}/github/${owner}/${repo}/deployments`)
+  }
+
+  getRepositoryEnvironments(owner: string, repo: string): Observable<any> {
+    return this.http.get<any>(`${this.apiUrl}/github/${owner}/${repo}/environments`)
+  }
+
+  // Repository actions and workflows
+  getRepositoryWorkflows(owner: string, repo: string): Observable<any> {
+    return this.http.get<any>(`${this.apiUrl}/github/${owner}/${repo}/actions/workflows`)
+  }
+
+  getRepositoryWorkflowRuns(owner: string, repo: string): Observable<any> {
+    return this.http.get<any>(`${this.apiUrl}/github/${owner}/${repo}/actions/runs`)
+  }
+
+  // Repository security and vulnerability alerts
+  getRepositoryVulnerabilityAlerts(owner: string, repo: string): Observable<any> {
+    return this.http.get<any>(`${this.apiUrl}/github/${owner}/${repo}/vulnerability-alerts`)
+  }
+
+  getRepositorySecurityAdvisories(owner: string, repo: string): Observable<any> {
+    return this.http.get<any>(`${this.apiUrl}/github/${owner}/${repo}/security-advisories`)
+  }
+
+  // Repository dependency graph
+  getRepositoryDependencies(owner: string, repo: string): Observable<any> {
+    return this.http.get<any>(`${this.apiUrl}/github/${owner}/${repo}/dependency-graph/dependencies`)
+  }
+
+  getRepositoryDependents(owner: string, repo: string): Observable<any> {
+    return this.http.get<any>(`${this.apiUrl}/github/${owner}/${repo}/dependency-graph/dependents`)
+  }
+
+  // Repository code scanning and analysis
+  getRepositoryCodeScanningAlerts(owner: string, repo: string): Observable<any> {
+    return this.http.get<any>(`${this.apiUrl}/github/${owner}/${repo}/code-scanning/alerts`)
+  }
+
+  getRepositoryCodeScanningAnalyses(owner: string, repo: string): Observable<any> {
+    return this.http.get<any>(`${this.apiUrl}/github/${owner}/${repo}/code-scanning/analyses`)
+  }
+
+  // Repository projects and milestones
+  getRepositoryProjects(owner: string, repo: string): Observable<any> {
+    return this.http.get<any>(`${this.apiUrl}/github/${owner}/${repo}/projects`)
+  }
+
+  getRepositoryMilestones(owner: string, repo: string): Observable<any> {
+    return this.http.get<any>(`${this.apiUrl}/github/${owner}/${repo}/milestones`)
+  }
+
+  // Repository labels
+  getRepositoryLabels(owner: string, repo: string): Observable<any> {
+    return this.http.get<any>(`${this.apiUrl}/github/${owner}/${repo}/labels`)
+  }
+
+  createRepositoryLabel(owner: string, repo: string, label: any): Observable<any> {
+    return this.http.post<any>(`${this.apiUrl}/github/${owner}/${repo}/labels`, label)
+  }
+
+  updateRepositoryLabel(owner: string, repo: string, labelName: string, label: any): Observable<any> {
+    return this.http.patch<any>(`${this.apiUrl}/github/${owner}/${repo}/labels/${labelName}`, label)
+  }
+
+  deleteRepositoryLabel(owner: string, repo: string, labelName: string): Observable<any> {
+    return this.http.delete<any>(`${this.apiUrl}/github/${owner}/${repo}/labels/${labelName}`)
+  }
+
+  // Repository events and notifications
+  getRepositoryEvents(owner: string, repo: string): Observable<any> {
+    return this.http.get<any>(`${this.apiUrl}/github/${owner}/${repo}/events`)
+  }
+
+  getRepositoryNotifications(owner: string, repo: string): Observable<any> {
+    return this.http.get<any>(`${this.apiUrl}/github/${owner}/${repo}/notifications`)
+  }
+
+  // Repository subscription
+  getRepositorySubscription(owner: string, repo: string): Observable<any> {
+    return this.http.get<any>(`${this.apiUrl}/github/${owner}/${repo}/subscription`)
+  }
+
+  setRepositorySubscription(owner: string, repo: string, subscribed: boolean, ignored = false): Observable<any> {
+    return this.http.put<any>(`${this.apiUrl}/github/${owner}/${repo}/subscription`, { subscribed, ignored })
+  }
+
+  // Repository merge and rebase operations
+  mergeUpstream(owner: string, repo: string, branch: string): Observable<any> {
+    return this.http.post<any>(`${this.apiUrl}/github/${owner}/${repo}/merge-upstream`, { branch })
+  }
+
+  // Repository transfer
+  transferRepository(owner: string, repo: string, newOwner: string): Observable<any> {
+    return this.http.post<any>(`${this.apiUrl}/github/${owner}/${repo}/transfer`, { new_owner: newOwner })
+  }
+
+  // Repository template
+  generateRepositoryFromTemplate(templateOwner: string, templateRepo: string, data: any): Observable<any> {
+    return this.http.post<any>(`${this.apiUrl}/github/${templateOwner}/${templateRepo}/generate`, data)
+  }
+
+  // Repository dispatch events
+  createRepositoryDispatchEvent(owner: string, repo: string, eventType: string, clientPayload?: any): Observable<any> {
+    return this.http.post<any>(`${this.apiUrl}/github/${owner}/${repo}/dispatches`, {
+      event_type: eventType,
+      client_payload: clientPayload,
+    })
   }
 }
- 
