@@ -98,6 +98,67 @@ public class StudentController {
         return ResponseEntity.ok(group);
     }
 
+    // Get repositories for a specific group
+    @GetMapping("/groups/{groupId}/repositories")
+    public ResponseEntity<List<Map<String, Object>>> getGroupRepositories(
+            @PathVariable UUID groupId,
+            Authentication authentication) {
+        log.info("Fetching repositories for group: {} by student: {}", groupId, authentication.getName());
+        try {
+            List<Map<String, Object>> repositories = studentService.getGroupRepositories(groupId, authentication.getName());
+            return ResponseEntity.ok(repositories);
+        } catch (Exception e) {
+            log.error("Error fetching group repositories: {}", e.getMessage());
+            return ResponseEntity.badRequest().body(List.of(Map.of("error", "Failed to fetch group repositories: " + e.getMessage())));
+        }
+    }
+
+    // Get commits for a repository that the student has access to
+    @GetMapping("/repositories/{repositoryId}/commits")
+    public ResponseEntity<Map<String, Object>> getRepositoryCommits(
+            @PathVariable String repositoryId,
+            @RequestParam(defaultValue = "0") int page,
+            @RequestParam(defaultValue = "10") int size,
+            @RequestParam(defaultValue = "main") String branch,
+            Authentication authentication) {
+        log.info("🔍 Student {} requesting commits for repository: {} (page: {}, size: {})", 
+                authentication.getName(), repositoryId, page, size);
+        log.info("🔐 Authentication details - Name: {}, Authorities: {}", 
+                authentication.getName(), authentication.getAuthorities());
+        
+        try {
+            Map<String, Object> result = studentService.getRepositoryCommits(repositoryId, authentication.getName(), page, size, branch);
+            log.info("✅ Successfully returning {} commits for repository {}", 
+                    result.get("totalCommits"), repositoryId);
+            return ResponseEntity.ok(result);
+        } catch (Exception e) {
+            log.error("❌ Error fetching repository commits for {}: {}", repositoryId, e.getMessage(), e);
+            return ResponseEntity.badRequest().body(Map.of("error", "Failed to fetch repository commits: " + e.getMessage()));
+        }
+    }
+
+    // Get latest commit hash for quick submission
+    @GetMapping("/repositories/{repositoryId}/latest-commit")
+    public ResponseEntity<Map<String, String>> getLatestCommitHash(
+            @PathVariable String repositoryId,
+            Authentication authentication) {
+        log.info("🔍 Student {} requesting latest commit hash for repository: {}", 
+                authentication.getName(), repositoryId);
+        
+        try {
+            String latestHash = studentService.getLatestCommitHash(repositoryId, authentication.getName());
+            log.info("✅ Latest commit hash for repository {}: {}", repositoryId, latestHash);
+            return ResponseEntity.ok(Map.of(
+                "repositoryId", repositoryId,
+                "latestCommitHash", latestHash,
+                "message", "Latest commit hash retrieved successfully"
+            ));
+        } catch (Exception e) {
+            log.error("❌ Error fetching latest commit hash for {}: {}", repositoryId, e.getMessage(), e);
+            return ResponseEntity.badRequest().body(Map.of("error", "Failed to fetch latest commit hash: " + e.getMessage()));
+        }
+    }
+
     // Get student's projects
     @GetMapping("/projects")
     public ResponseEntity<List<StudentProjectDto>> getProjects(Authentication authentication) {

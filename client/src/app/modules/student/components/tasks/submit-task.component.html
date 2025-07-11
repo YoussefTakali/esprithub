@@ -1,0 +1,161 @@
+<div class="submit-task-container">
+  <div class="header">
+    <button mat-icon-button (click)="goBack()" class="back-button">
+      <mat-icon>arrow_back</mat-icon>
+    </button>
+    <div class="header-content">
+      <h2>Submit Task</h2>
+      <p>Select a commit to submit for this task</p>
+    </div>
+  </div>
+
+  <!-- Loading State -->
+  <div *ngIf="loading" class="loading-container">
+    <mat-spinner diameter="50"></mat-spinner>
+    <p>Loading commits...</p>
+  </div>
+
+  <!-- Error State -->
+  <div *ngIf="error && !loading" class="error-container">
+    <mat-icon class="error-icon">error</mat-icon>
+    <p>{{ error }}</p>
+    <button mat-raised-button color="warn" (click)="loadCommits()">
+      Try Again
+    </button>
+  </div>
+
+  <!-- Commits Selection -->
+  <div *ngIf="!loading && !error" class="content">
+    <div class="commits-section">
+      <div class="section-header">
+        <h3>Repository Commits ({{ totalCommits }} total)</h3>
+        <p>Choose the commit that represents your final solution</p>
+      </div>
+
+      <div *ngIf="commits.length === 0" class="no-commits">
+        <mat-icon class="no-commits-icon">commit</mat-icon>
+        <h4>No commits found</h4>
+        <p>This repository doesn't have any commits yet.</p>
+      </div>
+
+      <div *ngIf="commits.length > 0" class="commits-list">
+        <button
+          *ngFor="let commit of commits" 
+          class="commit-card commit-button"
+          [class.selected]="selectedCommit?.id === commit.id"
+          (click)="selectCommit(commit)"
+          [attr.aria-label]="'Select commit: ' + commit.message">
+          
+          <mat-card class="commit-content-card">
+          
+          <div class="commit-content">
+            <div class="commit-main">
+              <div class="commit-message">
+                <mat-icon class="commit-icon">commit</mat-icon>
+                <span class="message">{{ commit.message }}</span>
+              </div>
+              
+              <div class="commit-meta">
+                <span class="author">
+                  <mat-icon>person</mat-icon>
+                  {{ commit.authorName }}
+                </span>
+                <span class="date">
+                  <mat-icon>schedule</mat-icon>
+                  {{ formatDate(commit.authorDate) }}
+                </span>
+                <span class="time-ago">{{ getTimeAgo(commit.authorDate) }}</span>
+              </div>
+            </div>
+            
+            <div class="commit-actions">
+              <span class="commit-hash">
+                <mat-icon>tag</mat-icon>
+                {{ commit.sha.substring(0, 8) }}
+              </span>
+              <mat-radio-button 
+                [checked]="selectedCommit?.id === commit.id"
+                [value]="commit.id">
+              </mat-radio-button>
+            </div>
+          </div>
+          </mat-card>
+        </button>
+
+        <!-- Pagination -->
+        <div *ngIf="totalPages > 1" class="pagination">
+          <button 
+            mat-icon-button 
+            [disabled]="currentPage === 0"
+            (click)="previousPage()">
+            <mat-icon>chevron_left</mat-icon>
+          </button>
+          
+          <span class="page-info">
+            Page {{ currentPage + 1 }} of {{ totalPages }}
+          </span>
+          
+          <button 
+            mat-icon-button 
+            [disabled]="currentPage >= totalPages - 1"
+            (click)="nextPage()">
+            <mat-icon>chevron_right</mat-icon>
+          </button>
+        </div>
+      </div>
+    </div>
+
+    <!-- Submission Form -->
+    <div *ngIf="selectedCommit" class="submission-section">
+      <mat-card class="submission-form">
+        <mat-card-header>
+          <mat-card-title>Submission Details</mat-card-title>
+          <mat-card-subtitle>Add any notes about your submission</mat-card-subtitle>
+        </mat-card-header>
+        
+        <mat-card-content>
+          <div class="selected-commit-info">
+            <h4>Selected Commit:</h4>
+            <div class="commit-info">
+              <span class="commit-hash">{{ selectedCommit.sha.substring(0, 8) }}</span>
+              <span class="commit-message">{{ selectedCommit.message }}</span>
+              <span class="commit-date">{{ formatDate(selectedCommit.authorDate) }}</span>
+            </div>
+          </div>
+
+          <mat-form-field appearance="outline" class="notes-field">
+            <mat-label>Submission Notes (Optional)</mat-label>
+            <textarea 
+              matInput 
+              [(ngModel)]="submissionNotes"
+              placeholder="Add any notes about your submission..."
+              rows="4">
+            </textarea>
+            <mat-hint>Explain your solution or any important details</mat-hint>
+          </mat-form-field>
+        </mat-card-content>
+        
+        <mat-card-actions class="form-actions">
+          <button 
+            mat-raised-button 
+            color="accent" 
+            (click)="previewCode()"
+            [disabled]="submitting">
+            <mat-icon>visibility</mat-icon>
+            Preview Code
+          </button>
+          
+          <button 
+            mat-raised-button 
+            color="primary" 
+            (click)="submitTask()"
+            [disabled]="submitting || !selectedCommit">
+            <mat-icon>upload</mat-icon>
+            <span *ngIf="!submitting">Submit Task</span>
+            <span *ngIf="submitting">Submitting...</span>
+          </button>
+        </mat-card-actions>
+      </mat-card>
+    </div>
+  </div>
+</div>

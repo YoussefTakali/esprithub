@@ -1,0 +1,156 @@
+<div class="modal-header">
+  <div class="header-content">
+    <h2 mat-dialog-title>Submission Details</h2>
+    <button mat-icon-button (click)="close()" class="close-button">
+      <i class="fas fa-times"></i>
+    </button>
+  </div>
+  
+  <div *ngIf="submissionDetails" class="submission-info">
+    <div class="info-item">
+      <i class="fas fa-clock"></i>
+      <span>{{ formatDate(submissionDetails.submittedAt) }}</span>
+    </div>
+    <div class="info-item">
+      <i class="fas fa-code-branch"></i>
+      <span>{{ submissionDetails.commitHash.substring(0, 8) }}</span>
+    </div>
+    <div class="info-item">
+      <div class="status-badge" [style.background-color]="getStatusColor(submissionDetails.status)">
+        {{ submissionDetails.status }}
+      </div>
+    </div>
+    <div *ngIf="submissionDetails.isGraded" class="info-item grade">
+      <i class="fas fa-star"></i>
+      <span>{{ getGradeDisplay() }}</span>
+    </div>
+  </div>
+</div>
+
+<div mat-dialog-content class="modal-content">
+  <div *ngIf="loading" class="loading-section">
+    <mat-spinner [diameter]="40"></mat-spinner>
+    <p>Loading submission details...</p>
+  </div>
+
+  <div *ngIf="error" class="error-section">
+    <i class="fas fa-exclamation-triangle"></i>
+    <p>{{ error }}</p>
+    <button mat-button (click)="loadSubmissionDetails()">Retry</button>
+  </div>
+
+  <div *ngIf="!loading && !error && submissionDetails" class="submission-content">
+    <div class="content-layout">
+      <!-- Left Panel: Files and Info -->
+      <div class="left-panel">
+        <!-- Task Description -->
+        <div *ngIf="submissionDetails.taskDescription" class="section">
+          <h3>Task Description</h3>
+          <div class="task-description">
+            {{ submissionDetails.taskDescription }}
+          </div>
+        </div>
+
+        <!-- Commit Details -->
+        <div *ngIf="submissionDetails.commitDetails" class="section">
+          <h3>Commit Details</h3>
+          <div class="commit-info">
+            <p><strong>Message:</strong> {{ submissionDetails.commitDetails.message }}</p>
+            <p><strong>Author:</strong> {{ submissionDetails.commitDetails.author }}</p>
+            <p><strong>Date:</strong> {{ submissionDetails.commitDetails.date | date:'medium' }}</p>
+            <a *ngIf="submissionDetails.commitDetails.url" 
+               [href]="submissionDetails.commitDetails.url"                   target="_blank" 
+                   class="github-link">
+                <i class="fab fa-github"></i>
+                View on GitHub
+              </a>
+          </div>
+        </div>
+
+        <!-- Feedback -->
+        <div *ngIf="submissionDetails.feedback" class="section">
+          <h3>Feedback</h3>
+          <div class="feedback-content">
+            {{ submissionDetails.feedback }}
+          </div>
+        </div>
+
+        <!-- Files List -->
+        <div *ngIf="submissionDetails.files && submissionDetails.files.length > 0" class="section">
+          <h3>Files ({{ submissionDetails.files.length }})</h3>
+          <div class="files-list">
+            <button *ngFor="let file of submissionDetails.files; let i = index" 
+                    class="file-item" 
+                    [class.selected]="i === selectedFileIndex"
+                    (click)="selectFile(i)"
+                    [attr.aria-label]="'Select file ' + file.name">
+              <i class="file-icon" [ngClass]="getFileIcon(file.name)"></i>
+              <div class="file-details">
+                <span class="file-name">{{ file.name }}</span>
+                <span class="file-path" *ngIf="file.path">{{ file.path }}</span>
+                <span class="file-size" *ngIf="file.size">{{ formatFileSize(file.size) }}</span>
+              </div>
+              <span class="file-type">{{ getFileLanguage(file.name) }}</span>
+            </button>
+          </div>
+        </div>
+
+        <!-- No Files -->
+        <div *ngIf="!submissionDetails.files || submissionDetails.files.length === 0" class="section">
+          <div class="no-files">
+            <i class="fas fa-folder-open"></i>
+            <span>No files found in this submission</span>
+          </div>
+        </div>
+      </div>
+
+      <!-- Right Panel: Code Viewer -->
+      <div class="right-panel">
+        <div *ngIf="getSelectedFile()" class="code-viewer">
+          <div class="code-header">
+            <h3>{{ getSelectedFile()!.name }}</h3>
+            <span class="language-tag">{{ getFileLanguage(getSelectedFile()!.name) }}</span>
+          </div>
+
+          <div class="code-content">
+            <!-- Image Preview -->
+            <div *ngIf="isImageFile(getSelectedFile()!.name)" class="image-preview">
+              <img [src]="'data:image/*;base64,' + getSelectedFile()?.content" 
+                   [alt]="getSelectedFile()!.name" 
+                   class="preview-image" />
+            </div>
+
+            <!-- Code/Text Content -->
+            <div *ngIf="!isImageFile(getSelectedFile()!.name) && getSelectedFile()?.content" 
+                 class="code-preview">
+              <pre class="code-block" 
+                   [attr.data-language]="getFileLanguage(getSelectedFile()!.name)"><code>{{ atob(getSelectedFile()!.content!) }}</code></pre>
+            </div>
+
+            <!-- No Content -->
+            <div *ngIf="!getSelectedFile()?.content" class="no-content">
+              <i class="fas fa-exclamation-triangle"></i>
+              <span>File content not available</span>
+            </div>
+          </div>
+        </div>
+
+        <div *ngIf="!getSelectedFile()" class="no-file-selected">
+          <i class="fas fa-file"></i>
+          <p>Select a file to view its content</p>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<div mat-dialog-actions class="modal-actions">
+  <button mat-button (click)="close()">Close</button>
+  <button *ngIf="submissionDetails?.commitDetails?.url" 
+          mat-raised-button 
+          color="primary" 
+          (click)="openGitHub()">
+    <i class="fab fa-github"></i>
+    View on GitHub
+  </button>
+</div>

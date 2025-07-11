@@ -1,0 +1,73 @@
+<div class="submission-details-container">
+  <div class="header">
+    <button class="btn-back" (click)="goBack()">← Back</button>
+    <h1>Submission Details</h1>
+  </div>
+
+  <div *ngIf="loading" class="loading">Loading submission details...</div>
+  <div *ngIf="error" class="error">{{ error }}</div>
+
+  <div *ngIf="!loading && !error && submission" class="content">
+    <div class="submission-header">
+      <h2>{{ submission?.taskTitle }}</h2>
+      <div class="status-section">
+        <span class="status-badge" [class]="getStatusClass(submission?.status || '')">
+          {{ submission?.status }}
+        </span>
+      </div>
+    </div>
+
+    <div class="submission-info">
+      <div class="info-card">
+        <p><strong>Submitted:</strong> {{ formatDate(submission?.submittedAt || '') }}</p>
+        <p><strong>Commit:</strong> {{ getCommitHash(submission?.commitHash || '') }}</p>
+        <p *ngIf="submission?.groupName"><strong>Group:</strong> {{ submission?.groupName }}</p>
+        <p><strong>Attempt:</strong> #{{ submission?.attemptNumber }}</p>
+      </div>
+
+      <div *ngIf="submission?.isGraded" class="grade-card">
+        <h3>Grade Information</h3>
+        <div class="grade-display">
+          <span class="grade-score">{{ submission?.grade }}/{{ submission?.maxGrade }}</span>
+          <span class="grade-percentage">({{ submission?.gradePercentage }}%)</span>
+        </div>
+        <div *ngIf="submission?.feedback" class="feedback">
+          <h4>Feedback:</h4>
+          <p>{{ submission?.feedback }}</p>
+        </div>
+        <p *ngIf="submission?.gradedAt"><strong>Graded:</strong> {{ formatDate(submission?.gradedAt || '') }}</p>
+        <p *ngIf="submission?.gradedByName"><strong>Graded by:</strong> {{ submission?.gradedByName }}</p>
+      </div>
+    </div>
+
+    <div *ngIf="submission?.files && submission?.files?.length > 0" class="files-section">
+      <h3>Submitted Files</h3>
+      <div class="files-list">
+        <div *ngFor="let file of submission?.files" class="file-item" (click)="viewFile(file)">
+          <span class="file-name">{{ file.name }}</span>
+          <span class="file-size">{{ file.size }}</span>
+        </div>
+      </div>
+    </div>
+
+    <div *ngIf="submission?.commitDetails" class="commit-section">
+      <h3>Commit Details</h3>
+      <div class="commit-info">
+        <p><strong>Message:</strong> {{ submission?.commitDetails?.message }}</p>
+        <p><strong>Author:</strong> {{ submission?.commitDetails?.author }}</p>
+        <p><strong>Date:</strong> {{ formatDate(submission?.commitDetails?.date || '') }}</p>
+        <a *ngIf="submission?.commitDetails?.url" [href]="submission?.commitDetails?.url" target="_blank" class="commit-link">
+          View on GitHub
+        </a>
+      </div>
+    </div>
+
+    <div class="repository-section">
+      <h3>Repository Information</h3>
+      <p><strong>Repository:</strong> {{ submission?.repositoryName }}</p>
+      <a *ngIf="submission?.repositoryUrl" [href]="submission?.repositoryUrl" target="_blank" class="repo-link">
+        View Repository
+      </a>
+    </div>
+  </div>
+</div>

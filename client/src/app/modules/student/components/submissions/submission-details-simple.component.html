@@ -1,0 +1,179 @@
+<div class="submission-details-container">
+  <div class="header">
+    <button class="back-button" (click)="goBack()">← Back</button>
+    <div class="header-content">
+      <h2>Submission Details</h2>
+      <p *ngIf="submission">{{ submission!.taskTitle }}</p>
+    </div>
+  </div>
+
+  <!-- Loading State -->
+  <div *ngIf="loading" class="loading-container">
+    <div class="loading-spinner">Loading...</div>
+    <p>Loading submission details...</p>
+  </div>
+
+  <!-- Error State -->
+  <div *ngIf="error && !loading" class="error-container">
+    <div class="error-icon">⚠️</div>
+    <p>{{ error }}</p>
+    <button class="btn-primary" (click)="loadSubmissionDetails()">
+      Try Again
+    </button>
+  </div>
+
+  <!-- Submission Details -->
+  <div *ngIf="submission && !loading && !error" class="content">
+    
+    <!-- Submission Info Card -->
+    <div class="submission-info-section">
+      <div class="submission-info-card">
+        <div class="card-header">
+          <h3>{{ submission.taskTitle }}</h3>
+          <div class="status-chip" [ngClass]="getStatusClass(submission.status)">
+            {{ submission.status }}
+          </div>
+        </div>
+
+        <div class="card-content">
+          <p class="task-description">{{ submission.taskDescription }}</p>
+          
+          <div class="info-grid">
+            <div class="info-item">
+              <span class="info-label">Submitted:</span>
+              <span class="info-value">{{ formatDate(submission.submittedAt) }}</span>
+            </div>
+            
+            <div class="info-item">
+              <span class="info-label">Commit Hash:</span>
+              <span class="info-value commit-hash">{{ submission.commitHash }}</span>
+            </div>
+            
+            <div class="info-item" *ngIf="submission.groupName">
+              <span class="info-label">Group:</span>
+              <span class="info-value">{{ submission.groupName }}</span>
+            </div>
+            
+            <div class="info-item">
+              <span class="info-label">Attempt:</span>
+              <span class="info-value">#{{ submission.attemptNumber }}</span>
+            </div>
+            
+            <div class="info-item" *ngIf="submission.isLate">
+              <span class="info-label">Status:</span>
+              <span class="info-value late-submission">Late Submission</span>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Grade Section -->
+    <div *ngIf="submission.isGraded" class="grade-section">
+      <div class="grade-card">
+        <div class="card-header">
+          <h3>Grade Information</h3>
+        </div>
+        <div class="card-content">
+          <div class="grade-display">
+            <div class="grade-score" [ngClass]="getGradeClass(submission)">
+              {{ submission.grade }}/{{ submission.maxGrade }}
+              <span class="grade-percentage">({{ submission.gradePercentage }}%)</span>
+            </div>
+            <div class="grade-status">
+              {{ submission.isPassing ? 'Passing' : 'Needs Improvement' }}
+            </div>
+          </div>
+          
+          <div *ngIf="submission.feedback" class="feedback-section">
+            <h4>Feedback:</h4>
+            <p class="feedback-text">{{ submission.feedback }}</p>
+          </div>
+          
+          <div *ngIf="submission.gradedAt" class="graded-info">
+            <p><strong>Graded on:</strong> {{ formatDate(submission.gradedAt) }}</p>
+            <p *ngIf="submission.gradedByName"><strong>Graded by:</strong> {{ submission.gradedByName }}</p>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Repository & Code Section -->
+    <div *ngIf="submission.repositoryId" class="repository-section">
+      <div class="repository-card">
+        <div class="card-header">
+          <h3>Repository & Code</h3>
+          <div class="repository-actions">
+            <button class="btn-secondary" (click)="downloadCode()" [disabled]="downloadingCode">
+              {{ downloadingCode ? 'Downloading...' : 'Download Code' }}
+            </button>
+          </div>
+        </div>
+        
+        <div class="card-content">
+          <div *ngIf="submission.repositoryName" class="repository-info">
+            <p><strong>Repository:</strong> {{ submission.repositoryName }}</p>
+            <p *ngIf="submission.repositoryUrl">
+              <a [href]="submission.repositoryUrl" target="_blank" class="repo-link">
+                View on GitHub →
+              </a>
+            </p>
+          </div>
+
+          <div *ngIf="submission.commitDetails" class="commit-info">
+            <h4>Commit Details:</h4>
+            <div class="commit-card">
+              <p><strong>Hash:</strong> <code>{{ submission.commitDetails.hash }}</code></p>
+              <p><strong>Message:</strong> {{ submission.commitDetails.message }}</p>
+              <p><strong>Author:</strong> {{ submission.commitDetails.author }}</p>
+              <p><strong>Date:</strong> {{ formatDate(submission.commitDetails.date) }}</p>
+              <a [href]="submission.commitDetails.url" target="_blank" class="commit-link">
+                View Commit on GitHub →
+              </a>
+            </div>
+          </div>
+
+          <!-- File Browser -->
+          <div *ngIf="submission.files && submission.files.length > 0" class="files-section">
+            <h4>Submitted Files:</h4>
+            <div class="file-list">
+              <div *ngFor="let file of submission.files" class="file-item" (click)="viewFile(file)">
+                <div class="file-icon">📄</div>
+                <div class="file-info">
+                  <div class="file-name">{{ file.name }}</div>
+                  <div class="file-path">{{ file.path }}</div>
+                </div>
+                <button class="btn-link">View</button>
+              </div>
+            </div>
+          </div>
+
+          <!-- File Content Viewer -->
+          <div *ngIf="selectedFile" class="file-viewer">
+            <div class="file-viewer-header">
+              <h4>{{ selectedFile.name }}</h4>
+              <button class="btn-secondary" (click)="closeFileViewer()">✕</button>
+            </div>
+            <div class="file-viewer-content">
+              <pre *ngIf="fileContent"><code>{{ fileContent }}</code></pre>
+              <div *ngIf="loadingFile" class="loading-file">Loading file content...</div>
+              <div *ngIf="fileError" class="file-error">{{ fileError }}</div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Notes Section -->
+    <div *ngIf="submission.notes" class="notes-section">
+      <div class="notes-card">
+        <div class="card-header">
+          <h3>Submission Notes</h3>
+        </div>
+        <div class="card-content">
+          <p>{{ submission.notes }}</p>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>

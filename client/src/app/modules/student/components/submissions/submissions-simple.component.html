@@ -1,20 +1,7 @@
 <div class="submissions-container">
-  <!-- Page Header -->
-  <div class="page-header">
-    <div class="header-content">
-      <h1>My Submissions</h1>
-      <p>View and manage your code submissions and feedback</p>
-    </div>
-    <div class="header-actions">
-      <button class="refresh-btn" (click)="refresh()" [disabled]="loading">
-        <i class="fas fa-sync-alt" [class.spinning]="loading"></i>
-        Refresh
-      </button>
-      <button class="btn-primary" (click)="goToTaskSubmission()">
-        <i class="fas fa-plus"></i>
-        Submit New Task
-      </button>
-    </div>
+  <div class="header">
+    <h1>My Submissions</h1>
+    <button class="btn-primary" (click)="goToTaskSubmission()">Submit New Task</button>
   </div>
 
   <div *ngIf="loading" class="loading">Loading submissions...</div>
@@ -43,16 +30,13 @@
 
     <!-- Submissions List -->
     <div class="submissions-list">
-      <div *ngFor="let submission of submissions" class="submission-card">
-        <button class="submission-header" (click)="openSubmissionModal(submission)">
+      <div *ngFor="let submission of submissions" class="submission-card" (click)="viewSubmission(submission.id)">
+        <div class="submission-header">
           <h3>{{ submission.taskTitle }}</h3>
-          <div class="header-right">
-            <div class="status-badge" [ngClass]="getStatusClass(submission.status)">
-              {{ submission.status }}
-            </div>
-            <i class="fas fa-eye view-icon"></i>
+          <div class="status-badge" [ngClass]="getStatusClass(submission.status)">
+            {{ submission.status }}
           </div>
-        </button>
+        </div>
         
         <div class="submission-details">
           <p><strong>Submitted:</strong> {{ submission.submittedAt | date:'short' }}</p>

@@ -1,5 +1,8 @@
 import { Component, OnInit } from '@angular/core';
+import { MatDialog } from '@angular/material/dialog';
 import { StudentService, StudentTask } from '../../services/student.service';
+import { SubmissionService } from '../../../../shared/services/submission.service';
+import { SubmissionDialogComponent } from '../submissions/submission-dialog.component';
 
 @Component({
   selector: 'app-student-tasks',
@@ -18,7 +21,11 @@ export class StudentTasksComponent implements OnInit {
   selectedType = 'all';
   selectedStatus = 'all';
 
-  constructor(private readonly studentService: StudentService) {}
+  constructor(
+    private readonly studentService: StudentService,
+    private readonly dialog: MatDialog,
+    private readonly submissionService: SubmissionService
+  ) {}
 
   ngOnInit(): void {
     this.loadTasks();
@@ -196,5 +203,31 @@ export class StudentTasksComponent implements OnInit {
 
   getAbsoluteDays(days: number): number {
     return Math.abs(days);
+  }
+
+  // Submission methods
+  canSubmitTask(task: StudentTask): boolean {
+    // For testing: show submit button for all tasks except drafts
+    const canSubmit = task.status !== 'DRAFT';
+    
+    console.log(`Task ${task.title}: status=${task.status}, type=${task.type}, canSubmit=${canSubmit}`);
+    
+    return canSubmit;
+  }
+
+  openSubmissionDialog(task: StudentTask): void {
+    const dialogRef = this.dialog.open(SubmissionDialogComponent, {
+      width: '800px',
+      maxHeight: '90vh',
+      data: { task }
+    });
+
+    dialogRef.afterClosed().subscribe(result => {
+      if (result?.submitted) {
+        // Refresh tasks to show updated submission status
+        this.loadTasks();
+        alert('Submission completed successfully!');
+      }
+    });
   }
 }

@@ -1,0 +1,222 @@
+<div class="modal-header">
+  <div class="header-content">
+    <h2 mat-dialog-title>Submission Details</h2>
+    <button mat-icon-button (click)="close()" class="close-button">
+      <i class="fas fa-times"></i>
+    </button>
+  </div>
+  
+  <div *ngIf="submissionDetails" class="submission-info">
+    <div class="info-item">
+      <i class="fas fa-user"></i>
+      <span>{{ submissionDetails.studentName }}</span>
+    </div>
+    <div class="info-item">
+      <i class="fas fa-clock"></i>
+      <span>{{ formatDate(submissionDetails.submittedAt) }}</span>
+    </div>
+    <div class="info-item">
+      <i class="fas fa-code-branch"></i>
+      <span>{{ submissionDetails.commitHash.substring(0, 8) }}</span>
+    </div>
+    <div class="info-item">
+      <div class="status-badge" [style.background-color]="getStatusColor(submissionDetails.status)">
+        {{ submissionDetails.status }}
+      </div>
+    </div>
+    <div *ngIf="submissionDetails.isGraded" class="info-item grade">
+      <i class="fas fa-star"></i>
+      <span>{{ getGradeDisplay() }}</span>
+    </div>
+  </div>
+</div>
+
+<div mat-dialog-content class="modal-content">
+  <div *ngIf="loading" class="loading-section">
+    <mat-spinner [diameter]="40"></mat-spinner>
+    <p>Loading submission details...</p>
+  </div>
+
+  <div *ngIf="error" class="error-section">
+    <i class="fas fa-exclamation-triangle"></i>
+    <p>{{ error }}</p>
+    <button mat-button (click)="loadSubmissionDetails()">Retry</button>
+  </div>
+
+  <div *ngIf="!loading && !error && submissionDetails" class="submission-content">
+    <div class="content-layout">
+      <!-- Left Panel: Files and Info -->
+      <div class="left-panel">
+        <!-- Task Description -->
+        <div *ngIf="submissionDetails.taskDescription" class="section">
+          <h3>Task Description</h3>
+          <div class="task-description">
+            {{ submissionDetails.taskDescription }}
+          </div>
+        </div>
+
+        <!-- Student Info -->
+        <div class="section">
+          <h3>Student Information</h3>
+          <div class="student-info">
+            <p><strong>Name:</strong> {{ submissionDetails.studentName }}</p>
+            <p><strong>Email:</strong> {{ submissionDetails.studentEmail }}</p>
+            <p *ngIf="submissionDetails.groupName"><strong>Group:</strong> {{ submissionDetails.groupName }}</p>
+            <p><strong>Attempt:</strong> #{{ submissionDetails.attemptNumber }}</p>
+            <p *ngIf="submissionDetails.isLate" class="late-indicator">
+              <i class="fas fa-exclamation-triangle"></i>
+              Late Submission
+            </p>
+          </div>
+        </div>
+
+        <!-- Commit Info -->
+        <div class="section">
+          <h3>Commit Information</h3>
+          <div class="commit-info">
+            <p><strong>Hash:</strong> {{ submissionDetails.commitHash }}</p>
+            <p><strong>Submitted:</strong> {{ formatDate(submissionDetails.submittedAt) }}</p>
+            <a *ngIf="submissionDetails.githubUrl" 
+               [href]="submissionDetails.githubUrl" 
+               target="_blank" 
+               class="github-link">
+              <i class="fab fa-github"></i>
+              View on GitHub
+            </a>
+          </div>
+        </div>
+
+        <!-- Current Grade -->
+        <div *ngIf="submissionDetails.isGraded" class="section">
+          <h3>Current Grade</h3>
+          <div class="grade-display">
+            <div class="grade-score">{{ getGradeDisplay() }}</div>
+            <div *ngIf="submissionDetails.feedback" class="feedback-content">
+              <h4>Feedback:</h4>
+              <p>{{ submissionDetails.feedback }}</p>
+            </div>
+            <p *ngIf="submissionDetails.gradedAt" class="graded-info">
+              Graded on {{ formatDate(submissionDetails.gradedAt) }}
+              <span *ngIf="submissionDetails.gradedBy">by {{ submissionDetails.gradedBy }}</span>
+            </p>
+          </div>
+        </div>
+
+        <!-- Files List -->
+        <div class="section">
+          <h3>Submitted Files ({{ submissionDetails.files?.length || 0 }})</h3>
+          <div *ngIf="submissionDetails.files && submissionDetails.files.length > 0" class="files-list">
+            <button 
+              *ngFor="let file of submissionDetails.files" 
+              class="file-item"
+              [class.selected]="selectedFile?.id === file.id"
+              (click)="selectFile(file)"
+              [attr.aria-label]="'Select file ' + file.name">
+              <i class="fas fa-file-code file-icon"></i>
+              <div class="file-details">
+                <div class="file-name">{{ file.name }}</div>
+                <div *ngIf="file.path" class="file-path">{{ file.path }}</div>
+                <div class="file-size">{{ file.displaySize }}</div>
+              </div>
+              <div class="file-type">{{ file.extension || 'FILE' }}</div>
+            </button>
+          </div>
+          <div *ngIf="!submissionDetails.files || submissionDetails.files.length === 0" class="no-files">
+            <i class="fas fa-inbox"></i>
+            <span>No files submitted</span>
+          </div>
+        </div>
+      </div>
+
+      <!-- Right Panel: Code Viewer -->
+      <div class="right-panel">
+        <div *ngIf="selectedFile" class="code-viewer">
+          <div class="code-header">
+            <h3>{{ selectedFile.name }}</h3>
+            <div class="language-tag">{{ selectedFile.extension?.toUpperCase() || 'FILE' }}</div>
+          </div>
+          <div class="code-content">
+            <div *ngIf="isImageFile(selectedFile)" class="image-preview">
+              <img [src]="getImageSrc(selectedFile)" [alt]="selectedFile.name" class="preview-image">
+            </div>
+            <div *ngIf="!isImageFile(selectedFile)" class="code-preview">
+              <pre class="code-block"><code>{{ getFileContent() }}</code></pre>
+            </div>
+          </div>
+        </div>
+        <div *ngIf="!selectedFile" class="no-file-selected">
+          <i class="fas fa-mouse-pointer"></i>
+          <p>Select a file to view its content</p>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- Grade Form -->
+<div *ngIf="showGradeForm" class="grade-form-overlay">
+  <div class="grade-form">
+    <h3>Grade Submission</h3>
+    <div class="form-group">
+      <label for="grade">Grade:</label>
+      <div class="grade-input-group">
+        <input 
+          type="number" 
+          id="grade"
+          [(ngModel)]="gradeForm.grade" 
+          [min]="0" 
+          [max]="gradeForm.maxGrade"
+          step="0.1"
+          class="form-input grade-input">
+        <span class="grade-separator">/</span>
+        <input 
+          type="number" 
+          [(ngModel)]="gradeForm.maxGrade" 
+          [min]="1" 
+          max="100"
+          step="0.1"
+          class="form-input max-grade-input">
+      </div>
+    </div>
+    <div class="form-group">
+      <label for="feedback">Feedback (optional):</label>
+      <textarea 
+        id="feedback"
+        [(ngModel)]="gradeForm.feedback" 
+        rows="4" 
+        placeholder="Provide feedback to the student..."
+        class="form-textarea"></textarea>
+    </div>
+    <div class="form-actions">
+      <button 
+        (click)="cancelGrading()" 
+        class="cancel-btn"
+        [disabled]="gradingSubmission">
+        Cancel
+      </button>
+      <button 
+        (click)="submitGrade()" 
+        class="submit-btn"
+        [disabled]="gradingSubmission || gradeForm.grade < 0 || gradeForm.grade > gradeForm.maxGrade">
+        <i *ngIf="gradingSubmission" class="fas fa-spinner fa-spin"></i>
+        {{ gradingSubmission ? 'Grading...' : 'Submit Grade' }}
+      </button>
+    </div>
+  </div>
+</div>
+
+<div mat-dialog-actions class="modal-actions">
+  <div class="actions-left">
+    <button 
+      mat-button 
+      (click)="toggleGradeForm()"
+      class="grade-btn"
+      [disabled]="loading || gradingSubmission">
+      <i class="fas fa-star"></i>
+      {{ submissionDetails?.isGraded ? 'Update Grade' : 'Grade Submission' }}
+    </button>
+  </div>
+  <div class="actions-right">
+    <button mat-button (click)="close()">Close</button>
+  </div>
+</div>

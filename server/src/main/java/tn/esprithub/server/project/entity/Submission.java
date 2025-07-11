@@ -25,6 +25,9 @@ public class Submission extends BaseEntity {
     @Column(name = "task_id", nullable = false)
     private UUID taskId;
 
+    @Column(name = "student_id", nullable = false)
+    private UUID studentId;
+
     @Column(name = "user_id", nullable = false)
     private UUID userId;
 

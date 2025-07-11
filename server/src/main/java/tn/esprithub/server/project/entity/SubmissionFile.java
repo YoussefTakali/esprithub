@@ -40,6 +40,10 @@ public class SubmissionFile extends BaseEntity {
     @Column(name = "file_url")
     private String fileUrl;
 
+    @Lob
+    @Column(name = "content", columnDefinition = "TEXT")
+    private String content;
+
     @Builder.Default
     @Column(name = "is_active", nullable = false)
     private Boolean isActive = true;

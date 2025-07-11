@@ -1,0 +1,40 @@
+<div class="task-submission-container">
+  <div class="header">
+    <h1>Submit Task</h1>
+    <button class="btn-secondary" (click)="goBack()">← Back to Submissions</button>
+  </div>
+
+  <div *ngIf="loading" class="loading">Loading available tasks...</div>
+  <div *ngIf="error" class="error">{{ error }}</div>
+
+  <div *ngIf="!loading && !error">
+    <div *ngIf="tasks.length === 0" class="no-tasks">
+      <p>No tasks available for submission at this time.</p>
+    </div>
+
+    <div *ngIf="tasks.length > 0" class="tasks-grid">
+      <div *ngFor="let task of tasks" class="task-card" (click)="selectTask(task)">
+        <div class="task-header">
+          <h3>{{ task.title }}</h3>
+          <div *ngIf="task.dueDate" class="due-date">
+            Due: {{ task.dueDate | date:'short' }}
+          </div>
+        </div>
+        
+        <div class="task-details">
+          <p>{{ task.description }}</p>
+          <div *ngIf="task.groupName" class="group-info">
+            <strong>Group:</strong> {{ task.groupName }}
+          </div>
+          <div *ngIf="task.hasSubmitted" class="already-submitted">
+            ⚠️ You have already submitted this task
+          </div>
+        </div>
+        
+        <div class="task-actions">
+          <button class="btn-primary">Select This Task</button>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>

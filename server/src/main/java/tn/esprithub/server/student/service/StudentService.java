@@ -84,6 +84,16 @@ public interface StudentService {
     List<Map<String, Object>> getAccessibleRepositories(String studentEmail);
 
     /**
+     * Get repositories for a specific group
+     */
+    List<Map<String, Object>> getGroupRepositories(UUID groupId, String studentEmail);
+
+    /**
+     * Get commits for a repository that the student has access to
+     */
+    Map<String, Object> getRepositoryCommits(String repositoryId, String studentEmail, int page, int size, String branch);
+
+    /**
      * Get detailed GitHub repository information
      */
     Map<String, Object> getRepositoryDetails(String repositoryId, String studentEmail);
@@ -146,4 +156,7 @@ public interface StudentService {
 
     // Debug method to test GitHub access
     Map<String, Object> debugGitHubAccess(String studentEmail);
+
+    // Get latest commit hash for quick submission
+    String getLatestCommitHash(String repositoryId, String studentEmail);
 }

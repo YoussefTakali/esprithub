@@ -23,6 +23,8 @@ import { RepositoryDetailComponent } from './components/repository-detail/reposi
 import { CreateGroupDialogComponent } from './components/groups/create-group-dialog.component';
 import { EditTaskDialogModule } from './components/tasks/edit-task-dialog.module';
 import { StatisticsComponent } from './components/statistics/statistics.component';
+import { TeacherSubmissionsComponent } from './components/submissions/teacher-submissions.component';
+import { TeacherSubmissionDetailModalComponent } from './components/submissions/teacher-submission-detail-modal.component';
 import { RepositoryService } from './services/repository.service';
 import { TimeAgoPipe } from './pipes/time-ago.pipe';
 
@@ -33,6 +35,7 @@ const routes: Routes = [
   { path: 'repositories', component: RepositoriesComponent },
   { path: 'repositories/:owner/:name', component: RepositoryDetailComponent },
   { path: 'statistics', component: StatisticsComponent },
+  { path: 'submissions', component: TeacherSubmissionsComponent },
   { path: '', redirectTo: 'dashboard', pathMatch: 'full' },
   { path: '**', redirectTo: 'dashboard' }
 ];
@@ -46,6 +49,8 @@ const routes: Routes = [
     RepositoryDetailComponent,
     CreateGroupDialogComponent,
     StatisticsComponent,
+    TeacherSubmissionsComponent,
+    TeacherSubmissionDetailModalComponent,
     TimeAgoPipe
   ],
   imports: [

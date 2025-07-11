@@ -1,0 +1,144 @@
+<div class="submissions-container">
+  <!-- Page Header -->
+  <div class="page-header">
+    <div class="header-content">
+      <div class="header-left">
+        <h1 class="page-title">
+          <i class="fas fa-file-upload"></i>
+          Student Submissions
+        </h1>
+        <p class="page-subtitle">Review and grade student submissions for your tasks</p>
+      </div>
+      <div class="header-actions">
+        <button 
+          class="btn-secondary"
+          (click)="refresh()"
+          [disabled]="loading"
+          title="Refresh submissions">
+          <i class="fas fa-sync-alt" [class.fa-spin]="loading"></i>
+          Refresh
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Loading State -->
+  <div *ngIf="loading" class="loading">
+    <i class="fas fa-spinner fa-spin"></i>
+    Loading submissions...
+  </div>
+
+  <!-- Error State -->
+  <div *ngIf="error" class="error">
+    <i class="fas fa-exclamation-triangle"></i>
+    {{ error }}
+  </div>
+
+  <!-- Content -->
+  <div *ngIf="!loading && !error">
+    <!-- Stats Grid -->
+    <div class="stats-grid">
+      <div class="stat-card">
+        <h3>{{ stats.total }}</h3>
+        <p>Total Submissions</p>
+        <i class="fas fa-file-upload stat-icon"></i>
+      </div>
+      <div class="stat-card">
+        <h3>{{ stats.pending }}</h3>
+        <p>Pending Review</p>
+        <i class="fas fa-clock stat-icon"></i>
+      </div>
+      <div class="stat-card">
+        <h3>{{ stats.graded }}</h3>
+        <p>Graded</p>
+        <i class="fas fa-check-circle stat-icon"></i>
+      </div>
+      <div class="stat-card">
+        <h3>{{ stats.averageGrade.toFixed(1) }}</h3>
+        <p>Average Grade</p>
+        <i class="fas fa-chart-line stat-icon"></i>
+      </div>
+    </div>
+
+    <!-- Submissions List -->
+    <div class="submissions-list" *ngIf="submissions.length > 0">
+      <button 
+        *ngFor="let submission of submissions" 
+        class="submission-card"
+        (click)="viewSubmissionDetails(submission)"
+        [attr.aria-label]="'View submission details for ' + submission.taskTitle + ' by ' + submission.studentName">
+        
+        <div class="submission-header">
+          <div class="header-left">
+            <h3>{{ submission.taskTitle }}</h3>
+            <div class="submission-meta">
+              <span class="project-name">{{ submission.projectName }}</span>
+              <span class="separator">•</span>
+              <span class="student-name">{{ submission.studentName }}</span>
+              <span *ngIf="submission.groupName" class="separator">•</span>
+              <span *ngIf="submission.groupName" class="group-name">{{ submission.groupName }}</span>
+            </div>
+          </div>
+          <div class="header-right">
+            <div class="status-badge" [style.background-color]="getStatusColor(submission.status)">
+              {{ submission.status }}
+            </div>
+            <i class="fas fa-eye view-icon"></i>
+          </div>
+        </div>
+
+        <div class="submission-details">
+          <div class="details-row">
+            <div class="detail-item">
+              <i class="fas fa-clock"></i>
+              <span>Submitted: {{ formatDate(submission.submittedAt) }}</span>
+            </div>
+            <div class="detail-item">
+              <i class="fas fa-code-branch"></i>
+              <span>Commit: {{ submission.commitHash.substring(0, 8) }}</span>
+            </div>
+            <div class="detail-item" *ngIf="submission.isGraded">
+              <i class="fas fa-star"></i>
+              <span class="grade">Grade: {{ getGradeDisplay(submission) }}</span>
+            </div>
+          </div>
+          
+          <div *ngIf="submission.isLate" class="late-badge">
+            <i class="fas fa-exclamation-triangle"></i>
+            Late Submission
+          </div>
+        </div>
+      </button>
+    </div>
+
+    <!-- No Submissions -->
+    <div *ngIf="submissions.length === 0" class="no-submissions">
+      <i class="fas fa-inbox"></i>
+      <h3>No submissions found</h3>
+      <p>There are no submissions for your tasks yet.</p>
+    </div>
+
+    <!-- Pagination -->
+    <div *ngIf="totalPages > 1" class="pagination">
+      <button 
+        (click)="previousPage()" 
+        [disabled]="currentPage === 0"
+        class="btn-secondary">
+        <i class="fas fa-chevron-left"></i>
+        Previous
+      </button>
+      
+      <span class="page-info">
+        Page {{ currentPage + 1 }} of {{ totalPages }}
+      </span>
+      
+      <button 
+        (click)="nextPage()" 
+        [disabled]="currentPage >= totalPages - 1"
+        class="btn-secondary">
+        Next
+        <i class="fas fa-chevron-right"></i>
+      </button>
+    </div>
+  </div>
+</div>

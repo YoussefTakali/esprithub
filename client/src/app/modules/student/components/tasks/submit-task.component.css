@@ -1,0 +1,368 @@
+.submit-task-container {
+  padding: 20px;
+  max-width: 1000px;
+  margin: 0 auto;
+}
+
+.header {
+  display: flex;
+  align-items: center;
+  margin-bottom: 24px;
+  gap: 16px;
+}
+
+.back-button {
+  color: #666;
+}
+
+.header-content h2 {
+  margin: 0;
+  color: #333;
+  font-weight: 500;
+}
+
+.header-content p {
+  margin: 4px 0 0 0;
+  color: #666;
+  font-size: 14px;
+}
+
+.loading-container {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 60px;
+  text-align: center;
+}
+
+.loading-container p {
+  margin-top: 16px;
+  color: #666;
+}
+
+.error-container {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 60px;
+  text-align: center;
+  color: #f44336;
+}
+
+.error-icon {
+  font-size: 48px;
+  margin-bottom: 16px;
+}
+
+.content {
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: 24px;
+}
+
+.section-header {
+  margin-bottom: 20px;
+}
+
+.section-header h3 {
+  margin: 0 0 8px 0;
+  color: #333;
+  font-weight: 500;
+}
+
+.section-header p {
+  margin: 0;
+  color: #666;
+  font-size: 14px;
+}
+
+.no-commits {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 60px 20px;
+  text-align: center;
+  color: #666;
+  border: 2px dashed #ddd;
+  border-radius: 8px;
+}
+
+.no-commits-icon {
+  font-size: 64px;
+  margin-bottom: 16px;
+  opacity: 0.5;
+}
+
+.commits-list {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.commit-button {
+  background: none;
+  border: none;
+  padding: 0;
+  width: 100%;
+  text-align: left;
+  cursor: pointer;
+  border-radius: 8px;
+  transition: transform 0.2s ease;
+}
+
+.commit-button:hover {
+  transform: translateY(-1px);
+}
+
+.commit-button:focus {
+  outline: 2px solid #2196f3;
+  outline-offset: 2px;
+}
+
+.commit-content-card {
+  width: 100%;
+  margin: 0;
+}
+
+.commit-card {
+  border-radius: 8px;
+  transition: all 0.2s ease;
+  border: 2px solid transparent;
+  cursor: pointer;
+}
+
+.commit-card:hover {
+  border-color: #e0e0e0;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+}
+
+.commit-card.selected {
+  border-color: #2196f3;
+  background-color: #f3f9ff;
+  box-shadow: 0 2px 12px rgba(33, 150, 243, 0.2);
+}
+
+.commit-content {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 16px;
+}
+
+.commit-main {
+  flex: 1;
+}
+
+.commit-message {
+  display: flex;
+  align-items: center;
+  margin-bottom: 8px;
+}
+
+.commit-icon {
+  margin-right: 8px;
+  color: #666;
+  font-size: 18px;
+}
+
+.message {
+  font-weight: 500;
+  color: #333;
+  font-size: 16px;
+}
+
+.commit-meta {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  font-size: 12px;
+  color: #666;
+}
+
+.commit-meta span {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+}
+
+.commit-meta mat-icon {
+  font-size: 14px;
+}
+
+.time-ago {
+  color: #999;
+  font-style: italic;
+}
+
+.commit-actions {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  gap: 8px;
+}
+
+.commit-hash {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  font-family: 'Courier New', monospace;
+  font-size: 12px;
+  color: #666;
+  background-color: #f5f5f5;
+  padding: 4px 8px;
+  border-radius: 4px;
+}
+
+.commit-hash mat-icon {
+  font-size: 14px;
+}
+
+.pagination {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 16px;
+  margin-top: 20px;
+  padding: 16px;
+}
+
+.page-info {
+  color: #666;
+  font-size: 14px;
+}
+
+.submission-section {
+  position: sticky;
+  top: 20px;
+}
+
+.submission-form {
+  max-width: 100%;
+}
+
+.selected-commit-info {
+  margin-bottom: 20px;
+  padding: 16px;
+  background-color: #f8f9fa;
+  border-radius: 8px;
+  border-left: 4px solid #2196f3;
+}
+
+.selected-commit-info h4 {
+  margin: 0 0 12px 0;
+  color: #333;
+  font-size: 16px;
+}
+
+.commit-info {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.commit-info .commit-hash {
+  background-color: #e3f2fd;
+  color: #1976d2;
+}
+
+.commit-info .commit-message {
+  font-weight: 500;
+  color: #333;
+}
+
+.commit-info .commit-date {
+  color: #666;
+  font-size: 12px;
+}
+
+.notes-field {
+  width: 100%;
+}
+
+.form-actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 12px;
+  padding-top: 16px;
+}
+
+.form-actions button {
+  min-width: 120px;
+}
+
+.form-actions button mat-icon {
+  margin-right: 8px;
+}
+
+/* Responsive Design */
+@media (max-width: 768px) {
+  .submit-task-container {
+    padding: 16px;
+  }
+  
+  .header {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 8px;
+  }
+  
+  .commit-content {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 12px;
+  }
+  
+  .commit-actions {
+    align-items: flex-start;
+    flex-direction: row;
+    width: 100%;
+    justify-content: space-between;
+  }
+  
+  .commit-meta {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 4px;
+  }
+  
+  .form-actions {
+    flex-direction: column;
+  }
+  
+  .form-actions button {
+    width: 100%;
+  }
+}
+
+/* Dark theme support */
+@media (prefers-color-scheme: dark) {
+  .header-content h2,
+  .section-header h3,
+  .message {
+    color: #fff;
+  }
+  
+  .header-content p,
+  .section-header p,
+  .commit-meta,
+  .time-ago {
+    color: #bbb;
+  }
+  
+  .selected-commit-info {
+    background-color: #2a2a2a;
+  }
+  
+  .commit-hash {
+    background-color: #333;
+    color: #ddd;
+  }
+  
+  .commit-info .commit-hash {
+    background-color: #1a237e;
+    color: #90caf9;
+  }
+}

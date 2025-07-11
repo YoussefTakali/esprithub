@@ -412,6 +412,15 @@
   background: #218838;
 }
 
+.submit-btn {
+  background: #007bff;
+  color: white;
+}
+
+.submit-btn:hover {
+  background: #0056b3;
+}
+
 .view-btn {
   background: #6c757d;
   color: white;

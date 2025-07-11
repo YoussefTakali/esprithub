@@ -28,6 +28,8 @@ import tn.esprithub.server.user.repository.UserRepository;
 import tn.esprithub.server.github.service.GitHubRepositoryService;
 import tn.esprithub.server.github.dto.GitHubRepositoryDetailsDto;
 import tn.esprithub.server.repository.repository.RepositoryEntityRepository;
+import tn.esprithub.server.repository.repository.RepositoryCommitRepository;
+import tn.esprithub.server.repository.entity.RepositoryCommit;
 import tn.esprithub.server.project.entity.Group;
 
 import java.time.DayOfWeek;
@@ -46,6 +48,7 @@ public class StudentServiceImpl implements StudentService {
     private final GroupRepository groupRepository;
     private final GitHubRepositoryService gitHubRepositoryService;
     private final RepositoryEntityRepository repositoryEntityRepository;
+    private final RepositoryCommitRepository repositoryCommitRepository;
     private final org.springframework.web.client.RestTemplate restTemplate = new org.springframework.web.client.RestTemplate();
 
     @Override
@@ -718,6 +721,207 @@ public class StudentServiceImpl implements StudentService {
         }
 
         return repositories;
+    }
+
+    @Override
+    public List<Map<String, Object>> getGroupRepositories(UUID groupId, String studentEmail) {
+        User student = getStudentByEmail(studentEmail);
+        log.info("Getting repositories for group: {} by student: {} (ID: {})", groupId, studentEmail, student.getId());
+
+        // Verify that the student is a member of the specified group
+        Optional<tn.esprithub.server.project.entity.Group> groupOpt = groupRepository.findById(groupId);
+        if (groupOpt.isEmpty()) {
+            log.warn("Group {} not found", groupId);
+            return List.of();
+        }
+
+        tn.esprithub.server.project.entity.Group group = groupOpt.get();
+        
+        // Check if the student is a member of this group
+        boolean isMember = group.getStudents().stream()
+                .anyMatch(s -> s.getId().equals(student.getId()));
+        
+        if (!isMember) {
+            log.warn("Student {} is not a member of group {}", studentEmail, groupId);
+            return List.of();
+        }
+
+        // Check if group has a repository
+        if (group.getRepository() == null) {
+            log.info("Group {} has no repository", groupId);
+            return List.of();
+        }
+
+        // Build repository information
+        Map<String, Object> repo = new HashMap<>();
+        repo.put("repositoryId", group.getRepository().getId().toString());
+        repo.put("id", group.getRepository().getId().toString());
+        repo.put("name", group.getRepository().getName());
+        repo.put("fullName", group.getRepository().getFullName());
+        repo.put("description", group.getRepository().getDescription());
+        repo.put("url", group.getRepository().getUrl());
+        repo.put("cloneUrl", group.getRepository().getCloneUrl());
+        repo.put("sshUrl", group.getRepository().getSshUrl());
+        repo.put("isPrivate", group.getRepository().getIsPrivate());
+        repo.put("defaultBranch", group.getRepository().getDefaultBranch());
+        repo.put("isActive", group.getRepository().getIsActive());
+        repo.put("createdAt", group.getRepository().getCreatedAt());
+        repo.put("updatedAt", group.getRepository().getUpdatedAt());
+
+        // Add group information
+        repo.put("groupId", group.getId().toString());
+        repo.put("groupName", group.getName());
+        repo.put("projectId", group.getProject() != null ? group.getProject().getId().toString() : null);
+        repo.put("projectName", group.getProject() != null ? group.getProject().getName() : null);
+        repo.put("classId", group.getClasse() != null ? group.getClasse().getId().toString() : null);
+        repo.put("className", group.getClasse() != null ? group.getClasse().getNom() : null);
+
+        // Add access level
+        repo.put("accessLevel", "MEMBER");
+        repo.put("canPush", true);
+        repo.put("canPull", true);
+
+        log.info("Found repository {} for group {}", group.getRepository().getName(), groupId);
+        return List.of(repo);
+    }
+
+    @Override
+    public Map<String, Object> getRepositoryCommits(String repositoryId, String studentEmail, int page, int size, String branch) {
+        User student = getStudentByEmail(studentEmail);
+        log.info("🔍 Getting commits for repository: {} by student: {} (ID: {}, page: {}, size: {})", 
+                repositoryId, studentEmail, student.getId(), page, size);
+
+        // Verify that the student has access to this repository
+        log.info("🔐 Checking repository access for student: {}", studentEmail);
+        List<Map<String, Object>> accessibleRepos = getAccessibleRepositories(studentEmail);
+        log.info("📂 Student has access to {} repositories", accessibleRepos.size());
+        
+        boolean hasAccess = accessibleRepos.stream()
+                .anyMatch(repo -> {
+                    boolean matches = repositoryId.equals(repo.get("id")) || repositoryId.equals(repo.get("repositoryId"));
+                    if (matches) {
+                        log.info("✅ Access granted - repository {} matches accessible repo: {}", repositoryId, repo.get("name"));
+                    }
+                    return matches;
+                });
+
+        if (!hasAccess) {
+            log.warn("❌ Student {} does not have access to repository {}", studentEmail, repositoryId);
+            log.warn("📋 Accessible repository IDs: {}", 
+                    accessibleRepos.stream().map(r -> r.get("id")).collect(java.util.stream.Collectors.toList()));
+            throw new BusinessException("Access denied to repository");
+        }
+
+        // Try to find the repository entity in the database
+        log.info("🔍 Looking for repository {} in database", repositoryId);
+        Optional<tn.esprithub.server.repository.entity.Repository> repoOpt = repositoryEntityRepository.findById(UUID.fromString(repositoryId));
+        if (repoOpt.isEmpty()) {
+            log.warn("⚠️ Repository {} not found in database", repositoryId);
+            return Map.of(
+                "commits", List.of(),
+                "repositoryId", repositoryId,
+                "page", page,
+                "size", size,
+                "totalCommits", 0,
+                "error", "Repository not found in database"
+            );
+        }
+
+        // Fetch real commits from the database using pagination
+        log.info("📝 Fetching real commits for repository: {} (page: {}, size: {})", repositoryId, page, size);
+        
+        org.springframework.data.domain.Pageable pageable = org.springframework.data.domain.Pageable.ofSize(size).withPage(page);
+        Page<RepositoryCommit> commitPage = repositoryCommitRepository.findByRepositoryIdOrderByDateDesc(UUID.fromString(repositoryId), pageable);
+        
+        // If no commits found in database, try to fetch latest commit from GitHub
+        if (commitPage.getTotalElements() == 0) {
+            log.info("🔍 No commits found in database, fetching latest commit from GitHub for repository: {}", repositoryId);
+            
+            // Get repository details to extract GitHub info
+            Optional<tn.esprithub.server.repository.entity.Repository> repoEntity = repositoryEntityRepository.findById(UUID.fromString(repositoryId));
+            if (repoEntity.isPresent() && student.getGithubToken() != null && !student.getGithubToken().isBlank()) {
+                String fullName = repoEntity.get().getFullName();
+                if (fullName != null && fullName.contains("/")) {
+                    String[] parts = fullName.split("/");
+                    String owner = parts[0];
+                    String repoName = parts[1];
+                    
+                    try {
+                        // Fetch latest commit from GitHub
+                        log.info("🔍 Fetching latest commit from GitHub for: {}/{}", owner, repoName);
+                        List<Map<String, Object>> githubCommits = getRepositoryCommits(owner, repoName, "main", 1, 1, studentEmail);
+                        
+                        if (!githubCommits.isEmpty()) {
+                            Map<String, Object> latestCommit = githubCommits.get(0);
+                            log.info("✅ Found latest commit from GitHub: {}", latestCommit.get("sha"));
+                            
+                            // Return the latest commit as if it were from database
+                            return Map.of(
+                                "commits", githubCommits,
+                                "repositoryId", repositoryId,
+                                "page", page,
+                                "size", size,
+                                "totalCommits", 1,
+                                "totalPages", 1,
+                                "hasMore", false,
+                                "source", "GITHUB_LIVE"
+                            );
+                        }
+                    } catch (Exception e) {
+                        log.warn("⚠️ Failed to fetch commits from GitHub: {}", e.getMessage());
+                    }
+                }
+            }
+            
+            // If GitHub fetch fails, return empty with explanation
+            log.warn("⚠️ No commits available for repository {} (neither in database nor GitHub)", repositoryId);
+            return Map.of(
+                "commits", List.of(),
+                "repositoryId", repositoryId,
+                "page", page,
+                "size", size,
+                "totalCommits", 0,
+                "totalPages", 0,
+                "hasMore", false,
+                "message", "No commits found. Please make sure the repository has commits and your GitHub token is valid."
+            );
+        }
+        
+        // Convert database commits to the expected format
+        List<Map<String, Object>> commits = commitPage.getContent().stream()
+                .map(commit -> {
+                    Map<String, Object> commitMap = new HashMap<>();
+                    commitMap.put("id", commit.getId().toString());
+                    commitMap.put("sha", commit.getSha());
+                    commitMap.put("message", commit.getMessage());
+                    commitMap.put("authorName", commit.getAuthorName());
+                    commitMap.put("authorEmail", commit.getAuthorEmail());
+                    commitMap.put("authorDate", commit.getAuthorDate().toString());
+                    commitMap.put("committerName", commit.getCommitterName() != null ? commit.getCommitterName() : commit.getAuthorName());
+                    commitMap.put("committerEmail", commit.getCommitterEmail() != null ? commit.getCommitterEmail() : commit.getAuthorEmail());
+                    commitMap.put("committerDate", commit.getCommitterDate() != null ? commit.getCommitterDate().toString() : commit.getAuthorDate().toString());
+                    commitMap.put("additions", commit.getAdditions());
+                    commitMap.put("deletions", commit.getDeletions());
+                    commitMap.put("totalChanges", commit.getTotalChanges());
+                    commitMap.put("filesChanged", commit.getFilesChanged());
+                    commitMap.put("githubUrl", commit.getGithubUrl());
+                    return commitMap;
+                })
+                .toList();
+
+        log.info("✅ Successfully returning {} database commits for repository {} (total: {})", 
+                commits.size(), repositoryId, commitPage.getTotalElements());
+        
+        return Map.of(
+            "commits", commits,
+            "repositoryId", repositoryId,
+            "page", page,
+            "size", size,
+            "totalCommits", commitPage.getTotalElements(),
+            "totalPages", commitPage.getTotalPages(),
+            "hasMore", commitPage.hasNext(),
+            "source", "DATABASE"
+        );
     }
 
     private String generateRepositoryName(tn.esprithub.server.project.entity.Group group) {
@@ -1817,6 +2021,42 @@ public class StudentServiceImpl implements StudentService {
             frontendType = "CLASS";
         }
 
+        // Get group information - check for GROUP tasks first, then for CLASS/PROJECT tasks with groups
+        UUID groupId = null;
+        String groupName = null;
+        
+        if (task.getType() == tn.esprithub.server.project.enums.TaskAssignmentType.GROUP && 
+            task.getAssignedToGroups() != null && !task.getAssignedToGroups().isEmpty()) {
+            // Direct group assignment
+            tn.esprithub.server.project.entity.Group group = task.getAssignedToGroups().get(0);
+            groupId = group.getId();
+            groupName = group.getName();
+            log.info("Task {} is GROUP type with group: {} ({})", task.getId(), groupName, groupId);
+        } else if (task.getType() == tn.esprithub.server.project.enums.TaskAssignmentType.CLASSE || 
+                   task.getType() == tn.esprithub.server.project.enums.TaskAssignmentType.PROJECT) {
+            // For class or project tasks, find student's group within that context
+            // This is a simplified approach - take the first group associated with the task's project/class
+            if (task.getProjects() != null && !task.getProjects().isEmpty()) {
+                tn.esprithub.server.project.entity.Project project = task.getProjects().get(0);
+                // Find groups in this project that have repositories
+                List<tn.esprithub.server.project.entity.Group> projectGroups = groupRepository.findByProjectId(project.getId());
+                if (!projectGroups.isEmpty()) {
+                    // Take the first group with a repository as default
+                    tn.esprithub.server.project.entity.Group group = projectGroups.stream()
+                        .filter(g -> g.getRepository() != null)
+                        .findFirst()
+                        .orElse(projectGroups.get(0));
+                    groupId = group.getId();
+                    groupName = group.getName();
+                    log.info("Task {} is CLASS/PROJECT type, assigned group: {} ({})", task.getId(), groupName, groupId);
+                }
+            } else {
+                log.warn("Task {} is CLASS/PROJECT type but has no projects assigned", task.getId());
+            }
+        } else {
+            log.info("Task {} is INDIVIDUAL type or has no group assignments", task.getId());
+        }
+
         return StudentTaskDto.builder()
                 .id(task.getId())
                 .title(task.getTitle())
@@ -1833,6 +2073,8 @@ public class StudentServiceImpl implements StudentService {
                         task.getProjects().get(0).getName() : null)
                 .projectId(task.getProjects() != null && !task.getProjects().isEmpty() ?
                         task.getProjects().get(0).getId() : null)
+                .groupId(groupId)
+                .groupName(groupName)
                 .daysLeft(task.getDueDate() != null ?
                         (int) ChronoUnit.DAYS.between(LocalDateTime.now(), task.getDueDate()) : 0)
                 .urgencyLevel(calculateUrgencyLevel(task))
@@ -3077,6 +3319,26 @@ public class StudentServiceImpl implements StudentService {
         }
 
         return debugInfo;
+    }
+
+    @Override
+    public String getLatestCommitHash(String repositoryId, String studentEmail) {
+        log.info("🔍 Getting latest commit hash for repository: {} by student: {}", repositoryId, studentEmail);
+        
+        // Get the first commit (latest) from the repository
+        Map<String, Object> commitsResponse = getRepositoryCommits(repositoryId, studentEmail, 0, 1, "main");
+        
+        @SuppressWarnings("unchecked")
+        List<Map<String, Object>> commits = (List<Map<String, Object>>) commitsResponse.get("commits");
+        
+        if (commits != null && !commits.isEmpty()) {
+            String latestHash = (String) commits.get(0).get("sha");
+            log.info("✅ Latest commit hash for repository {}: {}", repositoryId, latestHash);
+            return latestHash;
+        }
+        
+        log.warn("⚠️ No commits found for repository {}", repositoryId);
+        throw new BusinessException("No commits found in repository. Please make sure the repository has commits.");
     }
 
     // Helper methods for file operations
