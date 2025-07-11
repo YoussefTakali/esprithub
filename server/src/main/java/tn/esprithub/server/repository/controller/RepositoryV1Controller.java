@@ -17,6 +17,16 @@ import java.util.List;
 import java.util.Map;
 import java.util.UUID;
 
+import org.springframework.http.HttpHeaders;
+import org.springframework.http.MediaType;
+import org.springframework.http.ResponseEntity;
+import java.nio.charset.StandardCharsets;
+import tn.esprithub.server.repository.repository.RepositoryEntityRepository;
+import java.io.ByteArrayOutputStream;
+import java.io.OutputStreamWriter;
+import java.io.PrintWriter;
+import java.util.stream.Collectors;
+
 @RestController
 @RequestMapping("/api/v1/repositories")
 @RequiredArgsConstructor
@@ -26,6 +36,60 @@ public class RepositoryV1Controller {
 
     private final AdminUserDataService adminUserDataService;
     private final RepositoryCommitRepository commitRepository;
+    private final RepositoryEntityRepository repositoryEntityRepository;
+    /**
+     * Export all repositories as CSV
+     */
+    @GetMapping("/export")
+    public ResponseEntity<byte[]> exportRepositoriesAsCsv() {
+        try {
+            var repositories = repositoryEntityRepository.findAll();
+            ByteArrayOutputStream baos = new ByteArrayOutputStream();
+            PrintWriter writer = new PrintWriter(new OutputStreamWriter(baos, StandardCharsets.UTF_8));
+
+            // Write CSV header
+            writer.println("id,name,fullName,description,url,isPrivate,defaultBranch,language,starCount,forkCount,watchersCount,createdAt,updatedAt");
+
+            // Write each repository as a CSV row
+            for (var repo : repositories) {
+                writer.printf("%s,%s,%s,%s,%s,%s,%s,%s,%d,%d,%d,%s,%s\n",
+                        repo.getId(),
+                        escapeCsv(repo.getName()),
+                        escapeCsv(repo.getFullName()),
+                        escapeCsv(repo.getDescription()),
+                        escapeCsv(repo.getUrl()),
+                        repo.getIsPrivate(),
+                        escapeCsv(repo.getDefaultBranch()),
+                        escapeCsv(repo.getLanguage()),
+                        repo.getStarCount() != null ? repo.getStarCount() : 0,
+                        repo.getForkCount() != null ? repo.getForkCount() : 0,
+                        repo.getWatchersCount() != null ? repo.getWatchersCount() : 0,
+                        repo.getCreatedAt() != null ? repo.getCreatedAt().toString() : "",
+                        repo.getUpdatedAt() != null ? repo.getUpdatedAt().toString() : ""
+                );
+            }
+            writer.flush();
+            byte[] csvBytes = baos.toByteArray();
+            HttpHeaders headers = new HttpHeaders();
+            headers.set(HttpHeaders.CONTENT_DISPOSITION, "attachment; filename=repositories.csv");
+            headers.setContentType(MediaType.parseMediaType("text/csv"));
+            return ResponseEntity.ok()
+                    .headers(headers)
+                    .body(csvBytes);
+        } catch (Exception e) {
+            log.error("❌ Error exporting repositories as CSV", e);
+            return ResponseEntity.internalServerError().body(null);
+        }
+    }
+
+    private String escapeCsv(String value) {
+        if (value == null) return "";
+        String escaped = value.replace("\"", "\"\"");
+        if (escaped.contains(",") || escaped.contains("\n") || escaped.contains("\"")) {
+            return '"' + escaped + '"';
+        }
+        return escaped;
+    }
 
     /**
      * Get repository details by ID

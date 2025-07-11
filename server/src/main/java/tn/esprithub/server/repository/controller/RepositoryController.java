@@ -350,4 +350,17 @@ public class RepositoryController {
             return ResponseEntity.badRequest().body(Map.of("error", "Failed to delete repository: " + e.getMessage()));
         }
     }
+
+    // Get file content
+    @GetMapping("/{owner}/{repo}/files/{filePath}/content")
+    public ResponseEntity<Map<String, Object>> getFileContent(
+            @PathVariable String owner,
+            @PathVariable String repo,
+            @PathVariable String filePath,
+            @RequestParam(value = "branch", defaultValue = "main") String branch,
+            Authentication authentication) {
+        log.info("Fetching file content for {}/{} at path: {} on branch: {} by teacher: {}", owner, repo, filePath, branch, authentication.getName());
+        Map<String, Object> fileContent = repositoryService.getFileContent(owner, repo, filePath, branch, authentication.getName());
+        return ResponseEntity.ok(fileContent);
+    }
 }

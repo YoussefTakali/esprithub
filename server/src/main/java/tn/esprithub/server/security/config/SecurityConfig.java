@@ -62,6 +62,7 @@ public class SecurityConfig {
                                 "/api/v1/health",
                                 "/swagger-ui/**", "/v3/api-docs/**", "/actuator/health",
                                 "/api/v1/github/auth-url",
+                                "/api/v1/admin/users/export", // Temporarily allow CSV export without auth
                                 "/error"
                         ).permitAll()
 

@@ -10,9 +10,69 @@ import { Subscription } from 'rxjs';
   styleUrls: ['./repository-detail.component.css']
 })
 export class RepositoryDetailComponent implements OnInit, OnDestroy {
+  // Enhanced getFileFaIcon method with proper icon mapping
+  getFileFaIcon(fileName: string): string[] {
+    const ext = fileName.split('.').pop()?.toLowerCase();
+    if (!ext) return ['fas', 'fa-file'];
+    
+    // Images
+    if ([
+      'png', 'jpg', 'jpeg', 'gif', 'svg', 'bmp', 'webp', 'ico', 'tiff', 'tif'
+    ].includes(ext)) return ['fas', 'fa-file-image'];
+    
+    // Documents
+    if (['pdf'].includes(ext)) return ['fas', 'fa-file-pdf'];
+    if (['doc', 'docx'].includes(ext)) return ['fas', 'fa-file-word'];
+    if (['xls', 'xlsx'].includes(ext)) return ['fas', 'fa-file-excel'];
+    if (['ppt', 'pptx'].includes(ext)) return ['fas', 'fa-file-powerpoint'];
+    
+    // Archives
+    if ([
+      'zip', 'rar', '7z', 'tar', 'gz', 'bz2', 'xz'
+    ].includes(ext)) return ['fas', 'fa-file-archive'];
+    
+    // Audio
+    if ([
+      'mp3', 'wav', 'flac', 'ogg', 'aac', 'm4a'
+    ].includes(ext)) return ['fas', 'fa-file-audio'];
+    
+    // Video
+    if ([
+      'mp4', 'avi', 'mov', 'mkv', 'webm', 'wmv', 'flv', 'm4v'
+    ].includes(ext)) return ['fas', 'fa-file-video'];
+    
+    // Code files
+    if ([
+      'js', 'ts', 'jsx', 'tsx', 'java', 'py', 'cpp', 'c', 'cs', 'rb', 'go', 
+      'php', 'rs', 'swift', 'kt', 'dart', 'scala', 'r', 'sh', 'bash', 'ps1'
+    ].includes(ext)) return ['fas', 'fa-file-code'];
+    
+    // Web files
+    if (['html', 'htm', 'xml', 'xhtml'].includes(ext)) return ['fab', 'fa-html5'];
+    if (['css', 'scss', 'sass', 'less', 'stylus'].includes(ext)) return ['fab', 'fa-css3-alt'];
+    
+    // Config/Data files
+    if ([
+      'json', 'yml', 'yaml', 'toml', 'ini', 'cfg', 'conf', 'env'
+    ].includes(ext)) return ['fas', 'fa-cog'];
+    
+    // Text files
+    if (['md', 'markdown', 'rst'].includes(ext)) return ['fab', 'fa-markdown'];
+    if (['txt', 'log', 'readme'].includes(ext)) return ['fas', 'fa-file-alt'];
+    
+    // Database
+    if (['sql', 'db', 'sqlite', 'mdb'].includes(ext)) return ['fas', 'fa-database'];
+    
+    // Fonts
+    if (['ttf', 'otf', 'woff', 'woff2', 'eot'].includes(ext)) return ['fas', 'fa-font'];
+    
+    // Default
+    return ['fas', 'fa-file'];
+  }
+
   repository: Repository | null = null;
   repositoryStats: RepositoryStats | null = null;
-  repositoryFiles: string[] = [];
+  repositoryFiles: any[] = [];
   repositoryBranches: string[] = [];
   repositoryCollaborators: any[] = [];
   selectedBranch: string = 'main';
@@ -24,7 +84,6 @@ export class RepositoryDetailComponent implements OnInit, OnDestroy {
   repoOwner: string = '';
   repoName: string = '';
   
-  // Getter and setter for repository description to handle two-way binding
   get repositoryDescription(): string {
     return this.repository?.description ?? '';
   }
@@ -49,10 +108,8 @@ export class RepositoryDetailComponent implements OnInit, OnDestroy {
   branchSuccessMessage = '';
   branchErrorMessage = '';
 
-  // Add a property to hold recent commits for the template
+  // Commit data
   recentCommits: any[] = [];
-
-  // Latest commit banner data
   latestCommitBanner: any = null;
   commitCount: number = 0;
 
@@ -104,24 +161,14 @@ export class RepositoryDetailComponent implements OnInit, OnDestroy {
           this.loadRepositoryCollaborators();
           this.loadLatestCommit();
         } else {
-          this.snackBar.open('Repository not found', 'Close', { 
-            duration: 3000,
-            horizontalPosition: 'center',
-            verticalPosition: 'bottom',
-            panelClass: ['custom-snackbar', 'error-snackbar']
-          });
+          this.showErrorSnackbar('Repository not found');
           this.router.navigate(['/teacher/repositories']);
         }
         this.loading = false;
       },
       error: (error: any) => {
         console.error('Error loading repository:', error);
-        this.snackBar.open('Failed to load repository', 'Close', { 
-          duration: 3000,
-          horizontalPosition: 'center',
-          verticalPosition: 'bottom',
-          panelClass: ['custom-snackbar', 'error-snackbar']
-        });
+        this.showErrorSnackbar('Failed to load repository');
         this.loading = false;
       }
     });
@@ -130,21 +177,13 @@ export class RepositoryDetailComponent implements OnInit, OnDestroy {
   loadRepositoryBranches(): void {
     if (!this.repository) return;
     
-    console.log('Loading branches for repository:', this.repository.fullName);
     this.repositoryService.getRepositoryBranches(this.repository.fullName).subscribe({
       next: (branches: string[]) => {
-        console.log('Received branches:', branches);
         this.repositoryBranches = branches ?? [];
-        console.log('Set repositoryBranches to:', this.repositoryBranches);
       },
       error: (error: any) => {
         console.error('Error loading branches:', error);
-        this.snackBar.open('Failed to load repository branches', 'Close', {
-          duration: 3000,
-          horizontalPosition: 'center',
-          verticalPosition: 'bottom',
-          panelClass: ['custom-snackbar', 'error-snackbar']
-        });
+        this.showErrorSnackbar('Failed to load repository branches');
       }
     });
   }
@@ -153,17 +192,12 @@ export class RepositoryDetailComponent implements OnInit, OnDestroy {
     if (!this.repository) return;
     
     this.repositoryService.getRepositoryFiles(this.repository.fullName, this.selectedBranch).subscribe({
-      next: (files: string[]) => {
+      next: (files: any[]) => {
         this.repositoryFiles = files ?? [];
       },
       error: (error: any) => {
         console.error('Error loading files:', error);
-        this.snackBar.open('Failed to load repository files', 'Close', {
-          duration: 3000,
-          horizontalPosition: 'center',
-          verticalPosition: 'bottom',
-          panelClass: ['custom-snackbar', 'error-snackbar']
-        });
+        this.showErrorSnackbar('Failed to load repository files');
       }
     });
   }
@@ -174,7 +208,6 @@ export class RepositoryDetailComponent implements OnInit, OnDestroy {
     this.repositoryService.getRepositoryStats(this.repository.fullName).subscribe({
       next: (stats: RepositoryStats) => {
         this.repositoryStats = stats;
-        // Process and expose all commit details for the template
         this.recentCommits = (stats.recentCommits || []).map((commit: any) => ({
           message: commit.message,
           author: commit.author,
@@ -187,12 +220,7 @@ export class RepositoryDetailComponent implements OnInit, OnDestroy {
       },
       error: (error: any) => {
         console.error('Error loading stats:', error);
-        this.snackBar.open('Failed to load repository statistics', 'Close', {
-          duration: 3000,
-          horizontalPosition: 'center',
-          verticalPosition: 'bottom',
-          panelClass: ['custom-snackbar', 'error-snackbar']
-        });
+        this.showErrorSnackbar('Failed to load repository statistics');
         this.loading = false;
       }
     });
@@ -206,58 +234,38 @@ export class RepositoryDetailComponent implements OnInit, OnDestroy {
       },
       error: (error: any) => {
         console.error('Error loading collaborators:', error);
-        this.snackBar.open('Failed to load repository collaborators', 'Close', {
-          duration: 3000,
-          horizontalPosition: 'center',
-          verticalPosition: 'bottom',
-          panelClass: ['custom-snackbar', 'error-snackbar']
-        });
+        this.showErrorSnackbar('Failed to load repository collaborators');
       }
     });
   }
 
-  // GitHub-like helper methods
-  getRandomCommitHash(): string {
-    return Math.random().toString(36).substring(2, 9);
-  }
+  loadLatestCommit(): void {
+    if (!this.repository) return;
 
-  getRandomCommitMessage(): string {
-    const messages = [
-      'Update README.md',
-      'Fix bug in authentication',
-      'Add new feature',
-      'Refactor code structure',
-      'Update dependencies',
-      'Initial commit',
-      'Fix styling issues'
-    ];
-    return messages[Math.floor(Math.random() * messages.length)];
-  }
+    const [owner, repo] = this.repository.fullName.split('/');
 
-  getRandomDate(): string {
-    const date = new Date();
-    date.setDate(date.getDate() - Math.floor(Math.random() * 30));
-    return date.toLocaleDateString();
-  }
+    this.repositoryService.getLatestCommit(owner, repo, '', this.selectedBranch).subscribe({
+      next: (commits: any) => {
+        if (commits && commits.length > 0) {
+          const latestCommit = commits[0];
+          const commitDate = new Date(latestCommit.commit.author.date);
+          const now = new Date();
+          const diffInMs = now.getTime() - commitDate.getTime();
 
-  getFileIcon(fileName: string): string {
-    const extension = fileName.split('.').pop()?.toLowerCase();
-    
-    switch (extension) {
-      case 'js': case 'ts': return 'javascript';
-      case 'html': case 'htm': return 'code';
-      case 'css': case 'scss': case 'sass': return 'palette';
-      case 'json': return 'data_object';
-      case 'md': return 'description';
-      case 'txt': return 'text_snippet';
-      case 'pdf': return 'picture_as_pdf';
-      case 'jpg': case 'jpeg': case 'png': case 'gif': case 'svg': return 'image';
-      case 'zip': case 'rar': case '7z': return 'archive';
-      case 'mp4': case 'avi': case 'mov': return 'movie';
-      case 'mp3': case 'wav': case 'flac': return 'audio_file';
-      default: 
-        return fileName.includes('.') ? 'description' : 'folder';
-    }
+          this.latestCommitBanner = {
+            author: latestCommit.commit.author.name,
+            message: latestCommit.commit.message,
+            sha: latestCommit.sha.substring(0, 7),
+            time: latestCommit.commit.author.date,
+            avatarUrl: latestCommit.author?.avatar_url || `https://github.com/identicons/${encodeURIComponent(latestCommit.commit.author.name)}.png`
+          };
+          this.commitCount = commits.length;
+        }
+      },
+      error: (error: any) => {
+        console.error('Error loading latest commit:', error);
+      }
+    });
   }
 
   switchTab(tab: 'code' | 'settings' | 'branches' | 'collaborators' | 'commits'): void {
@@ -268,7 +276,6 @@ export class RepositoryDetailComponent implements OnInit, OnDestroy {
       queryParamsHandling: 'merge'
     });
 
-    // Load data based on active tab
     switch (tab) {
       case 'code':
         this.loadRepositoryFiles();
@@ -291,16 +298,14 @@ export class RepositoryDetailComponent implements OnInit, OnDestroy {
     });
     this.currentPath = '';
     this.loadRepositoryFiles();
-    this.showBranchDropdown = false; // Close dropdown after selection
+    this.showBranchDropdown = false;
     
-    console.log('Opening snackbar for branch switch:', branch);
-    const snackBarRef = this.snackBar.open(`Switched to branch: ${branch}`, 'Close', {
+    this.snackBar.open(`Switched to branch: ${branch}`, 'Close', {
       duration: 3000,
       horizontalPosition: 'center',
       verticalPosition: 'bottom',
       panelClass: ['custom-snackbar']
     });
-    console.log('Snackbar ref:', snackBarRef);
   }
 
   toggleBranchDropdown(): void {
@@ -329,17 +334,6 @@ export class RepositoryDetailComponent implements OnInit, OnDestroy {
     this.router.navigate(['/teacher/repositories']);
   }
 
-  testSnackbar(): void {
-    console.log('Testing snackbar...');
-    const snackBarRef = this.snackBar.open('Test snackbar message!', 'Close', {
-      duration: 3000,
-      horizontalPosition: 'center',
-      verticalPosition: 'bottom',
-      panelClass: ['custom-snackbar']
-    });
-    console.log('Test snackbar ref:', snackBarRef);
-  }
-
   openRepository(): void {
     if (this.repository) {
       window.open(this.repository.url, '_blank');
@@ -361,8 +355,6 @@ export class RepositoryDetailComponent implements OnInit, OnDestroy {
     const diffInMinutes = Math.floor(diffInMs / (1000 * 60));
     const diffInHours = Math.floor(diffInMs / (1000 * 60 * 60));
     const diffInDays = Math.floor(diffInHours / 24);
-
-    console.log('Date comparison:', { dateString, date, now, diffInMs, diffInMinutes, diffInHours });
 
     if (diffInMinutes < 1) {
       return 'just now';
@@ -400,7 +392,6 @@ export class RepositoryDetailComponent implements OnInit, OnDestroy {
     return colors[language] || '#586069';
   }
 
-  // Update repository settings
   updateRepositorySettings(): void {
     if (!this.repository) return;
     
@@ -410,13 +401,7 @@ export class RepositoryDetailComponent implements OnInit, OnDestroy {
     
     this.repositoryService.updateRepository(this.repository.fullName, settings).subscribe({
       next: () => {
-        this.snackBar.open('Repository settings updated successfully', 'Close', {
-          duration: 3000,
-          horizontalPosition: 'center',
-          verticalPosition: 'bottom',
-          panelClass: ['custom-snackbar']
-        });
-        // Update the local repository object
+        this.showSuccessSnackbar('Repository settings updated successfully');
         if (this.repository) {
           this.repository.description = this.repositoryDescription;
         }
@@ -425,27 +410,19 @@ export class RepositoryDetailComponent implements OnInit, OnDestroy {
         console.error('Error updating repository settings:', error);
         let errorMessage = 'Failed to update repository settings';
         
-        // Extract more specific error message if available
         if (error?.error?.error) {
           errorMessage = error.error.error;
         } else if (error?.message) {
           errorMessage = error.message;
         }
         
-        this.snackBar.open(errorMessage, 'Close', {
-          duration: 4000,
-          horizontalPosition: 'center',
-          verticalPosition: 'bottom',
-          panelClass: ['custom-snackbar', 'error-snackbar']
-        });
+        this.showErrorSnackbar(errorMessage);
       }
     });
   }
 
-  // Settings tab navigation
   setSettingsTab(tab: 'general' | 'collaborators' | 'branches' | 'commits' | 'delete'): void {
     this.settingsTab = tab;
-    // Load data based on the tab selected
     switch (tab) {
       case 'branches':
         this.loadRepositoryBranches();
@@ -466,57 +443,33 @@ export class RepositoryDetailComponent implements OnInit, OnDestroy {
       'delete': 'Delete Repository'
     };
     
-    this.snackBar.open(`Switched to ${tabNames[tab]}`, 'Close', {
-      duration: 2000,
-      horizontalPosition: 'center',
-      verticalPosition: 'bottom',
-      panelClass: ['custom-snackbar']
-    });
+    this.showSuccessSnackbar(`Switched to ${tabNames[tab]}`);
   }
 
-  // Collaborator management
   addCollaborator(): void {
     if (this.collaborator.trim() && this.repository) {
-      // Call backend to add collaborator
       this.repositoryService.addCollaborator(this.repository.fullName, this.collaborator).subscribe({
         next: () => {
-          this.snackBar.open(`Invitation sent to ${this.collaborator}`, 'Close', {
-            duration: 3000,
-            horizontalPosition: 'center',
-            verticalPosition: 'bottom',
-            panelClass: ['custom-snackbar']
-          });
+          this.showSuccessSnackbar(`Invitation sent to ${this.collaborator}`);
           this.collaborator = '';
           this.showAddCollab = false;
-          // Reload collaborators to get updated list including pending invitations
           this.loadRepositoryCollaborators();
         },
         error: (error: any) => {
           console.error('Error adding collaborator:', error);
           let errorMessage = 'Failed to add collaborator';
 
-          // Extract more specific error message if available
           if (error?.error?.error) {
             errorMessage = error.error.error;
           } else if (error?.message) {
             errorMessage = error.message;
           }
 
-          this.snackBar.open(errorMessage, 'Close', {
-            duration: 4000,
-            horizontalPosition: 'center',
-            verticalPosition: 'bottom',
-            panelClass: ['custom-snackbar', 'error-snackbar']
-          });
+          this.showErrorSnackbar(errorMessage);
         }
       });
     } else {
-      this.snackBar.open('Please enter a valid username or email', 'Close', {
-        duration: 3000,
-        horizontalPosition: 'center',
-        verticalPosition: 'bottom',
-        panelClass: ['custom-snackbar', 'warning-snackbar']
-      });
+      this.showWarningSnackbar('Please enter a valid username or email');
     }
   }
 
@@ -524,32 +477,20 @@ export class RepositoryDetailComponent implements OnInit, OnDestroy {
     if (confirm(`Remove ${collaborator} from this repository?`) && this.repository) {
       this.repositoryService.removeCollaborator(this.repository.fullName, collaborator).subscribe({
         next: () => {
-          this.snackBar.open(`Removed ${collaborator} from repository`, 'Close', {
-            duration: 3000,
-            horizontalPosition: 'center',
-            verticalPosition: 'bottom',
-            panelClass: ['custom-snackbar']
-          });
-          // Reload collaborators to get updated list
+          this.showSuccessSnackbar(`Removed ${collaborator} from repository`);
           this.loadRepositoryCollaborators();
         },
         error: (error: any) => {
           console.error('Error removing collaborator:', error);
           let errorMessage = 'Failed to remove collaborator';
           
-          // Extract more specific error message if available
           if (error?.error?.error) {
             errorMessage = error.error.error;
           } else if (error?.message) {
             errorMessage = error.message;
           }
           
-          this.snackBar.open(errorMessage, 'Close', {
-            duration: 4000,
-            horizontalPosition: 'center',
-            verticalPosition: 'bottom',
-            panelClass: ['custom-snackbar', 'error-snackbar']
-          });
+          this.showErrorSnackbar(errorMessage);
         }
       });
     }
@@ -562,13 +503,7 @@ export class RepositoryDetailComponent implements OnInit, OnDestroy {
 
     this.repositoryService.createBranch(this.repository.fullName, branchName, this.selectedBranch).subscribe({
       next: () => {
-        this.snackBar.open(`Branch "${branchName}" created for ${username}`, 'Close', {
-          duration: 3000,
-          horizontalPosition: 'center',
-          verticalPosition: 'bottom',
-          panelClass: ['custom-snackbar']
-        });
-        // Reload branches to get updated list
+        this.showSuccessSnackbar(`Branch "${branchName}" created for ${username}`);
         this.loadRepositoryBranches();
       },
       error: (error: any) => {
@@ -581,55 +516,11 @@ export class RepositoryDetailComponent implements OnInit, OnDestroy {
           errorMessage = error.message;
         }
 
-        this.snackBar.open(errorMessage, 'Close', {
-          duration: 4000,
-          horizontalPosition: 'center',
-          verticalPosition: 'bottom',
-          panelClass: ['custom-snackbar', 'error-snackbar']
-        });
+        this.showErrorSnackbar(errorMessage);
       }
     });
   }
 
-  loadLatestCommit(): void {
-    if (!this.repository) return;
-
-    const [owner, repo] = this.repository.fullName.split('/');
-
-    this.repositoryService.getLatestCommit(owner, repo, '', this.selectedBranch).subscribe({
-      next: (commits: any) => {
-        console.log('Latest commit response:', commits);
-        if (commits && commits.length > 0) {
-          const latestCommit = commits[0];
-          console.log('Latest commit data:', latestCommit);
-          console.log('Commit date:', latestCommit.commit.author.date);
-          console.log('Current time:', new Date().toISOString());
-
-          // Parse the commit date properly
-          const commitDate = new Date(latestCommit.commit.author.date);
-          const now = new Date();
-          const diffInMs = now.getTime() - commitDate.getTime();
-          const diffInMinutes = Math.floor(diffInMs / (1000 * 60));
-
-          console.log('Time difference in minutes:', diffInMinutes);
-
-          this.latestCommitBanner = {
-            author: latestCommit.commit.author.name,
-            message: latestCommit.commit.message,
-            sha: latestCommit.sha.substring(0, 7),
-            time: latestCommit.commit.author.date,
-            avatarUrl: latestCommit.author?.avatar_url || `https://github.com/identicons/${encodeURIComponent(latestCommit.commit.author.name)}.png`
-          };
-          this.commitCount = commits.length;
-        }
-      },
-      error: (error: any) => {
-        console.error('Error loading latest commit:', error);
-      }
-    });
-  }
-
-  // Collaborator management
   onCollaboratorInputChange(): void {
     const query = this.collaborator.trim();
     if (query.length > 2) {
@@ -651,19 +542,17 @@ export class RepositoryDetailComponent implements OnInit, OnDestroy {
   }
 
   selectUser(user: UserSummary): void {
-    this.collaborator = user.email; // Use email for better UX
+    this.collaborator = user.email;
     this.userSuggestions = [];
     this.showUserSuggestions = false;
   }
 
   hideUserSuggestions(): void {
-    // Add a small delay to allow click events on suggestions to fire
     setTimeout(() => {
       this.showUserSuggestions = false;
     }, 200);
   }
 
-  // Branch management
   toggleCreateBranch(): void {
     this.showCreateBranchInput = !this.showCreateBranchInput;
     this.newBranchName = '';
@@ -675,19 +564,11 @@ export class RepositoryDetailComponent implements OnInit, OnDestroy {
         next: () => {
           this.branchSuccessMessage = `Branch "${this.newBranchName}" created successfully!`;
           this.branchErrorMessage = '';
-          this.snackBar.open(`Branch "${this.newBranchName}" created successfully!`, 'Close', {
-            duration: 3000,
-            horizontalPosition: 'center',
-            verticalPosition: 'bottom',
-            panelClass: ['custom-snackbar']
-          });
+          this.showSuccessSnackbar(`Branch "${this.newBranchName}" created successfully!`);
           this.newBranchName = '';
           this.showCreateBranchInput = false;
-          
-          // Reload branches to get updated list
           this.loadRepositoryBranches();
           
-          // Clear success message after 3 seconds
           setTimeout(() => {
             this.branchSuccessMessage = '';
           }, 3000);
@@ -696,7 +577,6 @@ export class RepositoryDetailComponent implements OnInit, OnDestroy {
           console.error('Error creating branch:', error);
           let errorMessage = 'Failed to create branch';
           
-          // Extract more specific error message if available
           if (error?.error?.error) {
             errorMessage = error.error.error;
           } else if (error?.message) {
@@ -704,22 +584,12 @@ export class RepositoryDetailComponent implements OnInit, OnDestroy {
           }
           
           this.branchErrorMessage = errorMessage;
-          this.snackBar.open(errorMessage, 'Close', {
-            duration: 4000,
-            horizontalPosition: 'center',
-            verticalPosition: 'bottom',
-            panelClass: ['custom-snackbar', 'error-snackbar']
-          });
+          this.showErrorSnackbar(errorMessage);
         }
       });
     } else {
       this.branchErrorMessage = 'Please enter a valid branch name';
-      this.snackBar.open('Please enter a valid branch name', 'Close', {
-        duration: 3000,
-        horizontalPosition: 'center',
-        verticalPosition: 'bottom',
-        panelClass: ['custom-snackbar', 'warning-snackbar']
-      });
+      this.showWarningSnackbar('Please enter a valid branch name');
     }
   }
 
@@ -727,80 +597,50 @@ export class RepositoryDetailComponent implements OnInit, OnDestroy {
     if (confirm(`Delete branch "${branchName}"? This cannot be undone.`) && this.repository) {
       this.repositoryService.deleteBranch(this.repository.fullName, branchName).subscribe({
         next: () => {
-          this.snackBar.open(`Branch "${branchName}" deleted successfully`, 'Close', {
-            duration: 3000,
-            horizontalPosition: 'center',
-            verticalPosition: 'bottom',
-            panelClass: ['custom-snackbar']
-          });
-          // Reload branches to get updated list
+          this.showSuccessSnackbar(`Branch "${branchName}" deleted successfully`);
           this.loadRepositoryBranches();
         },
         error: (error: any) => {
           console.error('Error deleting branch:', error);
           let errorMessage = 'Failed to delete branch';
           
-          // Extract more specific error message if available
           if (error?.error?.error) {
             errorMessage = error.error.error;
           } else if (error?.message) {
             errorMessage = error.message;
           }
           
-          this.snackBar.open(errorMessage, 'Close', {
-            duration: 4000,
-            horizontalPosition: 'center',
-            verticalPosition: 'bottom',
-            panelClass: ['custom-snackbar', 'error-snackbar']
-          });
+          this.showErrorSnackbar(errorMessage);
         }
       });
     }
   }
 
   filteredBranches(): string[] {
-    console.log('filteredBranches called - repositoryBranches:', this.repositoryBranches);
-    console.log('selectedBranch:', this.selectedBranch);
-    console.log('branchSearch:', this.branchSearch);
-    
     if (!this.repositoryBranches) return [];
     
     if (!this.branchSearch.trim()) {
-      const filtered = this.repositoryBranches.filter(branch => branch !== this.selectedBranch);
-      console.log('Filtered branches (no search):', filtered);
-      return filtered;
+      return this.repositoryBranches.filter(branch => branch !== this.selectedBranch);
     }
     
-    const filtered = this.repositoryBranches.filter(branch => 
+    return this.repositoryBranches.filter(branch => 
       branch !== this.selectedBranch && 
       branch.toLowerCase().includes(this.branchSearch.toLowerCase())
     );
-    console.log('Filtered branches (with search):', filtered);
-    return filtered;
   }
 
-  // Repository deletion
   confirmDelete(): void {
     if (this.deleteInput === this.repoName && this.repository) {
       if (confirm('This will permanently delete the repository. Are you absolutely sure?')) {
-        console.log('Starting repository deletion...');
         this.repositoryService.deleteRepository(this.repository.fullName).subscribe({
           next: () => {
-            console.log('Repository deleted successfully, showing snackbar');
-            const snackBarRef = this.snackBar.open(`Repository "${this.repoName}" deleted successfully`, 'Close', {
-              duration: 3000,
-              horizontalPosition: 'center',
-              verticalPosition: 'bottom',
-              panelClass: ['custom-snackbar']
-            });
-            console.log('Success snackbar ref:', snackBarRef);
+            this.showSuccessSnackbar(`Repository "${this.repoName}" deleted successfully`);
             this.router.navigate(['/teacher/repositories']);
           },
           error: (error: any) => {
             console.error('Error deleting repository:', error);
             let errorMessage = 'Failed to delete repository';
             
-            // Extract more specific error message if available
             if (error?.error?.error) {
               if (error.error.error.includes('Must have admin rights')) {
                 errorMessage = 'Permission denied: You must have admin rights to delete this repository';
@@ -813,31 +653,99 @@ export class RepositoryDetailComponent implements OnInit, OnDestroy {
               errorMessage = error.message;
             }
             
-            console.log('Showing error snackbar with message:', errorMessage);
-            const snackBarRef = this.snackBar.open(errorMessage, 'Close', {
-              duration: 5000,
-              horizontalPosition: 'center',
-              verticalPosition: 'bottom',
-              panelClass: ['custom-snackbar', 'error-snackbar']
-            });
-            console.log('Error snackbar ref:', snackBarRef);
+            this.showErrorSnackbar(errorMessage);
           }
         });
       }
     } else {
-      console.log('Repository name mismatch, showing validation snackbar');
-      const snackBarRef = this.snackBar.open('Repository name does not match. Please try again.', 'Close', {
-        duration: 3000,
-        horizontalPosition: 'center',
-        verticalPosition: 'bottom',
-        panelClass: ['custom-snackbar', 'warning-snackbar']
-      });
-      console.log('Validation snackbar ref:', snackBarRef);
+      this.showWarningSnackbar('Repository name does not match. Please try again.');
     }
+  }
+
+  // File viewing properties
+  selectedFile: { name: string, content: string, imageUrl?: string } | null = null;
+  showFileModal = false;
+  loadingFileContent = false;
+
+  viewFile(file: any): void {
+    if (!this.repository) {
+      this.showErrorSnackbar('Repository not loaded');
+      return;
+    }
+    
+    this.viewFileFromGithub(file);
+  }
+
+  viewFileFromGithub(file: any): void {
+    let fileName = file.fileName || file.filePath || file;
+    fileName = fileName.replace(/\s*\(file\)$/i, '');
+    const filePath = this.currentPath ? `${this.currentPath}/${fileName}` : fileName;
+    const [owner, repo] = this.repository!.fullName.split('/');
+
+    this.loadingFileContent = true;
+    this.showFileModal = true;
+    this.selectedFile = { name: fileName, content: 'Loading...', imageUrl: undefined };
+
+    this.repositoryService.getFileContent(`${owner}/${repo}`, filePath, this.selectedBranch)
+      .subscribe({
+        next: (response: any) => {
+          if (response.content) {
+            const isImage = /\.(png|jpe?g|gif|bmp|webp|svg)$/i.test(fileName);
+            if (isImage) {
+              let ext = fileName.split('.').pop()?.toLowerCase() || '';
+              let mime = 'image/' + (ext === 'jpg' || ext === 'jpeg' ? 'jpeg' : ext);
+              this.selectedFile = {
+                name: fileName,
+                content: '',
+                imageUrl: `data:${mime};base64,${response.content}`
+              };
+            } else {
+              this.selectedFile = {
+                name: fileName,
+                content: atob(response.content)
+              };
+            }
+          } else if (response.download_url) {
+            this.repositoryService.getRawFileContent(response.download_url)
+              .subscribe({
+                next: (content: string) => {
+                  this.selectedFile = {
+                    name: fileName,
+                    content: content
+                  };
+                },
+                error: (error) => {
+                  this.handleFileError(fileName, error);
+                }
+              });
+          }
+          this.loadingFileContent = false;
+        },
+        error: (error) => {
+          this.handleFileError(fileName, error);
+        }
+      });
+  }
+
+  private handleFileError(fileName: string, error: any): void {
+    console.error('Error loading file content:', error);
+    this.selectedFile = {
+      name: fileName,
+      content: 'Error loading file content: ' + (error.message || 'Unknown error')
+    };
+    this.loadingFileContent = false;
+    this.showErrorSnackbar('Failed to load file content');
   }
 
   copyToClipboard(text: string) {
     navigator.clipboard.writeText(text);
+    this.showSuccessSnackbar('Copied to clipboard!');
+  }
+
+  closeFileModal(): void {
+    this.showFileModal = false;
+    this.selectedFile = null;
+    this.loadingFileContent = false;
   }
 
   onImageError(event: Event, authorName: string) {
@@ -849,5 +757,33 @@ export class RepositoryDetailComponent implements OnInit, OnDestroy {
 
   encodeURI(text: string): string {
     return encodeURIComponent(text);
+  }
+
+  // Helper methods for snackbars
+  private showSuccessSnackbar(message: string): void {
+    this.snackBar.open(message, 'Close', {
+      duration: 3000,
+      horizontalPosition: 'center',
+      verticalPosition: 'bottom',
+      panelClass: ['custom-snackbar', 'success-snackbar']
+    });
+  }
+
+  private showErrorSnackbar(message: string): void {
+    this.snackBar.open(message, 'Close', {
+      duration: 4000,
+      horizontalPosition: 'center',
+      verticalPosition: 'bottom',
+      panelClass: ['custom-snackbar', 'error-snackbar']
+    });
+  }
+
+  private showWarningSnackbar(message: string): void {
+    this.snackBar.open(message, 'Close', {
+      duration: 3000,
+      horizontalPosition: 'center',
+      verticalPosition: 'bottom',
+      panelClass: ['custom-snackbar', 'warning-snackbar']
+    });
   }
 }

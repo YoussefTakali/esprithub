@@ -304,6 +304,33 @@ public class GitHubRepositoryService {
         }
     }
 
+    /**
+     * Fetch file content from GitHub by owner/repo/branch/path
+     */
+    public Map<String, Object> fetchFileContent(String owner, String repo, String branch, String path, String token) {
+        String url = GITHUB_API_BASE + "/repos/" + owner + "/" + repo + "/contents/" + path + "?ref=" + branch;
+        HttpHeaders headers = createHeaders(token);
+        HttpEntity<String> entity = new HttpEntity<>(headers);
+        try {
+            ResponseEntity<String> response = restTemplate.exchange(url, HttpMethod.GET, entity, String.class);
+            if (response.getStatusCode().is2xxSuccessful()) {
+                JsonNode fileNode = objectMapper.readTree(response.getBody());
+                Map<String, Object> result = new HashMap<>();
+                result.put("name", fileNode.get("name").asText());
+                result.put("path", fileNode.get("path").asText());
+                result.put("content", fileNode.has("content") && !fileNode.get("content").isNull() ? fileNode.get("content").asText() : null);
+                result.put("encoding", fileNode.has("encoding") && !fileNode.get("encoding").isNull() ? fileNode.get("encoding").asText() : null);
+                result.put("sha", fileNode.has("sha") && !fileNode.get("sha").isNull() ? fileNode.get("sha").asText() : null);
+                result.put("size", fileNode.has("size") && !fileNode.get("size").isNull() ? fileNode.get("size").asInt() : null);
+                result.put("url", fileNode.has("url") && !fileNode.get("url").isNull() ? fileNode.get("url").asText() : null);
+                return result;
+            }
+        } catch (Exception e) {
+            log.warn("Failed to fetch file from GitHub: {}", e.getMessage());
+        }
+        return null;
+    }
+
     private GitHubRepositoryDetailsDto buildRepositoryDetailsDto(
             JsonNode repoData,
             List<GitHubRepositoryDetailsDto.BranchDto> branches,
@@ -359,7 +386,9 @@ public class GitHubRepositoryService {
 
     private HttpHeaders createHeaders(String token) {
         HttpHeaders headers = new HttpHeaders();
-        headers.setBearerAuth(token);
+        if (token != null && !token.isBlank()) {
+            headers.setBearerAuth(token);
+        }
         headers.set("Accept", "application/vnd.github.v3+json");
         return headers;
     }

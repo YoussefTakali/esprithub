@@ -203,14 +203,82 @@ export class UserManagementComponent implements OnInit {
     return department?.nom ?? 'Unknown';
   }
 
-  importData(event: Event){
-  
-}
+  async importCsv(event: Event): Promise<void> {
+    const input = event.target as HTMLInputElement;
+    if (!input.files || input.files.length === 0) return;
+    const file = input.files[0];
+    const reader = new FileReader();
+    reader.onload = async () => {
+      const text = reader.result as string;
+      const lines = text.split(/\r?\n/).filter(l => l.trim().length > 0);
+      if (lines.length < 2) {
+        this.snackbarService.showError('CSV must have a header and at least one row.');
+        return;
+      }
+      // Expecting: address,password,firstName,lastName
+      const header = lines[0].split(',').map(h => h.trim().toLowerCase());
+      const addressIdx = header.indexOf('address');
+      const passwordIdx = header.indexOf('password');
+      const firstNameIdx = header.indexOf('firstname');
+      const lastNameIdx = header.indexOf('lastname');
+      if ([addressIdx, passwordIdx, firstNameIdx, lastNameIdx].some(idx => idx === -1)) {
+        this.snackbarService.showError('CSV must have columns: address,password,firstName,lastName');
+        return;
+      }
+      let success = 0, fail = 0;
+      for (let i = 1; i < lines.length; i++) {
+        const row = lines[i].split(',');
+        if (row.length < 4) { fail++; continue; }
+        const user = {
+          email: row[addressIdx].trim(),
+          password: row[passwordIdx].trim(),
+          firstName: row[firstNameIdx].trim(),
+          lastName: row[lastNameIdx].trim(),
+          role: this.createForm.role, // Default to current form role, or set as needed
+          departementId: this.createForm.departementId // Optional, or set as needed
+        };
+        try {
+          await firstValueFrom(this.userService.createUser(user));
+          success++;
+        } catch (e) {
+          // Optionally log error e
+          fail++;
+        }
+      }
+      this.snackbarService.showSuccess(`Imported: ${success}, Failed: ${fail}`);
+      this.loadData();
+    };
+    reader.readAsText(file);
+  }
 
-exportData()
-{
+  // Export users as CSV
+  exportData() {
+    // Adjust the URL if your backend is hosted elsewhere
+    fetch('http://localhost:8090/api/v1/admin/users/export', {
+      method: 'GET',
+      headers: {
+        'Accept': 'text/csv'
+      },
+      credentials: 'include'
+    })
+      .then(response => {
+        if (!response.ok) throw new Error('Failed to export users');
+        return response.blob();
+      })
+      .then(blob => {
+        const url = window.URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        a.href = url;
+        a.download = 'users.csv';
+        a.click();
+        window.URL.revokeObjectURL(url);
+      })
+      .catch(err => {
+        this.snackbarService.showError('Failed to export users.');
+        console.error('Export error:', err);
+      });
+  }
 
-}
 }
 
 

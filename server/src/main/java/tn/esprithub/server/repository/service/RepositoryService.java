@@ -34,6 +34,12 @@ public interface RepositoryService {
     
     List<Map<String, Object>> getCommits(String repoFullName, String branch, int page, String teacherEmail);
 
+
+    /**
+     * Get file content from GitHub for a teacher (like student version)
+     */
+    Map<String, Object> getFileContent(String owner, String repo, String path, String branch, String teacherEmail);
+
     Object getLatestCommit(String owner, String repo, String path, String branch, String teacherEmail);
 
     void updateRepository(String repoFullName, Map<String, Object> settings, String teacherEmail);

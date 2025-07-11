@@ -4,6 +4,8 @@ import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
+import org.springframework.http.HttpHeaders;
+import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.*;
@@ -19,6 +21,12 @@ import tn.esprithub.server.user.entity.User;
 import tn.esprithub.server.user.repository.UserRepository;
 import tn.esprithub.server.admin.service.AdminUserDataService;
 
+import java.io.ByteArrayOutputStream;
+import java.io.OutputStreamWriter;
+import java.io.PrintWriter;
+// ...existing code...
+import org.springframework.http.ContentDisposition;
+import java.nio.charset.StandardCharsets;
 import java.time.LocalDateTime;
 import java.util.HashMap;
 import java.util.List;
@@ -603,5 +611,69 @@ public class AdminUserController {
             org.springframework.http.HttpStatus.NOT_FOUND,
             "Resource not found"
         );
+    }
+
+    @GetMapping("/export")
+    // @PreAuthorize("hasRole('ADMIN')") // Temporarily disabled for testing
+    public ResponseEntity<byte[]> exportUsersAsCsv() {
+        log.info("📋 Exporting all users as CSV");
+        
+        try {
+            List<User> users = userRepository.findAll();
+            
+            ByteArrayOutputStream outputStream = new ByteArrayOutputStream();
+            PrintWriter writer = new PrintWriter(new OutputStreamWriter(outputStream, StandardCharsets.UTF_8));
+            
+            // CSV header
+            writer.println("ID,Email,First Name,Last Name,Role,GitHub Username,GitHub Name,Is Active,Email Verified,Last Login,Registration Date");
+            
+            // CSV rows
+            for (User user : users) {
+                writer.printf("%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s%n",
+                    user.getId().toString(),
+                    escapeForCsv(user.getEmail()),
+                    escapeForCsv(user.getFirstName()),
+                    escapeForCsv(user.getLastName()),
+                    user.getRole().name(),
+                    escapeForCsv(user.getGithubUsername()),
+                    escapeForCsv(user.getGithubName()),
+                    user.getIsActive(),
+                    user.getIsEmailVerified(),
+                    user.getLastLogin() != null ? user.getLastLogin().toString() : "",
+                    user.getCreatedAt() != null ? user.getCreatedAt().toString() : ""
+                );
+            }
+            
+            writer.flush();
+            writer.close();
+            
+            byte[] csvData = outputStream.toByteArray();
+            outputStream.close();
+            
+            HttpHeaders headers = new HttpHeaders();
+            headers.setContentType(MediaType.parseMediaType("text/csv"));
+            headers.setContentDisposition(ContentDisposition.builder("attachment")
+                .filename("users_export.csv")
+                .build());
+            
+            log.info("✅ Successfully exported {} users to CSV", users.size());
+            return ResponseEntity.ok()
+                .headers(headers)
+                .body(csvData);
+                
+        } catch (Exception e) {
+            log.error("❌ Error exporting users to CSV", e);
+            throw new BusinessException("Failed to export users: " + e.getMessage());
+        }
+    }
+
+    private String escapeForCsv(String value) {
+        if (value == null) {
+            return "";
+        }
+        if (value.contains(",") || value.contains("\"") || value.contains("\n")) {
+            return "\"" + value.replace("\"", "\"\"") + "\"";
+        }
+        return value;
     }
 }

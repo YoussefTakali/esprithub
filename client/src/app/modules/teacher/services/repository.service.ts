@@ -1,5 +1,5 @@
 import { Injectable } from '@angular/core';
-import { HttpClient, HttpHeaders } from '@angular/common/http';
+import { HttpClient } from '@angular/common/http';
 import { Observable } from 'rxjs';
 import { environment } from '../../../../environments/environment';
 
@@ -78,9 +78,10 @@ export interface UserSummary {
   providedIn: 'root'
 })
 export class RepositoryService {
-  private apiUrl = `${environment.apiUrl}/api/repositories`;
+  private readonly apiUrl = `${environment.apiUrl}/api/repositories`;
+  private readonly githubApiUrl = `${environment.apiUrl}/api/v1/github`;
 
-  constructor(private http: HttpClient) {}
+  constructor(private readonly http: HttpClient) {}
 
   getTeacherRepositories(): Observable<Repository[]> {
     return this.http.get<Repository[]>(`${this.apiUrl}/teacher`);
@@ -104,8 +105,21 @@ export class RepositoryService {
     return this.http.post<string>(`${this.apiUrl}/${repoFullName}/upload`, formData);
   }
 
-  getRepositoryFiles(repoFullName: string, branch: string = 'main'): Observable<string[]> {
-    return this.http.get<string[]>(`${this.apiUrl}/${repoFullName}/files?branch=${branch}`);
+  getRepositoryFiles(repoFullName: string, branch: string = 'main'): Observable<any[]> {
+    // We need to get the repository ID first, then get files by ID
+    // For now, let's try to extract repository ID from the fullName or find another way
+    // This is a temporary fix - you might need to adjust based on your repository structure
+    return this.http.get<any[]>(`${this.apiUrl}/${repoFullName}/files?branch=${branch}`);
+  }
+
+  getFileContent(repoFullName: string, filePath: string, branch: string = 'main'): Observable<{content: string, encoding?: string}> {
+    // This method needs to be updated to work with file IDs instead of file paths
+    // For now, we'll try the original approach but it might need backend changes
+    return this.http.get<{content: string, encoding?: string}>(`${this.apiUrl}/${repoFullName}/files/${encodeURIComponent(filePath)}/content?branch=${branch}`);
+  }
+
+  getFileContentById(fileId: string): Observable<{content: string, encoding?: string}> {
+    return this.http.get<{content: string, encoding?: string}>(`${this.githubApiUrl}/files/${fileId}/content`);
   }
 
   getRepositoryBranches(repoFullName: string): Observable<string[]> {
@@ -124,10 +138,6 @@ export class RepositoryService {
     });
   }
 
-  // Delete a branch
-  deleteBranch(repoFullName: string, branchName: string): Observable<any> {
-    return this.http.delete(`${this.apiUrl}/${repoFullName}/branches/${encodeURIComponent(branchName)}`);
-  }
 
   // Get repository collaborators
   getCollaborators(repoFullName: string): Observable<any[]> {
@@ -151,7 +161,9 @@ export class RepositoryService {
   getCommits(repoFullName: string, branch: string = 'main', page: number = 1): Observable<CommitInfo[]> {
     return this.http.get<CommitInfo[]>(`${this.apiUrl}/${repoFullName}/commits?branch=${branch}&page=${page}`);
   }
-
+  deleteBranch(repoFullName: string, branchName: string): Observable<any> {
+    return this.http.delete(`${this.apiUrl}/${repoFullName}/branches/${encodeURIComponent(branchName)}`);
+  }
   // Get latest commit for a specific path
   getLatestCommit(owner: string, repo: string, path: string, branch: string = 'main'): Observable<any> {
     return this.http.get<any>(`${this.apiUrl}/latest-commit?owner=${owner}&repo=${repo}&path=${encodeURIComponent(path)}&branch=${branch}`);
@@ -175,4 +187,8 @@ export class RepositoryService {
       isPrivate: isPrivate
     });
   }
+
+getRawFileContent(rawUrl: string): Observable<string> {
+  return this.http.get(rawUrl, { responseType: 'text' });
+}
 }

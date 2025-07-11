@@ -9,6 +9,7 @@ import tn.esprithub.server.repository.repository.*;
 import tn.esprithub.server.project.entity.Task;
 import tn.esprithub.server.project.repository.TaskRepository;
 import tn.esprithub.server.user.entity.User;
+import tn.esprithub.server.github.service.GitHubRepositoryService;
 
 import java.util.*;
 import java.util.stream.Collectors;
@@ -25,6 +26,7 @@ public class AdminUserDataService {
     private final RepositoryFileChangeRepository fileChangeRepository;
     private final RepositoryCollaboratorRepository collaboratorRepository;
     private final TaskRepository taskRepository;
+    private final GitHubRepositoryService gitHubRepositoryService;
     
     /**
      * Get comprehensive user data with summary information only (no large content)
@@ -273,12 +275,34 @@ public class AdminUserDataService {
      */
     @Transactional(readOnly = true)
     public Map<String, Object> getFileContent(UUID fileId) {
+        // Try to fetch from GitHub first (if possible)
         Optional<RepositoryFile> fileOpt = fileRepository.findById(fileId);
-        if (fileOpt.isEmpty()) {
-            return new HashMap<>();
+        if (fileOpt.isPresent()) {
+            RepositoryFile file = fileOpt.get();
+            try {
+                // Try to get repo info
+                var repo = file.getRepository();
+                String fullName = repo.getFullName();
+                String[] parts = fullName.split("/");
+                if (parts.length == 2) {
+                    String owner = parts[0];
+                    String repoName = parts[1];
+                    String branch = file.getBranchName();
+                    String path = file.getFilePath();
+                    // Try to fetch from GitHub
+                    // You need a user with a valid GitHub token; for now, fallback to DB if not available
+                    // TODO: Pass user context for token
+                    // Map<String, Object> githubFile = gitHubRepositoryService.fetchFileContent(owner, repoName, branch, path, userToken);
+                    // if (githubFile != null && githubFile.get("content") != null) return githubFile;
+                }
+            } catch (Exception e) {
+                log.warn("Failed to fetch from GitHub, falling back to DB: {}", e.getMessage());
+            }
+            // Fallback to DB
+            return mapFileToDataWithContent(file);
         }
-
-        return mapFileToDataWithContent(fileOpt.get());
+        // Not found in DB, cannot fetch from GitHub without metadata
+        return new HashMap<>();
     }
     
     /**

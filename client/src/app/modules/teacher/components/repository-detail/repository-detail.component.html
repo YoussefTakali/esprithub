@@ -336,8 +336,10 @@
         <tr class="file-row" *ngFor="let file of repositoryFiles">
           <td class="file-name-cell">
             <div class="file-name-container">
-              <i class="fas fa-file"></i>
-              <a href="#" class="file-name">{{ file }}</a>
+              <i [ngClass]="getFileFaIcon(file.fileName || file.filePath || file)"></i>
+              <a href="javascript:void(0)" 
+                 class="file-name" 
+                 (click)="viewFile(file)">{{ file.fileName || file.filePath || file }}</a>
             </div>
           </td>
           <td class="commit-message-cell">{{ recentCommits.length > 0 ? recentCommits[0].message : 'No commits' }}</td>
@@ -369,6 +371,51 @@
     <div class="readme-content">
       <h1>{{ repoName }}</h1>
       <p>{{ repository?.description }}</p>
+    </div>
+  </div>
+</div>
+
+<!-- File Viewer Modal -->
+<div class="modal-overlay" *ngIf="showFileModal" (click)="closeFileModal()">
+  <div class="file-modal" (click)="$event.stopPropagation()">
+    <div class="file-modal-header" style="z-index:2; position:relative; background:rgba(255,255,255,0.95);">
+      <h3 style="margin-bottom:0.5rem;"><i class="fas fa-file"></i> {{ selectedFile?.name }}</h3>
+      <button class="close-btn" (click)="closeFileModal()" style="top:0.5rem;right:0.5rem;position:absolute;">
+        <i class="fas fa-times"></i>
+      </button>
+    </div>
+    <div class="file-modal-content">
+      <div *ngIf="loadingFileContent" class="loading-spinner">
+        <i class="fas fa-spinner fa-spin"></i> Loading file content...
+      </div>
+      <ng-container *ngIf="!loadingFileContent && selectedFile">
+        <div style="position:relative;z-index:1;">
+          <img *ngIf="selectedFile.imageUrl" [src]="selectedFile.imageUrl" [alt]="selectedFile.name" style="max-width:100%;max-height:60vh;display:block;margin:auto;" />
+          <pre *ngIf="!selectedFile.imageUrl" class="file-content">{{ selectedFile.content }}</pre>
+        </div>
+      </ng-container>
+    </div>
+  </div>
+</div>
+
+<!-- File Viewer Modal -->
+<div *ngIf="showFileModal" class="modal-overlay" (click)="closeFileModal()">
+  <div class="file-modal" (click)="$event.stopPropagation()">
+    <div class="file-modal-header">
+      <h3>
+        <i class="fas fa-file"></i>
+        {{ selectedFile?.name }}
+      </h3>
+      <button class="close-btn" (click)="closeFileModal()">
+        <i class="fas fa-times"></i>
+      </button>
+    </div>
+    <div class="file-modal-content">
+      <div *ngIf="loadingFileContent" class="loading-spinner">
+        <i class="fas fa-spinner fa-spin"></i>
+        Loading file content...
+      </div>
+      <pre *ngIf="!loadingFileContent && selectedFile" class="file-content">{{ selectedFile.content }}</pre>
     </div>
   </div>
 </div>
@@ -485,5 +532,93 @@
 .commit-count {
   color: #0366d6;
   font-weight: 500;
+}
+
+/* File Viewer Modal Styles */
+.modal-overlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  background: rgba(0, 0, 0, 0.5);
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  z-index: 1000;
+}
+
+.file-modal {
+  background: white;
+  border-radius: 8px;
+  width: 90%;
+  max-width: 800px;
+  max-height: 80%;
+  display: flex;
+  flex-direction: column;
+  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.15);
+}
+
+.file-modal-header {
+  padding: 16px 20px;
+  border-bottom: 1px solid #e1e4e8;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  background: #f6f8fa;
+  border-radius: 8px 8px 0 0;
+}
+
+.file-modal-header h3 {
+  margin: 0;
+  font-size: 16px;
+  font-weight: 600;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.close-btn {
+  background: none;
+  border: none;
+  font-size: 18px;
+  cursor: pointer;
+  padding: 4px;
+  border-radius: 4px;
+  color: #586069;
+}
+
+.close-btn:hover {
+  background: #e1e4e8;
+  color: #24292e;
+}
+
+.file-modal-content {
+  flex: 1;
+  overflow: auto;
+  padding: 0;
+}
+
+.loading-spinner {
+  padding: 40px;
+  text-align: center;
+  color: #586069;
+}
+
+.loading-spinner i {
+  margin-right: 8px;
+}
+
+.file-content {
+  margin: 0;
+  padding: 16px 20px;
+  background: #f6f8fa;
+  font-family: 'Monaco', 'Menlo', 'Ubuntu Mono', monospace;
+  font-size: 12px;
+  line-height: 1.45;
+  white-space: pre-wrap;
+  word-wrap: break-word;
+  max-height: 60vh;
+  overflow: auto;
 }
 </style>

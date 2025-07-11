@@ -1,3 +1,4 @@
+
 package tn.esprithub.server.repository.service.impl;
 
 import com.fasterxml.jackson.databind.JsonNode;
@@ -35,7 +36,54 @@ public class RepositoryServiceImpl implements RepositoryService {
     private final GithubService githubService;
     private final RestTemplate restTemplate = new RestTemplate();
     private final ObjectMapper objectMapper = new ObjectMapper();
+    @Override
+    public Map<String, Object> getFileContent(String owner, String repo, String path, String branch, String teacherEmail) {
+        User teacher = getTeacherWithGitHubToken(teacherEmail);
+        log.info("Getting file content for {}/{} at path: {} on branch: {} by teacher: {}", owner, repo, path, branch, teacherEmail);
 
+        if (teacher.getGithubToken() == null || teacher.getGithubToken().isBlank()) {
+            throw new BusinessException("GitHub token not found. Please connect your GitHub account first.");
+        }
+
+        try {
+            String url = String.format("https://api.github.com/repos/%s/%s/contents/%s", owner, repo, path);
+
+            if (branch != null && !branch.isBlank()) {
+                url += "?ref=" + branch;
+            }
+
+            HttpHeaders headers = new HttpHeaders();
+            headers.setBearerAuth(teacher.getGithubToken());
+            headers.set("Accept", "application/vnd.github.v3+json");
+            headers.set("User-Agent", "EspritHub-Server");
+            HttpEntity<String> entity = new HttpEntity<>(headers);
+
+            log.debug("Making GitHub API call to: {}", url);
+            ResponseEntity<Object> response = restTemplate.exchange(url, HttpMethod.GET, entity, Object.class);
+
+            if (response.getBody() != null && response.getBody() instanceof Map) {
+                @SuppressWarnings("unchecked")
+                Map<String, Object> fileData = (Map<String, Object>) response.getBody();
+
+                Map<String, Object> result = new HashMap<>();
+                result.put("name", fileData.get("name"));
+                result.put("path", fileData.get("path"));
+                result.put("sha", fileData.get("sha"));
+                result.put("size", fileData.get("size"));
+                result.put("encoding", fileData.get("encoding"));
+                result.put("content", fileData.get("content"));
+                result.put("url", fileData.get("url"));
+                result.put("htmlUrl", fileData.get("html_url"));
+                result.put("downloadUrl", fileData.get("download_url"));
+                return result;
+            } else {
+                throw new BusinessException("Failed to fetch file content from GitHub");
+            }
+        } catch (Exception e) {
+            log.error("Error fetching file content for {}/{} at path {}: {}", owner, repo, path, e.getMessage());
+            throw new BusinessException("Failed to fetch file content: " + e.getMessage());
+        }
+    }
     @Override
     public List<RepositoryDto> getTeacherRepositories(String teacherEmail) {
         User teacher = getTeacherWithGitHubToken(teacherEmail);
