@@ -82,6 +82,16 @@ export class TeacherDataService {
     return this.http.get<any[]>(`http://localhost:8090/api/v1/users/classes/${classId}/students`);
   }
 
+  getMyStudents(): Observable<any[]> {
+    // Replace with your actual backend endpoint
+    return this.http.get<any[]>('http://localhost:8090/api/teacher/students');
+  }
+
+  getMyRepositories(): Observable<any[]> {
+    // Replace with your actual backend endpoint
+    return this.http.get<any[]>('http://localhost:8090/api/teacher/repositories');
+  }
+
   // GROUP MANAGEMENT
   createGroup(group: any) {
     return this.http.post<any>('http://localhost:8090/api/groups', group);

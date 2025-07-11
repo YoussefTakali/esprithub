@@ -26,10 +26,16 @@ export class TeacherProjectsComponent implements OnInit {
   hoveredCollaborator: any = null;
   showDeleteDialog: boolean = false;
   projectToDelete: any = null;
+  searchTerm: string = '';
+  loading: boolean = false;
+  error: string | null = null;
+  filteredProjects: any[] = [];
 
   constructor(private readonly teacherData: TeacherDataService, private snackBar: MatSnackBar) {}
 
   ngOnInit() {
+    this.loading = true;
+    this.error = null;
     this.loadProjects();
     this.teacherData.getMyClassesWithCourses().subscribe(classes => {
       this.availableClasses = classes;
@@ -39,12 +45,38 @@ export class TeacherProjectsComponent implements OnInit {
     this.teacherData.getAllUserSummaries().subscribe(users => {
       this.availableUsers = users;
     });
+    this.filterProjects();
   }
 
   loadProjects() {
-    this.teacherData.getMyProjects().subscribe(projects => {
-      this.projects = projects;
+    this.loading = true;
+    this.error = null;
+    this.teacherData.getMyProjects().subscribe({
+      next: projects => {
+        this.projects = projects;
+        this.filterProjects();
+        this.loading = false;
+      },
+      error: err => {
+        this.error = 'Failed to load projects.';
+        this.loading = false;
+      }
     });
+  }
+
+  filterProjects() {
+    const term = this.searchTerm.toLowerCase();
+    this.filteredProjects = this.projects.filter(p =>
+      p.name?.toLowerCase().includes(term) ||
+      p.description?.toLowerCase().includes(term)
+    );
+  }
+
+  getDaysUntilDeadline(deadline: string): number {
+    if (!deadline) return 0;
+    const due = new Date(deadline).getTime();
+    const now = Date.now();
+    return Math.ceil((due - now) / (1000 * 60 * 60 * 24));
   }
 
   selectProject(project: any) {

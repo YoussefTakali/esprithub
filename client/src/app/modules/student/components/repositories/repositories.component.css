@@ -1,10 +1,10 @@
-/* Student Repositories - Red Theme */
+/* Student Repositories - Burgundy Theme */
 .student-repositories {
   padding: 32px;
   background-color: #f8f9fa;
   min-height: 100vh;
 }
-
+ 
 .repositories-header {
   display: flex;
   justify-content: space-between;
@@ -15,20 +15,20 @@
   border-radius: 12px;
   box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
 }
-
+ 
 .header-content h1 {
   font-size: 2.2rem;
   font-weight: 700;
   margin-bottom: 8px;
   color: #a71617;
 }
-
+ 
 .header-content p {
   font-size: 1.1rem;
   color: #555;
   margin: 0;
 }
-
+ 
 .refresh-btn {
   background: #a71617;
   color: white;
@@ -43,37 +43,37 @@
   gap: 8px;
   transition: all 0.2s ease;
 }
-
+ 
 .refresh-btn:hover:not(:disabled) {
-  background: #680f0a;
+  background: #c82333;
 }
-
+ 
 .refresh-btn .spinning {
   animation: spin 1s linear infinite;
 }
-
+ 
 @keyframes spin {
   from { transform: rotate(0deg); }
   to { transform: rotate(360deg); }
 }
-
+ 
 .loading-container, .error-container {
   display: flex;
   justify-content: center;
   align-items: center;
   min-height: 400px;
 }
-
+ 
 .loading-spinner {
   text-align: center;
   color: #a71617;
 }
-
+ 
 .loading-spinner i {
   font-size: 3rem;
   margin-bottom: 16px;
 }
-
+ 
 .error-message {
   text-align: center;
   background: #f8d7da;
@@ -82,7 +82,7 @@
   padding: 32px;
   border-radius: 12px;
 }
-
+ 
 .retry-btn {
   background: #a71617;
   color: white;
@@ -92,7 +92,7 @@
   margin-top: 16px;
   cursor: pointer;
 }
-
+ 
 .empty-state {
   text-align: center;
   padding: 80px 20px;
@@ -101,19 +101,19 @@
   border-radius: 12px;
   box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
 }
-
+ 
 .empty-state i {
   font-size: 4rem;
   margin-bottom: 24px;
   color: #a71617;
 }
-
+ 
 .repositories-grid {
   display: grid;
   grid-template-columns: repeat(auto-fill, minmax(400px, 1fr));
   gap: 24px;
 }
-
+ 
 .repository-card {
   background: white;
   border-radius: 12px;
@@ -121,36 +121,48 @@
   overflow: hidden;
   transition: transform 0.2s ease;
 }
-
+ 
 .repository-card:hover {
   transform: translateY(-2px);
 }
-
+ 
 .repository-header {
-  background: linear-gradient(135deg, #a71617, #e74c3c);
+  background: linear-gradient(135deg, #a71617, #c82333);
   color: white;
   padding: 20px;
   display: flex;
-  justify-content: space-between;
+  justify-content: center;
   align-items: center;
 }
-
+ 
 .repo-name {
   display: flex;
   align-items: center;
   gap: 12px;
 }
-
+ 
+.repo-name .name-info {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+ 
 .repo-name h3 {
   margin: 0;
   font-size: 1.3rem;
   font-weight: 600;
 }
-
+ 
+.repo-name .owner-name {
+  font-size: 0.85rem;
+  opacity: 0.8;
+  font-weight: 400;
+}
+ 
 .repo-name i {
   font-size: 1.5rem;
 }
-
+ 
 .repo-privacy {
   display: flex;
   align-items: center;
@@ -161,140 +173,127 @@
   font-size: 12px;
   font-weight: 500;
 }
-
+ 
 .repository-content {
   padding: 20px;
 }
-
-.repo-description {
-  margin: 0 0 16px 0;
-  color: #666;
-  font-size: 14px;
-  line-height: 1.5;
-  font-style: italic;
-}
-
+ 
+/* Project and Group Meta Info */
 .repo-meta {
   display: flex;
   flex-direction: column;
   gap: 8px;
+  margin-bottom: 16px;
+  padding-bottom: 16px;
+  border-bottom: 1px solid #e9ecef;
 }
-
+ 
 .meta-item {
   display: flex;
   align-items: center;
   gap: 8px;
   color: #666;
-  font-size: 14px;
+  font-size: 13px;
+  font-weight: 500;
 }
-
+ 
 .meta-item i {
+  color: #a71617;
+  width: 14px;
+}
+ 
+/* Simple Repository Info */
+.repo-info {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+ 
+.info-item {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  color: #555;
+  font-size: 14px;
+  font-weight: 500;
+}
+ 
+.info-item i {
   color: #a71617;
   width: 16px;
 }
-
+ 
 .repository-footer {
   display: flex;
-  justify-content: space-between;
+  justify-content: center;
   align-items: center;
   padding: 16px;
   border-top: 1px solid #e9ecef;
   background: #f8f9fa;
   border-radius: 0 0 12px 12px;
 }
-
+ 
 .repo-actions {
   display: flex;
   gap: 12px;
 }
-
-.repo-access {
-  display: flex;
-  align-items: center;
-}
-
-.access-badge {
-  padding: 6px 12px;
-  border-radius: 20px;
-  font-size: 12px;
-  font-weight: 600;
-  text-transform: uppercase;
-  display: flex;
-  align-items: center;
-  gap: 6px;
-}
-
-.access-badge.member {
-  background: #d4e6f1;
-  color: #1f4e79;
-}
-
+ 
 .action-btn {
-  padding: 8px 14px;
+  padding: 10px 16px;
   border: none;
   border-radius: 6px;
-  font-size: 13px;
+  font-size: 14px;
   font-weight: 500;
   cursor: pointer;
   display: flex;
   align-items: center;
-  gap: 6px;
+  gap: 8px;
   text-decoration: none;
   transition: all 0.2s ease;
   white-space: nowrap;
 }
-
+ 
 .view-btn {
   background: #a71617;
   color: white;
 }
-
+ 
 .view-btn:hover {
-  background: #680f0a;
+  background: #c82333;
 }
-
-.clone-btn {
-  background: #6c757d;
-  color: white;
-}
-
-.clone-btn:hover {
-  background: #5a6268;
-}
-
+ 
 .details-btn {
-  background: #007bff;
+  background: #a71617;
   color: white;
 }
-
+ 
 .details-btn:hover {
-  background: #0056b3;
+  background: #a71617;
   transform: translateY(-1px);
   box-shadow: 0 3px 8px rgba(0, 123, 255, 0.3);
 }
-
+ 
 @media (max-width: 768px) {
   .student-repositories {
     padding: 16px;
   }
-
+ 
   .repositories-header {
     flex-direction: column;
     gap: 16px;
     text-align: center;
   }
-
+ 
   .repositories-grid {
     grid-template-columns: 1fr;
   }
-
-  .repository-header {
-    flex-direction: column;
-    gap: 12px;
-    align-items: stretch;
-  }
-
+ 
   .repo-actions {
     flex-direction: column;
+    gap: 8px;
+  }
+ 
+  .action-btn {
+    justify-content: center;
   }
 }

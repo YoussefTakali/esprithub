@@ -466,6 +466,24 @@
   font-size: 0.9rem;
 }
 
+.student-class-badge {
+  display: inline-flex;
+  align-items: center;
+  background: #fff;
+  color: #a71617;
+  border-radius: 20px;
+  padding: 6px 16px;
+  font-weight: 600;
+  font-size: 1rem;
+  box-shadow: 0 2px 8px rgba(167, 22, 23, 0.08);
+  margin-top: 10px;
+  gap: 8px;
+}
+.student-class-badge i {
+  font-size: 1.1em;
+  margin-right: 6px;
+}
+
 /* Responsive Design */
 @media (max-width: 768px) {
   .student-dashboard {

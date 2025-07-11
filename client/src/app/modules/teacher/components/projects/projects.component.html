@@ -1,193 +1,195 @@
-<div class="projects-main-container">
-  <div class="projects-cards-center">
-    <div *ngFor="let project of projects" class="project-card-centered">
-      <div class="project-card-icon" [style.background]="'#e74c3c'">
-        <span class="material-icons">rocket_launch</span>
-      </div>
-      <div class="project-title">{{ project.name }}</div>
-      <div class="project-meta">{{ project.description }}</div>
-      <div class="project-avatars">
-        <ng-container *ngFor="let collab of project.collaborators?.slice(0,4)">
-          <div class="avatar-circle"
-               (mouseenter)="hoveredCollaborator = collab"
-               (mouseleave)="hoveredCollaborator = null">
-            {{ collab.firstName?.charAt(0) }}{{ collab.lastName?.charAt(0) }}
-            <div class="collab-hover-card" *ngIf="hoveredCollaborator === collab">
-              <div><b>{{ collab.firstName }} {{ collab.lastName }}</b></div>
-              <div style="font-size:12px;color:#888">{{ collab.email }}</div>
-              <div *ngIf="collab.role"><span style="font-size:12px">Role: {{ collab.role }}</span></div>
-              <div *ngIf="collab.githubUsername"><span style="font-size:12px">GitHub: {{ collab.githubUsername }}</span></div>
+<div class="teacher-projects">
+  <!-- Header -->
+  <div class="projects-header">
+    <div class="header-content">
+      <h1>My Projects</h1>
+      <p>Collaborate on projects and track progress</p>
+    </div>
+    <button class="refresh-btn" (click)="ngOnInit()">
+      <i class="fas fa-sync-alt"></i>
+      Refresh
+    </button>
+    <button class="add-project-fab-top" (click)="openCreateModal()">+ Add Project</button>
+  </div>
+
+  <!-- Search -->
+  <div class="search-section">
+    <div class="search-box">
+      <i class="fas fa-search"></i>
+      <input type="text" placeholder="Search projects..." [(ngModel)]="searchTerm">
+    </div>
+  </div>
+
+  <!-- Loading State -->
+  <div *ngIf="loading" class="loading-container">
+    <div class="loading-spinner">
+      <i class="fas fa-spinner fa-spin"></i>
+      <p>Loading your projects...</p>
+    </div>
+  </div>
+
+  <!-- Error State -->
+  <div *ngIf="error" class="error-container">
+    <div class="error-message">
+      <i class="fas fa-exclamation-triangle"></i>
+      <p>{{ error }}</p>
+      <button class="retry-btn" (click)="ngOnInit()">Try Again</button>
+    </div>
+  </div>
+
+  <!-- Projects Content -->
+  <div *ngIf="!loading && !error" class="projects-content">
+    <!-- Empty State -->
+    <div *ngIf="filteredProjects.length === 0" class="empty-state">
+      <i class="fas fa-folder-open"></i>
+      <h3>No projects found</h3>
+      <p>You haven't been assigned to any projects yet.</p>
+    </div>
+    <!-- Projects Grid -->
+    <div *ngIf="filteredProjects.length > 0" class="projects-grid">
+      <div *ngFor="let project of filteredProjects" class="project-card" [class.overdue]="project.overdue">
+        <!-- Project Header -->
+        <div class="project-header">
+          <div class="header-top">
+            <h3>{{ project.name }}</h3>
+            <div class="project-badges">
+              <span class="status-badge" [class.overdue]="project.overdue" [class.active]="!project.overdue">
+                <i class="fas fa-circle"></i>
+                {{ project.overdue ? 'Overdue' : 'Active' }}
+              </span>
+              <span *ngIf="project.graded" class="graded-badge">
+                <i class="fas fa-check-circle"></i>
+                Graded
+              </span>
             </div>
           </div>
-        </ng-container>
-        <span *ngIf="project.collaborators?.length > 4" class="avatar-more">+{{ project.collaborators.length - 4 }}</span>
-      </div>
-      <div class="project-progress-label">Progress</div>
-      <div class="project-progress-bar">
-        <div class="progress-inner" [style.width]="'75%'" style="background:#e74c3c"></div>
-      </div>
-      <div class="project-card-actions">
-        <button class="icon-btn" title="View" (click)="openDetailsModal(project, $event)"><i class="fa fa-eye"></i></button>
-        <button class="icon-btn" title="Edit" (click)="openEditModal(project, $event)"><i class="fa fa-edit"></i></button>
-        <button class="icon-btn delete" title="Delete" (click)="confirmDeleteProject(project); $event.stopPropagation()"><i class="fa fa-trash"></i></button>
-      </div>
-      <div class="project-deadline">{{ project.deadline | date:'short' }}</div>
-    </div>
-  </div>
-  <!-- Add Project FAB in top right -->
-  <button class="add-project-fab-top" (click)="openCreateModal()">+ Add Project</button>
-
-  <!-- Modal for creating a new project -->
-  <div class="modal-backdrop" *ngIf="showCreateModal" (click)="closeCreateModal()"></div>
-  <div class="modal" *ngIf="showCreateModal">
-    <div class="modal-content" (click)="$event.stopPropagation()">
-      <h3 style="color:#e74c3c">Create New Project</h3>
-      <form (ngSubmit)="createProject()" #projectForm="ngForm">
-        <label for="projectName">Project Name</label>
-        <input id="projectName" [(ngModel)]="newProject.name" name="name" required placeholder="Project Name" />
-        <label for="projectDesc">Description</label>
-        <textarea id="projectDesc" [(ngModel)]="newProject.description" name="description" placeholder="Description"></textarea>
-        <label for="projectDeadline">Deadline</label>
-        <input id="projectDeadline" [(ngModel)]="newProject.deadline" name="deadline" type="datetime-local" required />
-        <label for="projectClasses">Classes</label>
-        <select id="projectClasses" [(ngModel)]="newProject.classIds" name="classIds" multiple required>
-          <option *ngFor="let c of availableClasses" [value]="c.classId">
-            {{ c.className }} ({{ c.courseName }})
-          </option>
-        </select>
-        <label for="projectCollaborators">Collaborators</label>
-        <input id="projectCollaborators" [(ngModel)]="collaboratorEmail" name="collaboratorEmail" placeholder="Type name or email to add..." (input)="onCollaboratorInput()" autocomplete="off" />
-        <ul *ngIf="filteredCollaborators.length > 0" class="autocomplete-list">
-          <li *ngFor="let user of filteredCollaborators" (click)="selectCollaborator(user)">
-            <div><b>{{ user.firstName }} {{ user.lastName }}</b></div>
-            <div style="font-size:12px;color:#888">{{ user.email }}</div>
-          </li>
-        </ul>
-        <div class="selected-collaborators">
-          <span *ngFor="let id of newProject.collaboratorIds">
-            {{ getUserEmailById(id) }}
-            <button type="button" (click)="removeNewCollaborator(id)">&times;</button>
-          </span>
+          <div class="project-status" [class.overdue]="project.overdue">
+            <i class="fas fa-clock"></i>
+            <ng-container *ngIf="!project.overdue">
+              {{ getDaysUntilDeadline(project.deadline) }} days left
+            </ng-container>
+            <ng-container *ngIf="project.overdue">
+              Overdue
+            </ng-container>
+          </div>
         </div>
-        <div class="modal-actions">
-          <button class="create-btn-red" type="submit" [disabled]="!projectForm.form.valid">Create</button>
-          <button class="cancel-btn" type="button" (click)="closeCreateModal()">Cancel</button>
+        <!-- Project Content -->
+        <div class="project-content">
+          <p class="project-description">{{ project.description }}</p>
+          <div class="project-stats">
+            <div class="stat-item">
+              <i class="fas fa-users"></i>
+              <span>{{ project.totalGroups }} Groups</span>
+            </div>
+            <div class="stat-item">
+              <i class="fas fa-tasks"></i>
+              <span>{{ project.totalTasks }} Tasks</span>
+            </div>
+            <div class="stat-item">
+              <i class="fas fa-check-circle"></i>
+              <span>{{ project.completedTasks }} Completed</span>
+            </div>
+          </div>
+          <div class="teacher-info">
+            <h4>Teacher:</h4>
+            <div class="teacher-item">
+              <i class="fas fa-user-tie"></i>
+              <span>{{ project.teacherName }}</span>
+            </div>
+          </div>
+          <div *ngIf="project.myGroupName" class="my-group">
+            <h4>My Group:</h4>
+            <div class="group-item">
+              <i class="fas fa-users"></i>
+              <span>{{ project.myGroupName }}</span>
+              <small *ngIf="project.myRole">({{ project.myRole }})</small>
+            </div>
+          </div>
+          <div class="progress-info">
+            <h4>Progress:</h4>
+            <div class="progress-bar">
+              <div class="progress-fill" [style.width.%]="project.completionRate"></div>
+              <span class="progress-text">{{ project.completionRate }}%</span>
+            </div>
+            <small>{{ project.completedTasks }} of {{ project.totalTasks }} tasks completed</small>
+          </div>
+          <div *ngIf="project.hasRepository" class="repository-info">
+            <h4>Repository:</h4>
+            <div class="repository-item">
+              <i class="fab fa-github"></i>
+              <span>{{ project.repositoryName }}</span>
+              <a *ngIf="project.repositoryUrl" [href]="project.repositoryUrl" target="_blank" class="repo-link">
+                <i class="fas fa-external-link-alt"></i>
+              </a>
+            </div>
+          </div>
         </div>
-      </form>
-    </div>
-  </div>
-  <!-- Details Modal -->
-  <div class="modal-backdrop" *ngIf="showDetailsModal" (click)="closeDetailsModal()"></div>
-  <div class="modal" *ngIf="showDetailsModal">
-    <div class="modal-content" (click)="$event.stopPropagation()">
-      <h3 style="color:#e74c3c">Project Details</h3>
-      <div *ngIf="detailsProject">
-        <div><b>Name:</b> {{ detailsProject.name }}</div>
-        <div><b>Description:</b> {{ detailsProject.description }}</div>
-        <div><b>Deadline:</b> {{ detailsProject.deadline | date:'short' }}</div>
-        <div><b>Created By:</b> {{ detailsProject.createdBy?.firstName }} {{ detailsProject.createdBy?.lastName }} ({{ detailsProject.createdBy?.email }})</div>
-        <div><b>Created At:</b> {{ detailsProject.createdAt | date:'short' }}</div>
-        <div><b>Updated At:</b> {{ detailsProject.updatedAt | date:'short' }}</div>
-        <div><b>Classes:</b>
-          <span *ngFor="let classId of detailsProject.classIds">{{ getClassNameById(classId) }} </span>
+        <!-- Project Footer -->
+        <div class="project-footer">
+          <div class="deadline-info">
+            <i class="fas fa-calendar"></i>
+            <span>Due: {{ project.deadline | date:'medium' }}</span>
+          </div>
+          <div class="project-actions">
+            <button class="action-btn view-btn" (click)="openDetailsModal(project, $event)">
+              <i class="fas fa-eye"></i>
+              View Details
+            </button>
+            <button class="action-btn edit-btn" (click)="openEditModal(project, $event)">
+              <i class="fas fa-edit"></i>
+              Edit
+            </button>
+            <button class="action-btn delete-btn" (click)="confirmDeleteProject(project); $event.stopPropagation()">
+              <i class="fas fa-trash"></i>
+              Delete
+            </button>
+          </div>
         </div>
-        <div><b>Collaborators:</b>
-          <span *ngFor="let collab of detailsProject.collaborators">{{ collab.firstName }} {{ collab.lastName }} ({{ collab.email }}) </span>
+        <div class="creator-info">
+          <i class="fas fa-user-tie"></i>
+          <span>Created by {{ project.teacherName }}</span>
         </div>
-      </div>
-      <div class="modal-actions">
-        <button class="cancel-btn" type="button" (click)="closeDetailsModal()">Close</button>
-      </div>
-    </div>
-  </div>
-  <!-- Edit Modal -->
-  <div class="modal-backdrop" *ngIf="showEditModal" (click)="closeEditModal()"></div>
-  <div class="modal" *ngIf="showEditModal">
-    <div class="modal-content" (click)="$event.stopPropagation()">
-      <h3 style="color:#e74c3c">Edit Project</h3>
-      <form (ngSubmit)="saveEditProject()" #editProjectForm="ngForm">
-        <label for="editProjectName">Project Name</label>
-        <input id="editProjectName" [(ngModel)]="editProject.name" name="editProjectName" required />
-        <label for="editProjectDesc">Description</label>
-        <textarea id="editProjectDesc" [(ngModel)]="editProject.description" name="editProjectDesc"></textarea>
-        <label for="editProjectDeadline">Deadline</label>
-        <input id="editProjectDeadline" [(ngModel)]="editProject.deadline" name="editProjectDeadline" type="datetime-local" />
-        <label for="editProjectClasses">Classes</label>
-        <select id="editProjectClasses" [(ngModel)]="editProject.classIds" name="editProjectClassIds" multiple required>
-          <option *ngFor="let c of availableClasses" [value]="c.classId">
-            {{ c.className }} ({{ c.courseName }})
-          </option>
-        </select>
-        <label for="editProjectCollaborators">Collaborators</label>
-        <input id="editProjectCollaborators" [(ngModel)]="editCollaboratorEmail" name="editCollaboratorEmail" placeholder="Type name or email to add..." (input)="onEditCollaboratorInput()" autocomplete="off" />
-        <ul *ngIf="filteredEditCollaborators.length > 0" class="autocomplete-list">
-          <li *ngFor="let user of filteredEditCollaborators" (click)="selectEditCollaborator(user)">
-            <div><b>{{ user.firstName }} {{ user.lastName }}</b></div>
-            <div style="font-size:12px;color:#888">{{ user.email }}</div>
-          </li>
-        </ul>
-        <div class="selected-collaborators">
-          <span *ngFor="let id of editProject.collaboratorIds">
-            {{ getUserEmailById(id) }}
-            <button type="button" (click)="removeEditCollaborator(id)">&times;</button>
-          </span>
-        </div>
-        <div class="modal-actions">
-          <button class="create-btn-red" type="submit" [disabled]="!editProjectForm.form.valid">Save</button>
-          <button class="cancel-btn" type="button" (click)="closeEditModal()">Cancel</button>
-        </div>
-      </form>
-    </div>
-  </div>
-  <!-- Delete Confirmation Modal -->
-  <div class="modal-backdrop" *ngIf="showDeleteDialog" (click)="cancelDeleteProject()"></div>
-  <div class="modal" *ngIf="showDeleteDialog">
-    <div class="modal-content" (click)="$event.stopPropagation()">
-      <h3 style="color:#e74c3c">Confirm Delete</h3>
-      <div style="margin-bottom: 16px;">Are you sure you want to delete the project <b>{{ projectToDelete?.name }}</b>?</div>
-      <div class="modal-actions">
-        <button class="create-btn-red" (click)="deleteProjectConfirmed()">Delete</button>
-        <button class="cancel-btn" (click)="cancelDeleteProject()">Cancel</button>
       </div>
     </div>
   </div>
 </div>
-<style>
-.add-project-fab-top {
-  position: absolute;
-  top: 32px;
-  right: 32px;
-  z-index: 1000;
-  background: #e74c3c;
-  color: #fff;
-  border: none;
-  border-radius: 50px;
-  padding: 16px 28px;
-  font-size: 18px;
-  box-shadow: 0 2px 8px rgba(0,0,0,0.15);
-  cursor: pointer;
-  transition: background 0.2s;
-}
-.add-project-fab-top:hover {
-  background: #680f0a;
-}
-.collab-hover-card {
-  position: absolute;
-  left: 50%;
-  top: 110%;
-  transform: translateX(-50%);
-  background: #fff;
-  color: #222;
-  border: 1px solid #ddd;
-  border-radius: 8px;
-  box-shadow: 0 2px 8px rgba(0,0,0,0.15);
-  padding: 10px 16px;
-  min-width: 180px;
-  z-index: 1001;
-  font-size: 14px;
-  white-space: nowrap;
-}
-.avatar-circle {
-  position: relative;
-}
-</style>
+
+<!-- Modal for creating a new project -->
+<div class="modal-backdrop" *ngIf="showCreateModal" (click)="closeCreateModal()"></div>
+<div class="modal" *ngIf="showCreateModal">
+  <div class="modal-content" (click)="$event.stopPropagation()">
+    <h3 style="color:#e74c3c">Create New Project</h3>
+    <form (ngSubmit)="createProject()" #projectForm="ngForm">
+      <label for="projectName">Project Name</label>
+      <input id="projectName" [(ngModel)]="newProject.name" name="name" required placeholder="Project Name" />
+      <label for="projectDesc">Description</label>
+      <textarea id="projectDesc" [(ngModel)]="newProject.description" name="description" placeholder="Description"></textarea>
+      <label for="projectDeadline">Deadline</label>
+      <input id="projectDeadline" [(ngModel)]="newProject.deadline" name="deadline" type="datetime-local" required />
+      <label for="projectClasses">Classes</label>
+      <select id="projectClasses" [(ngModel)]="newProject.classIds" name="classIds" multiple required>
+        <option *ngFor="let c of availableClasses" [value]="c.classId">
+          {{ c.className }} ({{ c.courseName }})
+        </option>
+      </select>
+      <label for="projectCollaborators">Collaborators</label>
+      <input id="projectCollaborators" [(ngModel)]="collaboratorEmail" name="collaboratorEmail" placeholder="Type name or email to add..." (input)="onCollaboratorInput()" autocomplete="off" />
+      <ul *ngIf="filteredCollaborators.length > 0" class="autocomplete-list">
+        <li *ngFor="let user of filteredCollaborators" (click)="selectCollaborator(user)">
+          <div><b>{{ user.firstName }} {{ user.lastName }}</b></div>
+          <div style="font-size:12px;color:#888">{{ user.email }}</div>
+        </li>
+      </ul>
+      <div class="selected-collaborators">
+        <span *ngFor="let id of newProject.collaboratorIds">
+          {{ getUserEmailById(id) }}
+          <button type="button" (click)="removeNewCollaborator(id)">&times;</button>
+        </span>
+      </div>
+      <div class="modal-actions">
+        <button class="create-btn-red" type="submit" [disabled]="!projectForm.form.valid">Create</button>
+        <button class="cancel-btn" type="button" (click)="closeCreateModal()">Cancel</button>
+      </div>
+    </form>
+  </div>
+</div>

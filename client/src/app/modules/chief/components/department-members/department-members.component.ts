@@ -3,6 +3,7 @@ import { UserService } from '../../../../shared/services/user.service';
 import { AcademicService } from '../../../../shared/services/academic.service';
 import { UserSummary } from '../../../../shared/models/academic.models';
 import { firstValueFrom } from 'rxjs';
+import { Classe } from '../../../../shared/models/academic.models';
 
 @Component({
   selector: 'app-department-members',
@@ -13,6 +14,12 @@ export class DepartmentMembersComponent implements OnInit {
   members: UserSummary[] = [];
   loading = true;
   error: string | null = null;
+
+  // Pour la modale d'affichage des membres d'une classe
+  showClassModal = false;
+  selectedClassName = '';
+  classMembers: UserSummary[] = [];
+  classMembersLoading = false;
 
   constructor(
     private readonly userService: UserService,
@@ -39,5 +46,20 @@ export class DepartmentMembersComponent implements OnInit {
     } finally {
       this.loading = false;
     }
+  }
+
+  showClassMembers(className: string) {
+    this.selectedClassName = className;
+    this.showClassModal = true;
+    this.classMembersLoading = true;
+    // Filtrer les membres déjà chargés (plus rapide, pas d'appel API)
+    this.classMembers = this.members.filter(m => m.classeNom === className);
+    this.classMembersLoading = false;
+  }
+
+  closeClassModal() {
+    this.showClassModal = false;
+    this.selectedClassName = '';
+    this.classMembers = [];
   }
 }

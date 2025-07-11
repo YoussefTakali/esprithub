@@ -39,6 +39,9 @@ export class DepartmentHierarchyComponent implements OnInit {
   classesError: string | null = null;
   studentsError: string | null = null;
 
+  editMode = false;
+  departmentEdit: Partial<Departement> = {};
+
   constructor(
     private readonly academicService: AcademicService,
     private readonly userService: UserService,
@@ -54,18 +57,13 @@ export class DepartmentHierarchyComponent implements OnInit {
     try {
       this.loading = true;
       this.error = null;
-      
-      const currentUser = this.authService.getCurrentUser();
-      if (!currentUser || !(currentUser as any).departementId) {
-        this.error = 'No department assigned to this chief.';
-        return;
-      }
-      
-      const department = await this.academicService.getDepartementById((currentUser as any).departementId).toPromise();
+      // Appel direct à l’API chief pour récupérer le département du chef connecté
+      const department = await this.academicService.getMyDepartment().toPromise();
       this.department = department || null;
-      
       if (this.department) {
         await this.loadLevels(this.department.id);
+      } else {
+        this.error = 'No department assigned to this chief.';
       }
     } catch (error) {
       console.error('Error loading department:', error);
@@ -80,10 +78,9 @@ export class DepartmentHierarchyComponent implements OnInit {
     try {
       this.loadingLevels = true;
       this.levelsError = null;
-      
-      const levels = await this.academicService.getNiveauxByDepartement(departmentId).toPromise();
+      // Utiliser l'endpoint chief pour charger les niveaux du département du chef
+      const levels = await this.academicService.getMyDepartmentNiveaux().toPromise();
       this.levels = levels ?? [];
-      
       if (this.levels.length > 0) {
         this.selectLevel(this.levels[0]);
       }
@@ -109,10 +106,9 @@ export class DepartmentHierarchyComponent implements OnInit {
     try {
       this.loadingClasses = true;
       this.classesError = null;
-      
-      const classes = await this.academicService.getClassesByNiveau(levelId).toPromise();
+      // Utiliser l'endpoint chief pour charger les classes du niveau dans le département du chef
+      const classes = await this.academicService.getClassesByNiveauInMyDepartment(levelId).toPromise();
       this.classes = classes ?? [];
-      
       if (this.classes.length > 0) {
         this.selectClass(this.classes[0]);
       }
@@ -169,5 +165,41 @@ export class DepartmentHierarchyComponent implements OnInit {
     if (this.department) {
       this.loadLevels(this.department.id);
     }
+  }
+
+  onEditDepartment() {
+    if (this.department) {
+      this.editMode = true;
+      this.departmentEdit = {
+        nom: this.department.nom,
+        description: this.department.description
+      };
+    }
+  }
+
+  onCancelEditDepartment() {
+    this.editMode = false;
+    this.departmentEdit = {};
+  }
+
+  onSaveDepartmentEdit() {
+    if (!this.departmentEdit.nom || this.departmentEdit.nom.trim() === '') {
+      this.snackbarService.showError('Department name is required.');
+      return;
+    }
+    this.academicService.updateMyDepartment({
+      ...this.department,
+      nom: this.departmentEdit.nom,
+      description: this.departmentEdit.description
+    }).subscribe({
+      next: (updated) => {
+        this.department = updated;
+        this.editMode = false;
+        this.snackbarService.showSuccess('Department updated successfully!');
+      },
+      error: () => {
+        this.snackbarService.showError('Failed to update department.');
+      }
+    });
   }
 } 

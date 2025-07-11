@@ -1,18 +1,99 @@
 <div class="chief-dashboard">
-  <div class="dashboard-header">
-    <h1>Department Chief Dashboard</h1>
-    <p class="department-name">{{ departmentDisplayName }}</p>
-    <button class="refresh-btn" (click)="refresh()" [disabled]="loading">
-      <i class="fas fa-sync-alt" [class.spinning]="loading"></i>
-      Refresh
-    </button>
+  <!-- Carte d'information chef + département -->
+  <div class="chief-department-pro-card">
+    <div class="pro-card-header">
+      <div class="pro-avatar-section">
+        <img class="chief-avatar" [src]="chiefPhotoUrl || 'assets/user.png'" alt="Chief photo">
+      </div>
+      <div class="pro-card-title-section">
+        <h1 class="pro-chief-title">Welcome, {{ chiefName }}!</h1>
+        <div class="pro-chief-email">{{ chiefEmail }}</div>
+        <div class="pro-dept-title">
+          {{ department?.nom }}
+          <span class="pro-badge pro-badge-code">{{ department?.code }}</span>
+        </div>
+        <div class="pro-badges-row">
+          <span class="pro-badge" [ngClass]="department?.isActive ? 'pro-badge-active' : 'pro-badge-inactive'">
+            {{ department?.isActive ? 'Active' : 'Inactive' }}
+          </span>
+        </div>
+      </div>
+    </div>
+    <div class="pro-card-content">
+      <div class="pro-info-grid">
+        <div class="pro-info-item">
+          <span class="pro-label">Speciality:</span>
+          <span class="pro-value">{{ department?.specialite }}</span>
+        </div>
+        <div class="pro-info-item">
+          <span class="pro-label">Type:</span>
+          <span class="pro-value">{{ department?.typeFormation }}</span>
+        </div>
+        <div class="pro-info-item">
+          <span class="pro-label">Academic Levels:</span>
+          <span class="pro-value">{{ department?.totalNiveaux }}</span>
+        </div>
+      </div>
+      <div class="pro-description" *ngIf="department?.description">
+        <span class="pro-label">Description:</span>
+        <span class="pro-value">{{ department?.description }}</span>
+      </div>
+    </div>
   </div>
 
+  <!-- Widgets pro, quick search, etc. -->
+  <div class="quick-search-section">
+    <i class="fas fa-search"></i>
+    <input type="text" placeholder="Quick search (classes, members, levels...)" [(ngModel)]="quickSearchTerm">
+  </div>
+
+  <div class="pro-widgets-grid">
+    <!-- Notifications récentes -->
+    <div class="widget notifications-widget">
+      <h3><i class="fas fa-bell"></i> Recent Notifications</h3>
+      <ul *ngIf="notifications.length > 0; else noNotif">
+        <li *ngFor="let notif of notifications | slice:0:5">
+          <span class="notif-icon"><i [class]="notif.icon"></i></span>
+          <span class="notif-text">{{ notif.text }}</span>
+          <span class="notif-date">{{ notif.date | date:'short' }}</span>
+        </li>
+      </ul>
+      <ng-template #noNotif><p class="empty-widget">No notifications</p></ng-template>
+    </div>
+    <!-- Progression des affectations (exemple) -->
+    <div class="widget progress-widget">
+      <h3><i class="fas fa-tasks"></i> Assignment Progress</h3>
+      <div class="progress-bar-container">
+        <div class="progress-bar" [style.width]="assignmentProgress + '%'">
+          <span>{{ assignmentProgress }}%</span>
+        </div>
+      </div>
+      <p class="progress-label">{{ assignmentsCompleted }} / {{ assignmentsTotal }} assignments completed</p>
+    </div>
+    <!-- Graphique d'évolution (placeholder) -->
+    <div class="widget chart-widget">
+      <h3><i class="fas fa-chart-line"></i> Student Growth</h3>
+      <canvas id="studentGrowthChart"></canvas>
+      <p class="chart-caption">Evolution of student count over the last 5 years</p>
+    </div>
+    <!-- Événements à venir -->
+    <div class="widget events-widget">
+      <h3><i class="fas fa-calendar-alt"></i> Upcoming Events</h3>
+      <ul *ngIf="upcomingEvents.length > 0; else noEvents">
+        <li *ngFor="let event of upcomingEvents | slice:0:4">
+          <span class="event-title">{{ event.title }}</span>
+          <span class="event-date">{{ event.date | date:'mediumDate' }}</span>
+        </li>
+      </ul>
+      <ng-template #noEvents><p class="empty-widget">No upcoming events</p></ng-template>
+    </div>
+  </div>
+
+  <!-- Loading/Erreur -->
   <div *ngIf="loading" class="loading-spinner">
     <i class="fas fa-spinner fa-spin"></i>
     <p>Loading dashboard...</p>
   </div>
-
   <div *ngIf="error" class="error-message">
     <i class="fas fa-exclamation-triangle"></i>
     <p>{{ error }}</p>
@@ -32,7 +113,6 @@
             <p>Academic Levels</p>
           </div>
         </div>
-
         <div class="stat-card classes">
           <div class="stat-icon">
             <i class="fas fa-school"></i>
@@ -42,7 +122,6 @@
             <p>Classes</p>
           </div>
         </div>
-
         <div class="stat-card teachers">
           <div class="stat-icon">
             <i class="fas fa-chalkboard-teacher"></i>
@@ -52,7 +131,6 @@
             <p>Teachers</p>
           </div>
         </div>
-
         <div class="stat-card students">
           <div class="stat-icon">
             <i class="fas fa-user-graduate"></i>
@@ -64,7 +142,6 @@
         </div>
       </div>
     </div>
-
     <!-- Quick Actions -->
     <div class="actions-section">
       <h2>Quick Actions</h2>
@@ -87,7 +164,6 @@
         </a>
       </div>
     </div>
-
     <!-- Recent Activity -->
     <div class="recent-section">
       <div class="recent-levels">
@@ -99,7 +175,7 @@
             </div>
             <div class="item-content">
               <h4>{{ level.nom }}</h4>
-              <p>Year {{ level.annee }} • {{ level.totalClasses }} classes</p>
+              <p>Year {{ level.annee }} 2 {{ level.totalClasses }} classes</p>
             </div>
             <div class="item-status" [class.active]="level.isActive" [class.inactive]="!level.isActive">
               <span>{{ level.isActive ? 'Active' : 'Inactive' }}</span>
@@ -110,7 +186,6 @@
           <p class="no-items">No levels found in your department.</p>
         </ng-template>
       </div>
-
       <div class="recent-classes">
         <h2>Recent Classes</h2>
         <div class="recent-list" *ngIf="recentClasses.length > 0; else noClasses">
@@ -120,7 +195,7 @@
             </div>
             <div class="item-content">
               <h4>{{ classe.nom }}</h4>
-              <p>{{ classe.niveauNom }} • {{ classe.totalEtudiants }} students</p>
+              <p>{{ classe.niveauNom }} 2 {{ classe.totalEtudiants }} students</p>
               <small>Capacity: {{ classe.capacite }}</small>
             </div>
             <div class="item-status" [class.active]="classe.isActive" [class.inactive]="!classe.isActive">

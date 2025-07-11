@@ -20,6 +20,12 @@ import {
 } from '../models/academic.models';
 import { environment } from '../../../environments/environment';
 
+export interface ChiefNotificationDto {
+  icon: string;
+  text: string;
+  date: string;
+}
+
 @Injectable({
   providedIn: 'root'
 })
@@ -271,5 +277,10 @@ export class AcademicService {
 
   getStudentsInMyDepartment(): Observable<UserSummary[]> {
     return this.http.get<UserSummary[]>(`${this.baseUrl}/chief/academic/users/students`);
+  }
+
+  // Chief dashboard: dynamic notifications
+  getChiefNotifications(): Observable<ChiefNotificationDto[]> {
+    return this.http.get<ChiefNotificationDto[]>('/api/v1/chief/academic/notifications');
   }
 }

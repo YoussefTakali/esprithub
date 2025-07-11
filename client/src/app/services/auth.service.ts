@@ -33,6 +33,7 @@ export interface User {
   githubUsername?: string;
   hasGithubToken: boolean;
   lastLogin: string;
+  classeNom?: string;
 }
 
 @Injectable({
