@@ -1,8 +1,8 @@
 import { Injectable } from '@angular/core';
-import { HttpClient } from '@angular/common/http';
+import { HttpClient,HttpHeaders, HttpResponse  } from '@angular/common/http';
 import { Observable } from 'rxjs';
 import { environment } from '../../../../environments/environment';
-
+import { map } from 'rxjs/operators';
 export interface Repository {
   name: string;
   fullName: string;
@@ -81,7 +81,7 @@ export class RepositoryService {
   private readonly apiUrl = `${environment.apiUrl}/api/repositories`;
   private readonly githubApiUrl = `${environment.apiUrl}/api/v1/github`;
 
-  constructor(private readonly http: HttpClient) {}
+  constructor(private readonly http: HttpClient,) {}
 
   getTeacherRepositories(): Observable<Repository[]> {
     return this.http.get<Repository[]>(`${this.apiUrl}/teacher`);
@@ -156,6 +156,11 @@ export class RepositoryService {
   removeCollaborator(repoFullName: string, username: string): Observable<any> {
     return this.http.delete(`${this.apiUrl}/${repoFullName}/collaborators/${encodeURIComponent(username)}`);
   }
+  // remove invitation
+  cancelInvitation(repoFullName: string, email: string) {
+  return this.http.delete(`${this.apiUrl}/${repoFullName}/invitations/${encodeURIComponent(email)}`);
+}
+
 
   // Get repository commits
   getCommits(repoFullName: string, branch: string = 'main', page: number = 1): Observable<CommitInfo[]> {
@@ -191,4 +196,15 @@ export class RepositoryService {
 getRawFileContent(rawUrl: string): Observable<string> {
   return this.http.get(rawUrl, { responseType: 'text' });
 }
+getCommitCount(owner: string, repo: string, branch: string): Observable<number> {
+  let url = `/api/repositories/${owner}/${repo}/commits/count?branch=salmabenmiled`;
+
+ 
+
+  return this.http.get<{ count: number }>(url).pipe(
+    map(res => res.count)
+  );
+}
+
+
 }

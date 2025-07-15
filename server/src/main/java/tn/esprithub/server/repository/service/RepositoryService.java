@@ -47,4 +47,11 @@ public interface RepositoryService {
     void deleteRepository(String repoFullName, String teacherEmail);
 
     RepositoryDto createRepository(String repositoryName, String description, boolean isPrivate, String teacherEmail);
+    void cancelInvitation(String repoFullName, String username, String teacherEmail);
+     int getCommitCount(String owner, String repo, String branch, String teacherEmail);
+    Map<String, Object> getRepoLanguages(String repoFullName, String branch, String teacherEmail) ;
+    public List<Object> getLatestRepoCommit(String repoFullName, String branch, String teacherEmail);
+    public List<Object> getBranchCommits(String repoFullName, String branch, String teacherEmail);
+    public List<Object> listBranches(String repoFullName, String teacherEmail);
+    public Map<String, Object> getRepositoryLanguages(String repoFullName, String branch, String teacherEmail);
 }

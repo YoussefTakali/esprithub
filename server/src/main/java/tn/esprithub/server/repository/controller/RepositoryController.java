@@ -14,6 +14,7 @@ import tn.esprithub.server.repository.service.RepositoryService;
 import tn.esprithub.server.user.service.UserService;
 import tn.esprithub.server.user.dto.UserSummaryDto;
 
+import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
@@ -81,12 +82,12 @@ public class RepositoryController {
         String name = (String) repositoryData.get("name");
         String description = (String) repositoryData.get("description");
         Boolean isPrivate = (Boolean) repositoryData.getOrDefault("isPrivate", true);
-        
+
         log.info("Creating repository: {} by teacher: {}", name, authentication.getName());
         RepositoryDto repository = repositoryService.createRepository(name, description, isPrivate, authentication.getName());
         return ResponseEntity.ok(repository);
     }
-       // Get latest commit for a specific path
+    // Get latest commit for a specific path
     @GetMapping("/latest-commit")
     public ResponseEntity<?> getLatestCommit(
             @RequestParam String owner,
@@ -129,14 +130,14 @@ public class RepositoryController {
             Authentication authentication) {
         String repoFullName = owner + "/" + repo;
         log.info("Uploading file to repository: {} by teacher: {}", repoFullName, authentication.getName());
-        
+
         FileUploadDto uploadDto = FileUploadDto.builder()
                 .file(file)
                 .path(path)
                 .commitMessage(commitMessage)
                 .branch(branch)
                 .build();
-                
+
         String commitSha = repositoryService.uploadFile(repoFullName, uploadDto, authentication.getName());
         return ResponseEntity.ok(commitSha);
     }
@@ -189,7 +190,7 @@ public class RepositoryController {
         String branchName = request.get("name");
         String fromBranch = request.getOrDefault("from", "main");
         log.info("Creating branch {} from {} in repository: {} by teacher: {}", branchName, fromBranch, repoFullName, authentication.getName());
-        
+
         try {
             repositoryService.createBranch(repoFullName, branchName, fromBranch, authentication.getName());
             return ResponseEntity.ok(Map.of("message", "Branch created successfully", "branch", branchName));
@@ -208,7 +209,7 @@ public class RepositoryController {
             Authentication authentication) {
         String repoFullName = owner + "/" + repo;
         log.info("Deleting branch {} from repository: {} by teacher: {}", branchName, repoFullName, authentication.getName());
-        
+
         try {
             repositoryService.deleteBranch(repoFullName, branchName, authentication.getName());
             return ResponseEntity.ok(Map.of("message", "Branch deleted successfully"));
@@ -226,7 +227,7 @@ public class RepositoryController {
             Authentication authentication) {
         String repoFullName = owner + "/" + repo;
         log.info("Fetching collaborators for repository: {} by teacher: {}", repoFullName, authentication.getName());
-        
+
         try {
             List<Map<String, Object>> collaborators = repositoryService.getCollaborators(repoFullName, authentication.getName());
             return ResponseEntity.ok(collaborators);
@@ -247,18 +248,18 @@ public class RepositoryController {
         String usernameOrEmail = request.get("username");
         String permission = request.getOrDefault("permission", "push");
         log.info("Adding collaborator {} with permission {} to repository: {} by teacher: {}", usernameOrEmail, permission, repoFullName, authentication.getName());
-        
+
         try {
             String githubUsername = usernameOrEmail;
-            
+
             // If the input looks like an email, try to find the user's GitHub username
             if (usernameOrEmail.contains("@")) {
                 List<UserSummaryDto> users = userService.searchUsers(usernameOrEmail);
                 UserSummaryDto user = users.stream()
-                    .filter(u -> usernameOrEmail.equalsIgnoreCase(u.getEmail()))
-                    .findFirst()
-                    .orElse(null);
-                
+                        .filter(u -> usernameOrEmail.equalsIgnoreCase(u.getEmail()))
+                        .findFirst()
+                        .orElse(null);
+
                 if (user != null && user.getGithubUsername() != null && !user.getGithubUsername().trim().isEmpty()) {
                     githubUsername = user.getGithubUsername();
                     log.info("Resolved email {} to GitHub username: {}", usernameOrEmail, githubUsername);
@@ -266,7 +267,7 @@ public class RepositoryController {
                     return ResponseEntity.badRequest().body(Map.of("error", "User not found or GitHub username not set for email: " + usernameOrEmail));
                 }
             }
-            
+
             repositoryService.addCollaborator(repoFullName, githubUsername, permission, authentication.getName());
             return ResponseEntity.ok(Map.of("message", "Collaborator added successfully"));
         } catch (Exception e) {
@@ -284,7 +285,7 @@ public class RepositoryController {
             Authentication authentication) {
         String repoFullName = owner + "/" + repo;
         log.info("Removing collaborator {} from repository: {} by teacher: {}", username, repoFullName, authentication.getName());
-        
+
         try {
             repositoryService.removeCollaborator(repoFullName, username, authentication.getName());
             return ResponseEntity.ok(Map.of("message", "Collaborator removed successfully"));
@@ -293,6 +294,27 @@ public class RepositoryController {
             return ResponseEntity.badRequest().body(Map.of("error", "Failed to remove collaborator: " + e.getMessage()));
         }
     }
+    //remove invitations
+    // Cancel pending collaborator invitation
+    @DeleteMapping("/{owner}/{repo}/invitations/{username}")
+    public ResponseEntity<Map<String, String>> cancelInvitation(
+            @PathVariable String owner,
+            @PathVariable String repo,
+            @PathVariable String username,
+            Authentication authentication) {
+
+        String repoFullName = owner + "/" + repo;
+        log.info("Cancelling invitation for {} from repository: {} by teacher: {}", username, repoFullName, authentication.getName());
+
+        try {
+            repositoryService.cancelInvitation(repoFullName, username, authentication.getName());
+            return ResponseEntity.ok(Map.of("message", "Invitation cancelled successfully"));
+        } catch (Exception e) {
+            log.error("Error cancelling invitation: {}", e.getMessage());
+            return ResponseEntity.badRequest().body(Map.of("error", "Failed to cancel invitation: " + e.getMessage()));
+        }
+    }
+
 
     // Get repository commits
     @GetMapping("/{owner}/{repo}/commits")
@@ -304,7 +326,7 @@ public class RepositoryController {
             Authentication authentication) {
         String repoFullName = owner + "/" + repo;
         log.info("Fetching commits for repository: {} branch: {} page: {} by teacher: {}", repoFullName, branch, page, authentication.getName());
-        
+
         try {
             List<Map<String, Object>> commits = repositoryService.getCommits(repoFullName, branch, page, authentication.getName());
             return ResponseEntity.ok(commits);
@@ -323,7 +345,7 @@ public class RepositoryController {
             Authentication authentication) {
         String repoFullName = owner + "/" + repo;
         log.info("Updating repository settings for: {} by teacher: {}", repoFullName, authentication.getName());
-        
+
         try {
             repositoryService.updateRepository(repoFullName, settings, authentication.getName());
             return ResponseEntity.ok(Map.of("message", "Repository updated successfully"));
@@ -341,7 +363,7 @@ public class RepositoryController {
             Authentication authentication) {
         String repoFullName = owner + "/" + repo;
         log.info("Deleting repository: {} by teacher: {}", repoFullName, authentication.getName());
-        
+
         try {
             repositoryService.deleteRepository(repoFullName, authentication.getName());
             return ResponseEntity.ok(Map.of("message", "Repository deleted successfully"));
@@ -362,5 +384,75 @@ public class RepositoryController {
         log.info("Fetching file content for {}/{} at path: {} on branch: {} by teacher: {}", owner, repo, filePath, branch, authentication.getName());
         Map<String, Object> fileContent = repositoryService.getFileContent(owner, repo, filePath, branch, authentication.getName());
         return ResponseEntity.ok(fileContent);
+    }
+    @GetMapping("/{owner}/{repo}/commit-count")
+    public ResponseEntity<Map<String, Integer>> getCommitCount(
+            @PathVariable String owner,
+            @PathVariable String repo,
+            @RequestParam(value = "branch", defaultValue = "main") String branch,
+            @RequestParam(value = "path", required = false) String path,
+            Authentication authentication) {
+        String repoFullName = owner + "/" + repo;
+        log.info("Fetching commit count for repository: {} branch: {} path: {} by teacher: {}",
+                repoFullName, branch, path, authentication.getName());
+
+        int count = repositoryService.getCommitCount(repoFullName, branch, path, authentication.getName());
+        Map<String, Integer> result = new HashMap<>();
+        result.put("count", count);
+        return ResponseEntity.ok(result);
+    }
+
+    @GetMapping("/{owner}/{repo}/repo-languages")
+    public ResponseEntity<Map<String, Object>> getRepoLanguages(
+            @PathVariable String owner,
+            @PathVariable String repo,
+            @RequestParam(value = "branch", defaultValue = "main") String branch,
+            Authentication authentication) {
+        String repoFullName = owner + "/" + repo;
+        log.info("Fetching languages for repository: {} branch: {} by teacher: {}",
+                repoFullName, branch, authentication.getName());
+
+        Map<String, Object> languages = repositoryService.getRepoLanguages(repoFullName, branch, authentication.getName());
+        return ResponseEntity.ok(languages);
+    }
+
+    @GetMapping("/{owner}/{repo}/latest-repo-commit")
+    public ResponseEntity<List<Object>> getLatestRepoCommit(
+            @PathVariable String owner,
+            @PathVariable String repo,
+            @RequestParam(value = "branch", defaultValue = "main") String branch,
+            Authentication authentication) {
+        String repoFullName = owner + "/" + repo;
+        log.info("Fetching latest commit for repository: {} branch: {} by teacher: {}",
+                repoFullName, branch, authentication.getName());
+
+        List<Object> commits = repositoryService.getLatestRepoCommit(repoFullName, branch, authentication.getName());
+        return ResponseEntity.ok(commits);
+    }
+
+    @GetMapping("/{owner}/{repo}/branch-commits")
+    public ResponseEntity<List<Object>> getBranchCommits(
+            @PathVariable String owner,
+            @PathVariable String repo,
+            @RequestParam String branch,
+            Authentication authentication) {
+        String repoFullName = owner + "/" + repo;
+        log.info("Fetching commits for repository: {} branch: {} by teacher: {}",
+                repoFullName, branch, authentication.getName());
+
+        List<Object> commits = repositoryService.getBranchCommits(repoFullName, branch, authentication.getName());
+        return ResponseEntity.ok(commits);
+    }
+
+    @GetMapping("/{owner}/{repo}/list-branches")
+    public ResponseEntity<List<Object>> listBranches(
+            @PathVariable String owner,
+            @PathVariable String repo,
+            Authentication authentication) {
+        String repoFullName = owner + "/" + repo;
+        log.info("Fetching branches for repository: {} by teacher: {}", repoFullName, authentication.getName());
+
+        List<Object> branches = repositoryService.listBranches(repoFullName, authentication.getName());
+        return ResponseEntity.ok(branches);
     }
 }
