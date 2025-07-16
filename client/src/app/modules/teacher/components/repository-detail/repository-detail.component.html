@@ -4,16 +4,16 @@
     <i class="fas fa-arrow-left"></i>
     Back
   </button>
-  
+ 
   <div class="repo-tabs">
-    <a 
+    <a
       class="tab-link"
       [class.active]="activeTab === 'code'"
       (click)="switchTab('code')">
       <i class="fas fa-code"></i>
       Code
     </a>
-    <a 
+    <a
       class="tab-link"
       [class.active]="activeTab === 'settings'"
       (click)="switchTab('settings')">
@@ -22,20 +22,33 @@
     </a>
   </div>
 </div>
-
+ 
 <!-- Settings Layout -->
 <div class="settings-layout" *ngIf="activeTab === 'settings'">
   <!-- Sidebar -->
   <aside class="settings-sidebar">
     <ul>
-      <li><button type="button" [class.active]="settingsTab === 'general'" (click)="setSettingsTab('general')">General</button></li>
-      <li><button type="button" [class.active]="settingsTab === 'collaborators'" (click)="setSettingsTab('collaborators')">Collaborators</button></li>
-      <li><button type="button" [class.active]="settingsTab === 'branches'" (click)="setSettingsTab('branches')">Branches</button></li>
-      <li><button type="button" [class.active]="settingsTab === 'commits'" (click)="setSettingsTab('commits')">Commits</button></li>
-      <li><button type="button" [class.active]="settingsTab === 'delete'" (click)="setSettingsTab('delete')">Delete</button></li>
+      <li><button type="button" [class.active]="settingsTab === 'general'" (click)="setSettingsTab('general')"><img src="assets/gear-solid.svg" alt="Code Icon" width="16" height="16" style="margin-right: 6px;">General</button></li>
+      <li><button type="button" [class.active]="settingsTab === 'collaborators'" (click)="setSettingsTab('collaborators')">        <img src="assets/user-group-solid.svg" alt="Code Icon" width="16" height="16" style="margin-right: 6px;"> Collaborators</button></li>
+      <li><button type="button" [class.active]="settingsTab === 'branches'" (click)="setSettingsTab('branches')"><img src="assets/code-branch-solid.svg" alt="Code Icon" width="16" height="16" style="margin-right: 6px;">Branches</button></li>
+<li>
+  <button type="button"
+          [class.active]="settingsTab === 'commits'"
+          (click)="setSettingsTab('commits')"
+          style="display: flex; align-items: center; gap: 6px; padding: 4px 8px;">
+    
+    <img src="assets/code-commit-solid.svg"
+         alt="Code Icon"
+         width="19" height="19"
+         style="vertical-align: middle; margin-right:6px;margin-left:4px" />
+    
+    <span style="line-height: 1;">Commits</span>
+  </button>
+</li>
+      <li><button type="button" [class.active]="settingsTab === 'delete'" (click)="setSettingsTab('delete')"><img src="assets/bin.svg" alt="Code Icon" width="16" height="16" style="margin-right: 6px;">Delete repository</button></li>
     </ul>
   </aside>
-
+ 
   <!-- Main Content -->
   <section class="settings-content">
     <!-- General Tab -->
@@ -55,188 +68,224 @@
           />
         </div>
         <div class="helper-text">Great repository names are short and memorable.</div>
-        
+       
         <input
           class="desc-input"
           [(ngModel)]="repositoryDescription"
           placeholder="Description (optional)"
         />
-        
+       
         <div class="settings-actions">
-          <button class="save-btn" (click)="updateRepositorySettings()">Save changes</button>
+          <button class="save-btn" (click)="updateRepositorySettings()" style="color:#ffff;background-color:#C9091D">Save changes</button>
         </div>
       </div>
     </div>
-
+ 
     <!-- Collaborators Tab -->
     <div *ngIf="settingsTab === 'collaborators'">
       <h2>Collaborators</h2>
       <div class="collaborators-content">
-        <div class="collaborators-header">
-          <h3>Manage access</h3>
-          <button class="add-collaborator-btn" (click)="showAddCollab = !showAddCollab">
-            <i class="fas fa-user-plus"></i>
-            Add collaborator
-          </button>
-        </div>
+  <div class="collaborators-header">
+    <h3>Manage access</h3>
+    <button
+      class="add-collaborator-btn"
+      *ngIf="!showAddCollab"
+      (click)="showAddCollab = true"
+    >
+      <i class="fas fa-user-plus"  ></i>
+      Add collaborator
+    </button>
+  </div>
 
-        <div *ngIf="showAddCollab" class="add-collab-form">
-          <div class="user-search-container">
-            <input
-              type="text"
-              [(ngModel)]="collaborator"
-              (input)="onCollaboratorInputChange()"
-              (blur)="hideUserSuggestions()"
-              placeholder="Search by username, full name or email"
-              class="collab-input"
-            />
-            <div class="user-suggestions" *ngIf="showUserSuggestions && userSuggestions.length > 0">
-              <div class="suggestion-item" 
-                   *ngFor="let user of userSuggestions"
-                   (click)="selectUser(user)">
-                <div class="suggestion-content">
-                  <div class="user-name">{{ user.fullName }}</div>
-                  <div class="user-email">{{ user.email }}</div>
-                  <div class="user-github" *ngIf="user.githubUsername">
-                    <i class="fab fa-github"></i> {{ user.githubUsername }}
-                  </div>
-                </div>
-              </div>
-            </div>
-          </div>
-          <button class="add-button" (click)="addCollaborator()">Add collaborator</button>
-          <button class="cancel-btn" (click)="showAddCollab = false">Cancel</button>
-        </div>
-
-        <div class="collaborators-list">
-          <div class="collaborator-item" *ngFor="let collaborator of (repositoryCollaborators || [])">
-            <div class="collaborator-info">
-              <img [src]="collaborator.avatar_url || 'https://github.com/identicons/' + (collaborator.username || collaborator.email) + '.png'" class="collaborator-avatar" alt="Collaborator">
-              <div class="collaborator-details">
-                <span class="collaborator-name">{{ collaborator.username || collaborator.email }}</span>
-                <span *ngIf="collaborator.pending" class="pending-label" title="Invitation Pending">
-                  <i class="fas fa-clock"></i> Pending
-                  <span *ngIf="collaborator.email">({{ collaborator.email }})</span>
-                </span>
-                <span *ngIf="!collaborator.pending" class="active-label" title="Active Collaborator">
-                  <i class="fas fa-check-circle"></i> Active
-                </span>
-              </div>
-            </div>
-            <div class="collaborator-actions">
-              <button class="create-branch-btn" *ngIf="!collaborator.pending && collaborator.username"
-                      (click)="createCollaboratorBranch(collaborator.username)"
-                      title="Create branch for {{ collaborator.username }}">
-                <i class="fas fa-code-branch"></i> Create Branch
-              </button>
-              <button class="delete-btn" (click)="removeCollaborator(collaborator.username || collaborator.email)">
-                {{ collaborator.pending ? 'Cancel Invitation' : 'Remove' }}
-              </button>
-            </div>
-          </div>
-        </div>
-
-        <div *ngIf="!repository?.collaborators?.length" class="empty-collab-message">
-          No collaborators yet. Add some to start collaborating!
-        </div>
-      </div>
+  <!-- Status Messages Section -->
+  <div class="status-messages" *ngIf="collaboratorMessages.length > 0">
+    <div *ngFor="let message of collaboratorMessages"
+         [ngClass]="'message-' + message.type"
+         class="status-message">
+      <i [ngClass]="getMessageIcon(message.type)"></i>
+      <span>{{ message.text }}</span>
+      <button class="close-message-btn" (click)="removeMessage(message.id)">
+        <i class="fas fa-times"></i>
+      </button>
     </div>
+  </div>
 
-    <!-- Branches Tab -->
-    <div class="sidebar-section" *ngIf="settingsTab === 'branches'">
-      <!-- Header + Create -->
-      <div class="branches-header">
-        <h3>Branches</h3>
-        <button class="create-branch-btn" (click)="toggleCreateBranch()">New branch</button>
-      </div>
+  <div *ngIf="showAddCollab" class="add-collab-form" style="display: flex; align-items: center; gap: 10px;">
 
-      <!-- Create Branch Form -->
-      <div *ngIf="showCreateBranchInput" class="create-branch-form">
-        <input
-          class="branch-input"
-          [(ngModel)]="newBranchName"
-          placeholder="Branch name"
-        />
-        <button (click)="createBranch()" class="confirm-btn">Create</button>
-        <button (click)="toggleCreateBranch()" class="cancel-btn">Cancel</button>
-      </div>
-
-      <!-- Search Bar -->
+    <div class="user-search-container">
       <input
         type="text"
-        class="branch-search"
-        placeholder="Search branches..."
-        [(ngModel)]="branchSearch"
+        [(ngModel)]="collaborator"
+        (input)="onCollaboratorInputChange()"
+        (blur)="hideUserSuggestions()"
+        placeholder="Search by username, full name or email"
+        class="collab-input"
+        style="width: 100%; padding: 8px; border: 1px solid #e74c3c; border-radius: 4px;"
+   
       />
-
-      <!-- Default Branch Section -->
-      <h4>Default</h4>
-      <div class="branch-card">
-        <div class="branch-row">
-          <div class="branch-left">
-            <span class="branch-name">{{ selectedBranch }}</span>
-            <span class="default-badge">default</span>
-          </div>
-        </div>
-      </div>
-
-      <!-- Your Branches Section -->
-      <h4>Your branches</h4>
-      <div *ngFor="let branch of filteredBranches()" class="branch-card">
-        <div class="branch-row">
-          <div class="branch-left">
-            <span class="branch-name">{{ branch }}</span>
-          </div>
-          <div class="branch-right" *ngIf="branch !== selectedBranch">
-            <button class="delete-btn" (click)="deleteBranch(branch)">
-              <i class="fas fa-trash"></i>
-            </button>
-          </div>
-        </div>
-      </div>
-
-      <!-- Feedback Messages -->
-      <div *ngIf="branchSuccessMessage" class="success-msg">
-        <i class="fas fa-check"></i>
-        {{ branchSuccessMessage }}
-      </div>
-      <div *ngIf="branchErrorMessage" class="error-msg">
-        <i class="fas fa-exclamation-triangle"></i>
-        {{ branchErrorMessage }}
-      </div>
-    </div>
-
-    <!-- Commits Tab -->
-    <div class="sidebar-section" *ngIf="settingsTab === 'commits'">
-      <h3>Recent Commits</h3>
-      <div *ngIf="loading" class="loading-state">
-        <p>Loading commits...</p>
-      </div>
-      <ul class="commit-list" *ngIf="!loading && recentCommits.length">
-        <li *ngFor="let commit of recentCommits">
-          <img [src]="commit.avatarUrl"
-               (error)="onImageError($event, commit.author)"
-               alt="Author" width="32" height="32" style="border-radius:50%;margin-right:8px;" />
-          <div style="display:inline-block;vertical-align:top;">
-            <a [href]="commit.url" target="_blank" rel="noopener" style="font-weight:bold;">{{ commit.message }}</a>
-            <div style="font-size:13px;color:#555;">
-              <span>{{ commit.author }}</span>
-              •
-              <span>{{ formatDate(commit.date) }}</span>
-              •
-              <span style="font-family:monospace;">{{ commit.sha.slice(0,7) }}</span>
-              <button (click)="$event.stopPropagation();copyToClipboard(commit.sha)" title="Copy SHA" style="background:none;border:none;cursor:pointer;padding:0 4px;">
-                <i class="fas fa-copy"></i>
-              </button>
+      <div class="user-suggestions" *ngIf="showUserSuggestions && userSuggestions.length > 0">
+        <div class="suggestion-item"
+             *ngFor="let user of userSuggestions"
+             (click)="selectUser(user)">
+          <div class="suggestion-content">
+            <div class="user-name">{{ user.fullName }}</div>
+            <div class="user-email">{{ user.email }}</div>
+            <div class="user-github" *ngIf="user.githubUsername">
+              <i class="fab fa-github"></i> {{ user.githubUsername }}
             </div>
           </div>
-        </li>
-      </ul>
-      <div *ngIf="!loading && !recentCommits.length" class="empty-state">
-        <p>No commits found.</p>
+        </div>
       </div>
     </div>
+    <button class="add-button"
+             style="padding: 8px 14px; background-color: #e74c3c; color: white; border: none; border-radius: 4px; white-space: nowrap; margin-bottom:15px;margin-left:5px"(click)="addCollaborator()">Add collaborator</button>
+    <button class="cancel-btn" (click)="showAddCollab = false"          style="padding: 8px 14px; background-color: white; color: #e74c3c; border: 1px solid #e74c3c; border-radius: 4px;  margin-bottom:15px">
+   Cancel</button>
+  </div>
 
+  <div class="collaborators-list">
+    <div class="collaborator-item" *ngFor="let collaborator of (repositoryCollaborators || [])">
+      <div class="collaborator-info">
+        <img [src]="collaborator.avatar_url || 'https://github.com/identicons/' + (collaborator.username || collaborator.email) + '.png'" class="collaborator-avatar" alt="Collaborator">
+        <div class="collaborator-details">
+          <span class="collaborator-name">{{ collaborator.username || collaborator.email }}</span>
+          <span *ngIf="collaborator.pending" class="pending-label" title="Invitation Pending">
+            <i class="fas fa-clock"></i> Pending
+            <span *ngIf="collaborator.email">({{ collaborator.email }})</span>
+          </span>
+          <span *ngIf="!collaborator.pending" class="active-label" title="Active Collaborator">
+            <i class="fas fa-check-circle"></i> Active
+          </span>
+        </div>
+      </div>
+      <div class="collaborator-actions">
+        <button class="create-branch-btn" *ngIf="!collaborator.pending && collaborator.username"
+                (click)="createCollaboratorBranch(collaborator.username)"
+                title="Create branch for {{ collaborator.username }}">
+          <i class="fas fa-code-branch"></i> Create Branch
+        </button>
+        <button class="delete-btn" (click)="removeCollaborator(collaborator)">
+          {{ collaborator.pending ? 'Cancel Invitation' : 'Remove' }}
+        </button>
+      </div>
+    </div>
+  </div>
+
+  
+</div>
+    </div>
+ 
+    <div class="sidebar-section" *ngIf="settingsTab === 'branches'">
+  <!-- Header + New branch -->
+  <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 1rem;">
+    <h3 style="margin: 0;">Branches</h3>
+    <button (click)="toggleCreateBranch()"
+      style="background-color: #ff4d4f; color: white; border: none; padding: 6px 12px; border-radius: 6px; font-weight: 500; cursor: pointer;">
+      New branch
+    </button>
+  </div>
+
+  <!-- Create branch form -->
+  <div *ngIf="showCreateBranchInput"
+    style="display: flex; gap: 10px; margin-bottom: 16px; align-items: center;">
+    <input [(ngModel)]="newBranchName" placeholder="Branch name" class="create-branch-input"
+      style="flex: 1; padding: 6px 10px; border: 1px solid #ccc; border-radius: 6px;" />
+    <button (click)="createBranch()"
+      style="padding: 6px 12px; border-radius: 6px; background-color: #e53935; color: white; border: none; font-weight: 500; cursor: pointer;">
+      Create
+    </button>
+    <button (click)="toggleCreateBranch()"
+      style="padding: 6px 12px; border-radius: 6px; background-color: white; color: #dc3545; border: 1px solid #dc3545; font-weight: 500; cursor: pointer;">
+      Cancel
+    </button>
+  </div>
+
+  <!-- Search input -->
+  <input [(ngModel)]="branchSearch" placeholder="Search branches..." class="branch-search"
+    style="width: 100%; padding: 6px 12px; border-radius: 6px; border: 1px solid #ccc; margin-bottom: 1.2rem;" />
+
+  <!-- Default branch -->
+  <h4 style="margin-bottom: 6px;">Default</h4>
+  <div
+    style="background-color: #f8f9fa; padding: 8px 12px; border-radius: 6px; display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px;">
+    <div style="display: flex; align-items: center;">
+      <span
+        style="background-color: #f3dcdc; color: #c9091d; font-weight: 500; padding: 2px 10px; border-radius: 8px; font-family: monospace;">
+        {{ selectedBranch }}
+      </span>
+      <span
+        style="background-color: #d1e7dd; color: #198754; font-size: 12px; padding: 3px 8px; border-radius: 10px; margin-left: 10px;">
+        Default
+      </span>
+    </div>
+  </div>
+
+  <!-- Other branches -->
+  <h4 style="margin-bottom: 6px;">Your branches</h4>
+  <div *ngFor="let branch of filteredBranches()"
+    style="background-color: #f8f9fa; padding: 8px 12px; border-radius: 6px; display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px;height: 50px;">
+    <span
+      style="background-color: #f3dcdc; color: #c9091d; font-weight: 500; padding: 2px 10px; border-radius: 8px; font-family: monospace;">
+      {{ branch }}
+    </span>
+    <button *ngIf="branch !== selectedBranch" (click)="deleteBranch(branch)"
+      style="background: none; border: none; cursor: pointer;">
+      <i class="fas fa-trash" style="color:#c9091d;"></i>
+    </button>
+  </div>
+
+  <!-- Messages -->
+  <div *ngIf="branchSuccessMessage"
+    style="color: #198754; background: #d1e7dd; padding: 10px; margin-top: 10px; border-radius: 6px;">
+    <i class="fas fa-check"></i> {{ branchSuccessMessage }}
+  </div>
+  <div *ngIf="branchErrorMessage"
+    style="color: #dc3545; background: #f8d7da; padding: 10px; margin-top: 10px; border-radius: 6px;">
+    <i class="fas fa-exclamation-triangle"></i> {{ branchErrorMessage }}
+  </div>
+</div>
+
+<div class="sidebar-section" *ngIf="settingsTab === 'commits'">
+  <h3 style="margin-bottom: 20px; color: #C9091D;">Commits</h3>
+
+  <!-- Loading -->
+  <div *ngIf="loading">
+    <p>Loading commits...</p>
+  </div>
+
+  <!-- Commit List -->
+  <div *ngIf="!loading && recentCommits.length">
+    <div *ngFor="let commit of recentCommits"
+         style="background-color: #ffeaea; padding: 15px 20px; border-radius: 8px; border: 1px solid #e0e0e0; margin-bottom: 15px;">
+      
+      <!-- Commit Header -->
+      <div style="display: flex; align-items: center; margin-bottom: 8px;">
+        <img [src]="commit.avatarUrl"
+             (error)="onImageError($event, commit.author)"
+             alt="Author"
+             width="32" height="32"
+             style="border-radius: 50%; margin-right: 10px;" />
+        <div style="font-weight: bold; font-size: 15px; color:#C9091D" >
+          Message: <span style="font-weight: 500;">{{ commit.message }}</span>
+        </div>
+      </div>
+
+      <!-- Commit Meta -->
+      <div style="font-size: 14px; color: #444; padding-left: 42px;">
+        <div><strong>Author:</strong> {{ commit.author }}</div>
+        <div><strong>Date:</strong> {{ formatDate(commit.date) }}</div>
+
+      </div>
+    </div>
+  </div>
+
+  <!-- Empty State -->
+  <div *ngIf="!loading && !recentCommits.length">
+    <p>No commits found.</p>
+  </div>
+</div>
+
+ 
     <!-- Delete Tab -->
     <div class="delete-rep" *ngIf="settingsTab === 'delete'">
       <h2>Delete Repository</h2>
@@ -253,7 +302,7 @@
           [(ngModel)]="deleteInput"
           placeholder="Repository name"
         />
-        <button 
+        <button
           class="danger"
           [disabled]="deleteInput !== repoName"
           (click)="confirmDelete()">
@@ -263,30 +312,30 @@
     </div>
   </section>
 </div>
-
+ 
 <!-- Code Tab Content -->
 <div *ngIf="activeTab === 'code'" class="code-content">
   <!-- Commit Banner -->
-  <div *ngIf="latestCommitBanner" class="commit-banner">
-    <div class="commit-left">
-      <img [src]="latestCommitBanner.avatarUrl" alt="avatar" class="commit-avatar" />
-      <div class="commit-info">
-        <strong>{{ latestCommitBanner.author }}</strong>
-        <span class="commit-message">{{ latestCommitBanner.message }}</span>
-      </div>
-    </div>
-    <div class="commit-right">
-      <code class="commit-sha">{{ latestCommitBanner.sha }}</code>
-      <span class="commit-time">{{ latestCommitBanner.time | timeAgo }}</span>
-      <div class="commit-debug" style="font-size: 11px; color: #666;">
-        Raw: {{ latestCommitBanner.time }}
-      </div>
-      <div class="commit-count" *ngIf="commitCount > 0">
-        <span>{{ commitCount }} commits</span>
-      </div>
+<div *ngIf="latestCommitBanner"
+     style="display: flex; justify-content: space-between; align-items: center; background-color: #f8f9fa; padding: 12px 16px; border-radius: 6px; margin-bottom: 16px; border: 1px solid #e0e0e0;">
+  <div style="display: flex; align-items: center;">
+    <img [src]="latestCommitBanner.avatarUrl" alt="avatar"
+         style="width: 32px; height: 32px; border-radius: 50%; margin-right: 10px;" />
+    <div>
+      <div style="font-weight: 600; font-size: 14px;">{{ latestCommitBanner.author }}</div>
+      <div style="font-size: 13px; color: #444;">{{ latestCommitBanner.message }}</div>
     </div>
   </div>
 
+  <div style="text-align: right; font-size: 13px; color: #555;">
+    <code style="font-family: monospace;">{{ latestCommitBanner.sha }}</code><br />
+    <span>{{ latestCommitBanner.time | timeAgo }}</span>
+    <div style="font-size: 11px;">Raw: {{ latestCommitBanner.time }}</div>
+  
+  </div>
+</div>
+
+ 
   <!-- Branch Info Bar -->
   <div class="branch-info">
     <div class="branch-selector">
@@ -298,7 +347,7 @@
         </button>
         <div class="dropdown-menu" *ngIf="showBranchDropdown">
           <div class="dropdown-header">Switch branches/tags</div>
-          <div class="dropdown-item" 
+          <div class="dropdown-item"
                *ngFor="let branch of repositoryBranches"
                [class.active]="branch === selectedBranch"
                (click)="switchBranch(branch)">
@@ -309,6 +358,39 @@
         </div>
       </div>
     </div>
+      <!-- Clone Dropdown -->
+      <div class="clone-dropdown">
+        <button class="code-btn" (click)="toggleCloneDropdown()" style="background-color:#C9091D">
+          <i class="fas fa-code"></i>
+          Code
+          <i class="fas fa-chevron-down"></i>
+        </button>
+        <div class="clone-box" *ngIf="showCloneDropdown">
+          <div class="clone-section">
+            <h4>Clone</h4>
+            <div class="clone-url-container">
+              <input
+                #cloneInput
+                type="text"
+                [value]="cloneUrl"
+                readonly
+                (click)="cloneInput.select()"
+                class="clone-input"
+              />
+              <button class="copy-btn" (click)="copyCloneUrl()">
+                <i class="fas fa-copy"></i>
+                Copy
+              </button>
+            </div>
+          </div>
+          <div class="clone-section">
+            <button class="download-zip-btn" (click)="downloadZip()"  style="background-color:#C9091D">
+              <i class="fas fa-download"></i>
+              Download ZIP
+            </button>
+          </div>
+        </div>
+      </div>
     <div class="commit-info" *ngIf="recentCommits.length > 0">
       <div class="latest-commit">
         <img [src]="recentCommits[0].avatarUrl"
@@ -321,7 +403,7 @@
       </div>
     </div>
   </div>
-
+ 
   <!-- File Browser -->
   <div class="file-browser">
     <table class="file-table">
@@ -337,8 +419,8 @@
           <td class="file-name-cell">
             <div class="file-name-container">
               <i [ngClass]="getFileFaIcon(file.fileName || file.filePath || file)"></i>
-              <a href="javascript:void(0)" 
-                 class="file-name" 
+              <a href="javascript:void(0)"
+                 class="file-name"
                  (click)="viewFile(file)">{{ file.fileName || file.filePath || file }}</a>
             </div>
           </td>
@@ -347,21 +429,17 @@
         </tr>
       </tbody>
     </table>
-
+ 
     <!-- Empty State -->
     <div *ngIf="!repositoryFiles?.length" class="empty-repo">
       <div class="empty-content">
         <i class="fas fa-folder-open fa-3x"></i>
         <h3>This repository is empty</h3>
-        <p>Get started by creating a new file or uploading an existing file.</p>
-        <button class="create-file-btn">
-          <i class="fas fa-plus"></i>
-          Create new file
-        </button>
+
       </div>
     </div>
   </div>
-
+ 
   <!-- README Section -->
   <div class="readme-section" *ngIf="repository?.description">
     <div class="readme-header">
@@ -374,7 +452,7 @@
     </div>
   </div>
 </div>
-
+ 
 <!-- File Viewer Modal -->
 <div class="modal-overlay" *ngIf="showFileModal" (click)="closeFileModal()">
   <div class="file-modal" (click)="$event.stopPropagation()">
@@ -397,6 +475,8 @@
     </div>
   </div>
 </div>
+ 
+
 
 
 <style>
@@ -571,7 +651,11 @@
   background: #e1e4e8;
   color: #24292e;
 }
-
+  input.branch-search:focus {
+    outline: none;
+    border: 1px solid #C9091D;
+    box-shadow: 0 0 0 2px rgba(201, 9, 29, 0.1);
+  }
 .file-modal-content {
   flex: 1;
   overflow: auto;
@@ -600,4 +684,11 @@
   max-height: 60vh;
   overflow: auto;
 }
+input.create-branch-input:focus {
+  outline: none;
+  border: 2px solid #C9091D;
+  box-shadow: 0 0 0 2px rgba(201, 9, 29, 0.1);
+}
 </style>
+
+ 
