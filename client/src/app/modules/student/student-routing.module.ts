@@ -10,7 +10,7 @@ import { StudentRepositoriesComponent } from './components/repositories/reposito
 import { GitHubRepoDetailsComponent } from './components/github-repo-details/github-repo-details.component';
 import { StudentScheduleComponent } from './components/schedule/schedule.component';
 import { StudentTasksComponent } from './components/tasks/tasks.component';
-
+import { CommitHistoryComponent } from './components/commit-history/commit-history.component';
 const routes: Routes = [
   { path: '', redirectTo: '/student/dashboard', pathMatch: 'full' },
   { path: 'dashboard', component: StudentDashboardComponent },
@@ -21,7 +21,8 @@ const routes: Routes = [
   { path: 'schedule', component: StudentScheduleComponent },
   { path: 'tasks', component: StudentTasksComponent },
   { path: 'tasks/:taskId/submit', component: SubmitTaskComponent },
-  { path: 'submissions', component: StudentSubmissionsComponent }
+  { path: 'submissions', component: StudentSubmissionsComponent },
+{ path: 'repositories/:id/commits', component: CommitHistoryComponent }
 ];
 
 @NgModule({
