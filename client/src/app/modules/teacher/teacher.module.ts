@@ -40,6 +40,7 @@ import { MatTreeModule } from '@angular/material/tree';
 
 // Components
 import { TeacherDashboardComponent } from './components/dashboard/dashboard.component';
+import { StudentsComponent } from './components/students/students.component';
 import { TeacherProjectsComponent } from './components/projects/projects.component';
 import { TeacherTasksComponent } from './components/tasks/tasks.component';
 import { RepositoriesComponent } from './components/repositories/repositories.component';
@@ -58,6 +59,7 @@ import { TeacherDataService } from './services/teacher-data.service';
 
 const routes: Routes = [
   { path: 'dashboard', component: TeacherDashboardComponent },
+  { path: 'students', component: StudentsComponent },
   { path: 'projects', component: TeacherProjectsComponent },
   { path: 'tasks', component: TeacherTasksComponent },
   { path: 'repositories', component: RepositoriesComponent },
@@ -79,6 +81,7 @@ const routes: Routes = [
     TeacherSubmissionsComponent,
     TeacherSubmissionDetailModalComponent,
     TimeAgoPipe
+    ,StudentsComponent
   ],
   imports: [
     CommonModule,

@@ -18,7 +18,9 @@ export class TeacherDataService {
   getMyGroups(): Observable<any[]> {
     return this.http.get<any[]>('http://localhost:8090/api/teacher/groups');
   }
-
+  getStudentDetails(studentId: string): Observable<any> {
+    return this.http.get<any>(`http://localhost:8090/api/v1/users/${studentId}`);
+  }
   getMyTasks(): Observable<any[]> {
     return this.http.get<any[]>('http://localhost:8090/api/tasks');
   }

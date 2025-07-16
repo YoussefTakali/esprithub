@@ -1,0 +1,66 @@
+
+
+<div class="students-page">
+  <h1 class="content-title">Students by Class</h1>
+  <div *ngIf="loading" class="loading">Loading...</div>
+  <div *ngIf="error" class="error">{{ error }}</div>
+  <div *ngIf="!loading && !error">
+    <ng-container *ngIf="classesWithStudents.length > 0; else noClasses">
+      <div *ngFor="let classe of classesWithStudents" class="class-card">
+        <div class="class-header">
+          <i class="fas fa-school class-icon"></i>
+          <span class="class-title">{{ classe.className }}</span>
+        </div>
+        <hr class="class-divider" />
+        <div *ngIf="classe.students.length > 0; else noStudents">
+          <ul class="student-list">
+            <button *ngFor="let student of classe.students" (click)="openStudentModal(student)" class="student-list-item">
+              <i class="fas fa-user student-icon"></i>
+              <span class="student-name">{{ student.nom }} {{ student.prenom }}</span>
+              <span class="student-email">{{ student.email }}</span>
+            </button>
+          </ul>
+        </div>
+        <ng-template #noStudents>
+          <div class="no-students">No students found for this class.</div>
+        </ng-template>
+      </div>
+    </ng-container>
+    <ng-template #noClasses>
+      <div class="no-classes">No classes found.</div>
+    </ng-template>
+  </div>
+
+  <!-- Student Details Modal -->
+  <div class="modal-backdrop" *ngIf="showStudentModal" (click)="closeStudentModal()"></div>
+  <div class="modal" *ngIf="showStudentModal">
+    <div class="modal-content" (click)="$event.stopPropagation()">
+      <button class="close-button" (click)="closeStudentModal()">
+        <i class="fas fa-times"></i>
+      </button>
+      <h2 class="modal-title">Student Details</h2>
+      <div class="student-details">
+        <div><b>Name:</b> {{ selectedStudent?.nom }} {{ selectedStudent?.prenom }}</div>
+        <div><b>Email:</b> {{ selectedStudent?.email }}</div>
+        <div *ngIf="selectedStudent?.id"><b>ID:</b> {{ selectedStudent?.id }}</div>
+        <div *ngIf="selectedStudent?.phone"><b>Phone:</b> {{ selectedStudent?.phone }}</div>
+        <div *ngIf="selectedStudent?.address"><b>Address:</b> {{ selectedStudent?.address }}</div>
+        <hr />
+        <div *ngIf="studentProjects.length > 0">
+          <h3>Projects & Grades</h3>
+          <ul>
+            <li *ngFor="let proj of studentProjects">
+              <b>Project:</b> {{ proj.projectName }}<br>
+              <b>Group:</b> {{ proj.groupName }}<br>
+              <b>Grade:</b> {{ proj.grade }} <span *ngIf="proj.gradedTasks > 0">({{ proj.gradedTasks }}/{{ proj.totalTasks }} tasks graded)</span>
+            </li>
+          </ul>
+          <div class="total-grade"><b>Total Grade (all projects):</b> {{ totalGrade !== null ? totalGrade : 'N/A' }}</div>
+        </div>
+        <div *ngIf="studentProjects.length === 0">
+          <i>No project grades found for this student.</i>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>

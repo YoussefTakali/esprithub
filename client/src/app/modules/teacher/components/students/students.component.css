@@ -1,0 +1,101 @@
+
+.students-page {
+  padding: 40px 60px;
+  background: #fff;
+  min-height: 100vh;
+}
+.content-title {
+  font-size: 35px;
+  font-weight: 600;
+  color: #212529;
+  margin-bottom: 30px;
+}
+.class-card {
+  background: #fff;
+  border-radius: 12px;
+  box-shadow: 0 2px 12px rgba(231,76,60,0.06);
+  border: 1.5px solid #dee2e6;
+  margin-bottom: 32px;
+  padding: 32px 38px 22px 38px;
+}
+.class-header {
+  display: flex;
+  align-items: center;
+  margin-bottom: 10px;
+}
+.class-icon {
+  font-size: 32px;
+  color: #a71617;
+  margin-right: 16px;
+}
+.class-title {
+  font-size: 24px;
+  font-weight: 700;
+  color: #212529;
+}
+.student-list-item {
+  cursor: pointer;
+  transition: background 0.15s;
+  border-radius: 6px;
+}
+.student-list-item:hover {
+  background: #ffeaea;
+}
+.student-email {
+  color: #6c757d;
+  font-size: 15px;
+}
+.no-students, .no-classes {
+  color: #a71617;
+  font-size: 16px;
+  margin-top: 12px;
+}
+.loading {
+  font-size: 18px;
+  color: #6c757d;
+}
+.error {
+  color: #a71617;
+  font-size: 18px;
+  margin-bottom: 18px;
+}
+.modal-backdrop {
+  position: fixed;
+  top: 0; left: 0; right: 0; bottom: 0;
+  background: rgba(0,0,0,0.25);
+  z-index: 1001;
+}
+.modal {
+  position: fixed;
+  top: 0; left: 0; right: 0; bottom: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 1002;
+}
+.modal-content {
+  background: #fff;
+  border-radius: 16px;
+  padding: 38px 48px 32px 48px;
+  box-shadow: 0 8px 32px rgba(231,76,60,0.13);
+  min-width: 340px;
+  max-width: 420px;
+  position: relative;
+}
+.close-button {
+  position: absolute;
+  top: 18px;
+  right: 18px;
+  color: #a71617;
+}
+.modal-title {
+  font-size: 26px;
+  font-weight: 700;
+  color: #212529;
+  margin-bottom: 18px;
+}
+.student-details {
+  font-size: 17px;
+  color: #212529;
+  line-height: 2.1;
+}
