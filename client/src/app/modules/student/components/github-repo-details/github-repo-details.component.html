@@ -194,8 +194,7 @@
                   Add a README
                 </button>
               </div>
-              <div class="description-text" *ngIf="repositoryDescription">
-                <p>{{ repositoryDescription }}</p>
+              <div class="description-text" *ngIf="repositoryDescription" [innerHTML]="getRenderedMarkdown(repositoryDescription)">
               </div>
             </div>
             <div class="description-edit" *ngIf="isEditingDescription">

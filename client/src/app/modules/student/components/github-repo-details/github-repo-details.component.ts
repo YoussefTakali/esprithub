@@ -1351,6 +1351,66 @@ export class GitHubRepoDetailsComponent implements OnInit, OnDestroy {
 
     return this.sanitizer.bypassSecurityTrustHtml(html)
   }
+ getRenderedMarkdown(markdown: string): SafeHtml {
+    if (!markdown) return this.sanitizer.bypassSecurityTrustHtml("")
+
+    // Use the same markdown conversion logic as getMarkdownPreview()
+    let html = markdown
+
+    // Escape HTML first
+    html = html.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;")
+
+    // Headers (process from h3 to h1 to avoid conflicts)
+    html = html.replace(/^### (.*$)/gim, "<h3>$1</h3>")
+    html = html.replace(/^## (.*$)/gim, "<h2>$1</h2>")
+    html = html.replace(/^# (.*$)/gim, "<h1>$1</h1>")
+
+    // Code blocks (process before inline code)
+    html = html.replace(/```([\s\S]*?)```/g, "<pre><code>$1</code></pre>")
+
+    // Inline code
+    html = html.replace(/`([^`]+)`/g, "<code>$1</code>")
+
+    // Bold (process before italic to avoid conflicts)
+    html = html.replace(/\*\*([^*]+)\*\*/g, "<strong>$1</strong>")
+
+    // Italic
+    html = html.replace(/\*([^*]+)\*/g, "<em>$1</em>")
+
+    // Strikethrough
+    html = html.replace(/~~([^~]+)~~/g, "<del>$1</del>")
+
+    // Links
+    html = html.replace(/\[([^\]]+)\]$$([^)]+)$$/g, '<a href="$2" target="_blank" rel="noopener noreferrer">$1</a>')
+
+    // Blockquotes
+    html = html.replace(/^&gt; (.*$)/gim, "<blockquote>$1</blockquote>")
+
+    // Lists
+    html = html.replace(/^- (.*$)/gim, "<li>$1</li>")
+    html = html.replace(/^(\d+)\. (.*$)/gim, "<li>$2</li>")
+
+    // Wrap consecutive list items in ul tags
+    html = html.replace(/(<li>.*?<\/li>)(\s*<br>\s*<li>.*?<\/li>)*/g, (match) => {
+      return "<ul>" + match.replace(/<br>\s*/g, "") + "</ul>"
+    })
+
+    // Convert line breaks to paragraphs for better formatting
+    html = html
+      .split("<br><br>")
+      .map((paragraph) => {
+        if (paragraph.trim() && !paragraph.match(/^<(h[1-6]|ul|ol|blockquote|pre)/)) {
+          return "<p>" + paragraph.replace(/<br>/g, " ") + "</p>"
+        }
+        return paragraph
+      })
+      .join("")
+
+    // Clean up remaining single line breaks
+    html = html.replace(/<br>/g, " ")
+
+    return this.sanitizer.bypassSecurityTrustHtml(html)
+  }
 
   private processCommitData(commits: any[]): void {
     // Update commits array and extract latest commit if not already set
