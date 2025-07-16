@@ -797,4 +797,9 @@ export class TeacherTasksComponent implements OnInit {
       });
     }
   }
+    getTaskCountByStatus(status: string): number {
+    if (!this.filteredTasks) return 0;
+    return this.filteredTasks.filter(task => task.status === status).length;
+  }
+ 
 }

@@ -6,64 +6,59 @@
     <div class="sidebar">
       <h2 class="sidebar-title">My Classes & Projects</h2>
       <div class="tree-view">
+        <h2 class="tree-title">Classes</h2>
         <div *ngFor="let classe of teacherClasses" class="tree-item">
-          <div class="tree-node class-node" [class.expanded]="classe.expanded">
+          <div class="tree-node class-node" [class.expanded]="classe.expanded" [class.selected]="selectedClass?.id === classe.id">
             <button class="tree-icon arrow-icon" (click)="toggleClass(classe)">
               <i class="fas" [class.fa-chevron-right]="!classe.expanded" [class.fa-chevron-down]="classe.expanded"></i>
             </button>
-            <span class="tree-icon">
+            <span class="tree-icon class-icon">
               <i class="fas fa-graduation-cap"></i>
             </span>
-            <span class="tree-label">
-              {{ classe.name || classe.className }}
-              <span *ngIf="classe.courseName" class="course-name">({{ classe.courseName }})</span>
-            </span>
+            <span class="tree-label class-label">{{ classe.className }}</span>
+            <span class="item-count">({{ classe.projects?.length || 0 }} projects)</span>
           </div>
-          <div *ngIf="classe.expanded" class="tree-children">
-            <div *ngFor="let project of classe.projects" class="tree-item">
-              <div class="tree-node project-node" [class.selected]="selectedProject?.id === project.id" [class.expanded]="project.expanded">
+         
+          <!-- Projects under Class -->
+          <div class="tree-children" *ngIf="classe.expanded">
+            <div *ngFor="let project of classe.projects" class="tree-item project-level">
+              <h2 class="tree-title">Projects</h2>
+              <div class="tree-node project-node" [class.expanded]="project.expanded" [class.selected]="selectedProject?.id === project.id">
                 <button class="tree-icon arrow-icon" (click)="toggleProject(project)">
                   <i class="fas" [class.fa-chevron-right]="!project.expanded" [class.fa-chevron-down]="project.expanded"></i>
                 </button>
-                <span class="tree-icon">
-                  <i class="fas fa-folder"></i>
+                <span class="tree-icon project-icon">
+                  <i class="fas fa-folder-open"></i>
                 </span>
-                <button class="tree-label" (click)="selectProject(project)">{{ project.name }}</button>
-                <button class="add-icon" (click)="openCreateGroupModal(project, classe.classId)">
-                  <i class="fas fa-plus"></i>
-                </button>
+                <span class="tree-label project-label">{{ project.name }}</span>
+                <span class="item-count">({{ project.groups?.length || 0 }} groups)</span>
               </div>
-              <div *ngIf="project.expanded" class="tree-children">
+             
+              <!-- Groups under Project -->
+              <div class="tree-children group-level" *ngIf="project.expanded">
+                <h2 class="tree-title">Groups</h2>
                 <div *ngFor="let group of project.groups" class="tree-item">
                   <div class="tree-node group-node" [class.expanded]="group.expanded">
                     <button class="tree-icon arrow-icon" (click)="toggleGroup(group)">
                       <i class="fas" [class.fa-chevron-right]="!group.expanded" [class.fa-chevron-down]="group.expanded"></i>
                     </button>
-                    <span class="tree-icon">
+                    <span class="tree-icon group-icon">
                       <i class="fas fa-users"></i>
                     </span>
-                    <button class="tree-label" (click)="filterByGroup(group)">
-                      {{ group.name }}
-                    </button>
-                    <button class="add-icon" (click)="openAddMemberModal(group)">
-                      <i class="fas fa-plus"></i>
-                    </button>
-                    <button class="remove-icon" (click)="confirmRemoveGroup(group)">
-                      <i class="fas fa-minus"></i>
-                    </button>
+                    <span class="tree-label group-label">{{ group.name }}</span>
+                    <span class="item-count">({{ group.memberIds?.length || 0 }} members)</span>
                   </div>
-                  <div *ngIf="group.expanded" class="tree-children">
-                    <div *ngFor="let studentId of group.memberIds" class="tree-item">
-                      <div class="tree-node student-node">
-                        <span class="tree-icon">
+                 
+                  <!-- Members under Group -->
+                  <div class="tree-children member-level" *ngIf="group.expanded">
+                    <h2 class="tree-title">Members</h2>
+                    <div *ngFor="let memberId of group.memberIds" class="tree-item">
+                      <div class="tree-node member-node">
+                        <span class="tree-icon member-icon">
                           <i class="fas fa-user"></i>
                         </span>
-                        <button class="tree-label" (click)="filterByStudent(studentId)">
-                          {{ getStudentName(studentId) }}
-                        </button>
-                        <button class="remove-icon" (click)="confirmRemoveMember(group, studentId)">
-                          <i class="fas fa-minus-circle"></i>
-                        </button>
+                        <span class="tree-label member-label">{{ getStudentName(memberId) }}</span>
+                        <span class="member-role">Student</span>
                       </div>
                     </div>
                   </div>
@@ -77,12 +72,38 @@
     <!-- Main Content - Task list -->
     <div class="main-content">
       <div class="content-header">
-        <h1 class="content-title">Tasks for {{ selectedProject?.name || 'All Projects' }}</h1>
+        <div class="header-left">
+          <h1 class="content-title">
+            <i class="fas fa-tasks"></i>
+            Tasks for {{ selectedProject?.name || 'All Projects' }}
+          </h1>
+         
+          <!-- Breadcrumb Navigation -->
+          <div class="breadcrumb" *ngIf="selectedClass || selectedProject">
+            <span *ngIf="selectedClass" class="breadcrumb-item class-breadcrumb">
+              <i class="fas fa-graduation-cap"></i>
+              {{ selectedClass.className }}
+            </span>
+            <span *ngIf="selectedProject" class="breadcrumb-separator">></span>
+            <span *ngIf="selectedProject" class="breadcrumb-item project-breadcrumb">
+              <i class="fas fa-folder-open"></i>
+              {{ selectedProject.name }}
+            </span>
+          </div>
+         
+          <!-- Context Description -->
+          <p class="content-description">
+            <span *ngIf="!selectedClass && !selectedProject">Select a class and project to manage tasks</span>
+            <span *ngIf="selectedClass && !selectedProject">Select a project from {{ selectedClass.className }} to view tasks</span>
+            <span *ngIf="selectedProject">Managing tasks for {{ selectedProject.name }} project</span>
+          </p>
+        </div>
+       
         <div class="header-actions">
           <div class="search-container">
             <i class="fas fa-search search-icon"></i>
-            <input type="text" 
-                   placeholder="Search tasks..." 
+            <input type="text"
+                   placeholder="Search tasks..."
                    class="search-input"
                    [(ngModel)]="searchTerm">
           </div>
@@ -92,42 +113,148 @@
           </button>
         </div>
       </div>
+ 
+      <!-- Context Info Cards -->
+      <div class="context-panel" *ngIf="selectedClass || selectedProject">
+        <div class="context-card class-context" *ngIf="selectedClass">
+          <div class="context-header">
+            <i class="fas fa-graduation-cap"></i>
+            <h3>{{ selectedClass.className }}</h3>
+          </div>
+          <div class="context-stats">
+            <span class="stat-item">
+              <i class="fas fa-folder"></i>
+              {{ selectedClass.projects?.length || 0 }} Projects
+            </span>
+          </div>
+        </div>
+ 
+        <div class="context-card project-context" *ngIf="selectedProject">
+          <div class="context-header">
+            <i class="fas fa-folder-open"></i>
+            <h3>{{ selectedProject.name }}</h3>
+          </div>
+          <div class="context-stats">
+            <span class="stat-item">
+              <i class="fas fa-users"></i>
+              {{ selectedProject.groups?.length || 0 }} Groups
+            </span>
+            <span class="stat-item">
+              <i class="fas fa-tasks"></i>
+              {{ filteredTasks?.length || 0 }} Tasks
+            </span>
+          </div>
+        </div>
+      </div>
+ 
+      <!-- Task Statistics -->
+      <div class="task-stats" *ngIf="filteredTasks && filteredTasks.length > 0">
+        <div class="stat-card draft-stat">
+          <div class="stat-number">{{ getTaskCountByStatus('DRAFT') }}</div>
+          <div class="stat-label">Draft</div>
+          <div class="stat-icon">
+            <i class="fas fa-edit"></i>
+          </div>
+        </div>
+        <div class="stat-card published-stat">
+          <div class="stat-number">{{ getTaskCountByStatus('PUBLISHED') }}</div>
+          <div class="stat-label">Published</div>
+          <div class="stat-icon">
+            <i class="fas fa-eye"></i>
+          </div>
+        </div>
+        <div class="stat-card progress-stat">
+          <div class="stat-number">{{ getTaskCountByStatus('IN_PROGRESS') }}</div>
+          <div class="stat-label">In Progress</div>
+          <div class="stat-icon">
+            <i class="fas fa-clock"></i>
+          </div>
+        </div>
+        <div class="stat-card completed-stat">
+          <div class="stat-number">{{ getTaskCountByStatus('COMPLETED') }}</div>
+          <div class="stat-label">Completed</div>
+          <div class="stat-icon">
+            <i class="fas fa-check-circle"></i>
+          </div>
+        </div>
+      </div>
+ 
+      <!-- Empty State -->
+      <div class="empty-state" *ngIf="!filteredTasks || filteredTasks.length === 0">
+        <div class="empty-icon">
+          <i class="fas fa-tasks"></i>
+        </div>
+        <h3>No tasks found</h3>
+        <p *ngIf="!selectedProject">Select a project to view and manage tasks</p>
+        <p *ngIf="selectedProject && searchTerm">No tasks match your search criteria</p>
+        <p *ngIf="selectedProject && !searchTerm">No tasks created yet for this project</p>
+        <button class="create-first-task-btn" *ngIf="selectedProject && !searchTerm" (click)="addTask()">
+          <i class="fas fa-plus"></i>
+          Create Your First Task
+        </button>
+      </div>
+ 
       <div class="task-grid">
         <div *ngFor="let task of filteredTasks" class="task-card">
           <div class="task-header">
-            <div class="task-title">{{ task.title }}</div>
+            <div class="task-title-section">
+              <div class="task-title">{{ task.title }}</div>
+              <div class="task-badges">
+                <span class="graded-badge" *ngIf="task.graded">
+                  <i class="fas fa-award"></i>
+                  Graded
+                </span>
+                <span class="visibility-badge" [class.visible]="task.visible" [class.hidden]="!task.visible">
+                  <i class="fas" [class.fa-eye]="task.visible" [class.fa-eye-slash]="!task.visible"></i>
+                  {{ task.visible ? 'Visible' : 'Hidden' }}
+                </span>
+              </div>
+            </div>
             <span class="task-status-dropdown"
               [ngClass]="{
                 'status-pending': task.status === 'DRAFT',
                 'status-in-progress': task.status === 'IN_PROGRESS',
                 'status-completed': task.status === 'COMPLETED',
-                'status-published': task.status === 'PUBLISHED',
-                'status-closed': task.status === 'CLOSED'
+                'status-published': task.status === 'PUBLISHED'
               }"
-              (click)="toggleStatusDropdown(task)" tabindex="0" (keydown.enter)="toggleStatusDropdown(task)">
-              {{ task.status | titlecase }}
-              <i class="fas fa-caret-down"></i>
-              <div *ngIf="task.showStatusDropdown" class="status-dropdown">
-                <div *ngFor="let status of taskStatuses" (click)="changeTaskStatus(task, status)" tabindex="0" (keydown.enter)="changeTaskStatus(task, status)">{{ status | titlecase }}</div>
+              [class.show-dropdown]="task.showStatusDropdown"
+              (click)="toggleStatusDropdown(task)">
+              {{ task.status }}
+              <i class="fas fa-chevron-down dropdown-arrow"></i>
+              <div class="status-dropdown-menu" *ngIf="task.showStatusDropdown">
+                <div class="status-option" (click)="changeTaskStatus(task, 'DRAFT')">Draft</div>
+                <div class="status-option" (click)="changeTaskStatus(task, 'PUBLISHED')">Published</div>
+                <div class="status-option" (click)="changeTaskStatus(task, 'IN_PROGRESS')">In Progress</div>
+                <div class="status-option" (click)="changeTaskStatus(task, 'COMPLETED')">Completed</div>
+                <div class="status-option" (click)="changeTaskStatus(task, 'CLOSED')">Closed</div>
               </div>
-            </span>
-            <span class="task-visibility" (click)="toggleTaskVisibility(task)" tabindex="0" (keydown.enter)="toggleTaskVisibility(task)">
-              <i class="fas" [ngClass]="task.visible ? 'fa-eye' : 'fa-eye-slash'"></i>
             </span>
           </div>
           <div class="task-description">{{ task.description }}</div>
           <div class="task-assigned-to task-scope">
             <ng-container *ngIf="task.projectNames?.length">
-              <span>Projects: {{ task.projectNames.join(', ') }}</span>
+              <span class="scope-item project-scope">
+                <i class="fas fa-folder-open"></i>
+                Projects: {{ task.projectNames.join(', ') }}
+              </span>
             </ng-container>
             <ng-container *ngIf="task.classNames?.length">
-              <span>Classes: {{ task.classNames.join(', ') }}</span>
+              <span class="scope-item class-scope">
+                <i class="fas fa-graduation-cap"></i>
+                Classes: {{ task.classNames.join(', ') }}
+              </span>
             </ng-container>
             <ng-container *ngIf="task.groupNames?.length">
-              <span>Groups: {{ task.groupNames.join(', ') }}</span>
+              <span class="scope-item group-scope">
+                <i class="fas fa-users"></i>
+                Groups: {{ task.groupNames.join(', ') }}
+              </span>
             </ng-container>
             <ng-container *ngIf="task.studentNames?.length">
-              <span>Students: {{ task.studentNames.join(', ') }}</span>
+              <span class="scope-item student-scope">
+                <i class="fas fa-user"></i>
+                Students: {{ task.studentNames.join(', ') }}
+              </span>
             </ng-container>
           </div>
           <div class="task-meta">
@@ -135,8 +262,18 @@
             <div class="task-assignee" *ngIf="task.assignedToStudent"><i class="fas fa-user meta-icon"></i> {{ getStudentName(task.assignedToStudent) }}</div>
             <div class="task-assignee" *ngIf="task.assignedToGroup"><i class="fas fa-users meta-icon"></i> Group</div>
             <div class="task-assignee" *ngIf="task.assignedToClasse"><i class="fas fa-graduation-cap meta-icon"></i> Class</div>
+            <div class="task-created">
+              <i class="fas fa-clock meta-icon"></i>
+              Created: {{ task.createdAt | date:'short' }}
+            </div>
           </div>
           <div class="task-actions">
+            <button class="action-btn visibility-btn"
+                    (click)="toggleTaskVisibility(task)"
+                    [title]="task.visible ? 'Hide Task' : 'Show Task'">
+              <i class="fas" [class.fa-eye]="task.visible" [class.fa-eye-slash]="!task.visible"></i>
+              {{ task.visible ? 'Hide' : 'Show' }}
+            </button>
             <button class="action-btn edit-btn" (click)="editTask(task)"><i class="fas fa-edit"></i> Edit</button>
             <button class="action-btn delete-btn" (click)="confirmDeleteTask(task)"><i class="fas fa-trash"></i> Delete</button>
           </div>
@@ -145,12 +282,12 @@
     </div>
   </div>
 </div>
-
+ 
 <!-- Create Group Modal -->
 <div class="modal-backdrop" *ngIf="showCreateGroupModal" (click)="closeCreateGroupModal()" (keydown.escape)="closeCreateGroupModal()"></div>
 <div class="modal" *ngIf="showCreateGroupModal">
   <div class="modal-content" (click)="$event.stopPropagation()" (keydown.escape)="closeCreateGroupModal()">
-    <h3 style="color:#e74c3c">Create New Group</h3>
+    <h3 style="color:#C9091D">Create New Group</h3>
     <form (ngSubmit)="createGroupSubmit()">
       <label for="groupName">Group Name</label>
       <input id="groupName" class="modal-input" [(ngModel)]="groupNameInput" name="groupNameInput" required placeholder="Group Name" />
@@ -191,7 +328,7 @@
         </div>
       </div>
       <div class="modal-actions">
-        <button class="create-btn-red" type="submit">Create</button>
+        <button class="create-btn-red" type="submit" style="background-color:#C9091D">Create</button>
         <button class="cancel-btn" type="button" (click)="closeCreateGroupModal()">Cancel</button>
       </div>
     </form>
@@ -201,7 +338,7 @@
 <div class="modal-backdrop" *ngIf="showAddMemberModal" (click)="closeAddMemberModal()" (keydown.escape)="closeAddMemberModal()"></div>
 <div class="modal" *ngIf="showAddMemberModal">
   <div class="modal-content" (click)="$event.stopPropagation()" (keydown.escape)="closeAddMemberModal()">
-    <h3 style="color:#e74c3c">Add Member to Group</h3>
+    <h3 style="color:#C9091D">Add Member to Group</h3>
     <label for="addMember">Member</label>
     <input id="addMember" class="modal-input" [(ngModel)]="addMemberInput" name="addMemberInput" placeholder="Type name or email..." (input)="onAddMemberInput()" autocomplete="off" />
     <ul *ngIf="addMemberSuggestions.length > 0" class="autocomplete-list">
@@ -221,14 +358,14 @@
 <div class="modal-backdrop" *ngIf="showRemoveGroupModal" (click)="closeRemoveGroupModal()" (keydown.escape)="closeRemoveGroupModal()"></div>
 <div class="modal" *ngIf="showRemoveGroupModal">
   <div class="modal-content" (click)="$event.stopPropagation()" (keydown.escape)="closeRemoveGroupModal()">
-    <h3 style="color:#e74c3c">Confirm Delete</h3>
+    <h3 style="color:#C9091D">Confirm Delete</h3>
     <div style="margin-bottom: 16px;">Are you sure you want to delete the group <b>{{ groupToDelete?.name }}</b>?</div>
-    
+   
     <!-- Repository deletion option -->
     <div class="repository-deletion-option">
       <label>
-        <input 
-          type="checkbox" 
+        <input
+          type="checkbox"
           [(ngModel)]="deleteRepositoryWithGroup">
         <span>
           Also delete the associated GitHub repository
@@ -239,7 +376,7 @@
         <span>If unchecked, the repository will remain available but will not be linked to any group.</span>
       </div>
     </div>
-    
+   
     <div class="modal-actions">
       <button class="create-btn-red" (click)="removeGroupSubmit()">Delete</button>
       <button class="cancel-btn" (click)="closeRemoveGroupModal()">Cancel</button>
@@ -250,7 +387,7 @@
 <div class="modal-backdrop" *ngIf="showRemoveMemberModal" (click)="closeRemoveMemberModal()" (keydown.escape)="closeRemoveMemberModal()"></div>
 <div class="modal" *ngIf="showRemoveMemberModal">
   <div class="modal-content" (click)="$event.stopPropagation()" (keydown.escape)="closeRemoveMemberModal()">
-    <h3 style="color:#e74c3c">Remove Member</h3>
+    <h3 style="color:#C9091D">Remove Member</h3>
     <div style="margin-bottom: 16px;">Are you sure you want to remove <b>{{ getStudentName(memberToRemove) }}</b> from group <b>{{ groupToRemoveMember?.name }}</b>?</div>
     <div class="modal-actions">
       <button class="create-btn-red" (click)="removeMemberSubmit()">Remove</button>
@@ -262,7 +399,7 @@
 <div class="modal-backdrop" *ngIf="showAddTaskModal" (click)="closeAddTaskModal()" (keydown.escape)="closeAddTaskModal()"></div>
 <div class="modal" *ngIf="showAddTaskModal">
   <div class="modal-content" (click)="$event.stopPropagation()" (keydown.escape)="closeAddTaskModal()">
-    <h3 style="color:#e74c3c">Create New Task</h3>
+    <h3 style="color:#C9091D">Create New Task</h3>
     <form (ngSubmit)="addTaskSubmit()">
       <label for="taskTitle">Title</label>
       <input id="taskTitle" class="modal-input" [(ngModel)]="addTaskForm.title" name="addTaskTitle" required placeholder="Task Title" />
@@ -345,7 +482,7 @@
         <label><input type="checkbox" [(ngModel)]="addTaskForm.visible" name="addTaskVisible" /> Visible</label>
       </div>
       <div class="modal-actions">
-        <button class="create-btn-red" type="submit">Create</button>
+        <button class="create-btn-red" type="submit" style="background-color:#C9091D">Create</button>
         <button class="cancel-btn" type="button" (click)="closeAddTaskModal()">Cancel</button>
       </div>
     </form>
@@ -382,3 +519,6 @@
     </form>
   </div>
 </div>
+ 
+ 
+ 
