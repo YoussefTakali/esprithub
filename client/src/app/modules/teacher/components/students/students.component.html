@@ -1,33 +1,55 @@
-
-
 <div class="students-page">
-  <h1 class="content-title">Students by Class</h1>
-  <div *ngIf="loading" class="loading">Loading...</div>
-  <div *ngIf="error" class="error">{{ error }}</div>
+  <h1 class="content-title">
+    <i class="fas fa-users"></i>
+    Students by Class
+  </h1>
+  
+  <div *ngIf="loading" class="loading">
+    <i class="fas fa-spinner fa-spin"></i> Loading students...
+  </div>
+  
+  <div *ngIf="error" class="error">
+    <i class="fas fa-exclamation-triangle"></i> {{ error }}
+  </div>
+  
   <div *ngIf="!loading && !error">
     <ng-container *ngIf="classesWithStudents.length > 0; else noClasses">
-      <div *ngFor="let classe of classesWithStudents" class="class-card">
+      <div *ngFor="let classItem of classesWithStudents" class="class-card">
         <div class="class-header">
           <i class="fas fa-school class-icon"></i>
-          <span class="class-title">{{ classe.className }}</span>
+          <span class="class-title">{{ classItem.className }}</span>
+          <span class="student-count">({{ classItem.students.length }} students)</span>
         </div>
+        
         <hr class="class-divider" />
-        <div *ngIf="classe.students.length > 0; else noStudents">
+        
+        <div *ngIf="classItem.students.length > 0; else noStudents">
+          <!-- Show all students directly without grouping -->
           <ul class="student-list">
-            <button *ngFor="let student of classe.students" (click)="openStudentModal(student)" class="student-list-item">
-              <i class="fas fa-user student-icon"></i>
-              <span class="student-name">{{ student.nom }} {{ student.prenom }}</span>
-              <span class="student-email">{{ student.email }}</span>
-            </button>
+            <li *ngFor="let student of classItem.students">
+              <button (click)="openStudentModal(student)" class="student-list-item">
+                <i class="fas fa-user student-icon"></i>
+                <span class="student-name">{{ getStudentDisplayName(student) }}</span>
+                <span class="student-email">{{ student.email }}</span>
+              </button>
+            </li>
           </ul>
         </div>
+        
         <ng-template #noStudents>
-          <div class="no-students">No students found for this class.</div>
+          <div class="no-students">
+            <i class="fas fa-user-slash"></i>
+            No students found for this class.
+          </div>
         </ng-template>
       </div>
     </ng-container>
+    
     <ng-template #noClasses>
-      <div class="no-classes">No classes found.</div>
+      <div class="no-classes">
+        <i class="fas fa-school"></i>
+        No classes found.
+      </div>
     </ng-template>
   </div>
 
@@ -35,30 +57,99 @@
   <div class="modal-backdrop" *ngIf="showStudentModal" (click)="closeStudentModal()"></div>
   <div class="modal" *ngIf="showStudentModal">
     <div class="modal-content" (click)="$event.stopPropagation()">
-      <button class="close-button" (click)="closeStudentModal()">
-        <i class="fas fa-times"></i>
-      </button>
-      <h2 class="modal-title">Student Details</h2>
-      <div class="student-details">
-        <div><b>Name:</b> {{ selectedStudent?.nom }} {{ selectedStudent?.prenom }}</div>
-        <div><b>Email:</b> {{ selectedStudent?.email }}</div>
-        <div *ngIf="selectedStudent?.id"><b>ID:</b> {{ selectedStudent?.id }}</div>
-        <div *ngIf="selectedStudent?.phone"><b>Phone:</b> {{ selectedStudent?.phone }}</div>
-        <div *ngIf="selectedStudent?.address"><b>Address:</b> {{ selectedStudent?.address }}</div>
-        <hr />
-        <div *ngIf="studentProjects.length > 0">
-          <h3>Projects & Grades</h3>
-          <ul>
-            <li *ngFor="let proj of studentProjects">
-              <b>Project:</b> {{ proj.projectName }}<br>
-              <b>Group:</b> {{ proj.groupName }}<br>
-              <b>Grade:</b> {{ proj.grade }} <span *ngIf="proj.gradedTasks > 0">({{ proj.gradedTasks }}/{{ proj.totalTasks }} tasks graded)</span>
-            </li>
-          </ul>
-          <div class="total-grade"><b>Total Grade (all projects):</b> {{ totalGrade !== null ? totalGrade : 'N/A' }}</div>
+      <div class="modal-header">
+        <h2 class="modal-title">
+          <i class="fas fa-user-graduate"></i>
+          Student Performance Overview
+        </h2>
+        <button class="close-button" (click)="closeStudentModal()">
+          <i class="fas fa-times"></i>
+        </button>
+      </div>
+
+      <div class="modal-body">
+        <!-- Student Info Section -->
+        <div *ngIf="selectedStudent" class="student-info-section">
+          <div class="student-info-header">
+            <div class="student-avatar">
+              {{ getStudentDisplayName(selectedStudent).charAt(0).toUpperCase() }}
+            </div>
+            <div class="student-details">
+              <h2>{{ getStudentDisplayName(selectedStudent) }}</h2>
+              <p class="student-email">{{ selectedStudent.email }}</p>
+            </div>
+          </div>
         </div>
-        <div *ngIf="studentProjects.length === 0">
-          <i>No project grades found for this student.</i>
+
+        <!-- Grades Section -->
+        <div class="grades-section">
+          <div class="section-header">
+            <i class="fas fa-chart-line"></i>
+            <h3>Academic Performance</h3>
+          </div>
+
+          <div *ngIf="studentProjects.length > 0; else noGrades">
+            <div *ngFor="let proj of studentProjects" class="grade-item">
+              <div class="grade-header">
+                <strong>{{ proj.projectName }}</strong>
+                <span class="grade-badge">{{ proj.grade }}/20</span>
+              </div>
+              <div class="grade-details">
+                <div><strong>Group:</strong> {{ proj.groupName }}</div>
+                <div *ngIf="proj.gradedTasks > 0">
+                  <strong>Progress:</strong> {{ proj.gradedTasks }}/{{ proj.totalTasks }} tasks graded
+                </div>
+
+                <!-- Enhanced grade breakdown -->
+                <div class="grade-breakdown" *ngIf="proj.individualTasksCount || proj.groupTasksCount">
+                  <div class="breakdown-row" *ngIf="proj.individualTasksCount && proj.individualTasksCount > 0">
+                    <span class="breakdown-label">Individual Tasks:</span>
+                    <span class="breakdown-value">{{ proj.individualGrade }}/20 ({{ proj.individualTasksCount }} tasks)</span>
+                  </div>
+                  <div class="breakdown-row" *ngIf="proj.groupTasksCount && proj.groupTasksCount > 0">
+                    <span class="breakdown-label">Group Tasks:</span>
+                    <span class="breakdown-value">{{ proj.groupGrade }}/20 ({{ proj.groupTasksCount }} tasks)</span>
+                  </div>
+                </div>
+
+                <!-- Task breakdown details -->
+                <div class="task-breakdown" *ngIf="proj.taskBreakdown && proj.taskBreakdown.length > 0">
+                  <div class="breakdown-header">
+                    <strong>Task Details:</strong>
+                  </div>
+                  <div class="task-list">
+                    <div *ngFor="let task of proj.taskBreakdown" class="task-item">
+                      <div class="task-info">
+                        <span class="task-title">{{ task.taskTitle }}</span>
+                        <span class="task-type" [class]="'task-type-' + task.taskType.toLowerCase()">
+                          {{ task.taskType }}
+                        </span>
+                      </div>
+                      <div class="task-grade">
+                        <span *ngIf="task.isGraded && task.grade !== null" class="graded">
+                          {{ task.grade }}/{{ task.maxGrade }}
+                        </span>
+                        <span *ngIf="!task.isGraded" class="not-graded">Not graded</span>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            <div class="total-grade" *ngIf="totalGrade !== null">
+              <strong>Overall Grade: {{ totalGrade }}/20</strong>
+              <div class="grade-explanation">
+                <small>Average of all project grades</small>
+              </div>
+            </div>
+          </div>
+          <ng-template #noGrades>
+            <div class="no-data">
+              <i class="fas fa-chart-line"></i>
+              <p>No grades available for this student.</p>
+            </div>
+          </ng-template>
         </div>
       </div>
     </div>

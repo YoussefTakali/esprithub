@@ -19,21 +19,27 @@
         <i class="n-notification-icon fas fa-bell" style="color:#a71617;"></i>
         <div class="n-active"></div>
       </div>
-      <div class="n-infos" style="display: flex; align-items: center; gap: 0.5rem;">
-        <img class="n-profilepic" src="assets/user.png" alt="profile" />
-        <span class="n-name">{{ getUserDisplayName() }}</span>
-        <div class="n-dropdown-menu">
-          <div class="n-dropdown-menu-item">
-            <a class="n-link" [routerLink]="['/profile']">Profile</a>
-          </div>
-          <div class="n-dropdown-menu-item">
-            <a class="n-link" (click)="editProfile()">Settings</a>
-          </div>
-          <div class="n-dropdown-menu-item">
-            <a class="n-link" (click)="logout()">Logout</a>
+        <div class="n-infos" style="display: flex; align-items: center; gap: 0.5rem;" (click)="toggleDropdown()" tabindex="0">
+          <img class="n-profilepic" src="assets/user.png" alt="profile" />
+          <span class="n-name">{{ getUserDisplayName() }}</span>
+          <div class="n-dropdown-menu" *ngIf="dropdownOpen" (mousedown)="$event.stopPropagation()" (click)="$event.stopPropagation()">
+            <div class="n-dropdown-menu-item">
+              <a class="n-link" [routerLink]="['/profile']">
+                <i class="fas fa-user"></i> Profile
+              </a>
+            </div>
+            <div class="n-dropdown-menu-item">
+              <a class="n-link" (click)="editProfile()">
+                <i class="fas fa-cog"></i> Settings
+              </a>
+            </div>
+            <div class="n-dropdown-menu-item">
+              <a class="n-link" (click)="logout()">
+                <i class="fas fa-sign-out-alt"></i> Logout
+              </a>
+            </div>
           </div>
         </div>
-      </div>
     </div>
   </div>
 </div>

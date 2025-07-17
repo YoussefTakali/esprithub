@@ -1,7 +1,7 @@
 import { Injectable } from '@angular/core';
 import { HttpClient } from '@angular/common/http';
-import { Observable } from 'rxjs';
-import { map } from 'rxjs/operators';
+import { Observable, of, forkJoin } from 'rxjs';
+import { map, switchMap, catchError } from 'rxjs/operators';
 
 @Injectable({ providedIn: 'root' })
 export class TeacherDataService {
@@ -18,9 +18,7 @@ export class TeacherDataService {
   getMyGroups(): Observable<any[]> {
     return this.http.get<any[]>('http://localhost:8090/api/teacher/groups');
   }
-  getStudentDetails(studentId: string): Observable<any> {
-    return this.http.get<any>(`http://localhost:8090/api/v1/users/${studentId}`);
-  }
+
   getMyTasks(): Observable<any[]> {
     return this.http.get<any[]>('http://localhost:8090/api/tasks');
   }
@@ -139,5 +137,38 @@ export class TeacherDataService {
 
   getDashboard(): Observable<any> {
     return this.http.get<any>('http://localhost:8090/api/teacher/dashboard');
+  }
+
+  // SUBMISSION AND GRADE MANAGEMENT
+  getSubmissionsForTask(taskId: string): Observable<any[]> {
+    return this.http.get<any[]>(`http://localhost:8090/api/submissions/task/${taskId}`);
+  }
+
+  getSubmissionsForProject(projectId: string): Observable<any[]> {
+    // Get all tasks for the project first, then get submissions for each task
+    return this.getTasksByProjectId(projectId).pipe(
+      switchMap(tasks => {
+        if (!tasks || tasks.length === 0) {
+          return of([]);
+        }
+
+        const submissionRequests = tasks.map(task =>
+          this.getSubmissionsForTask(task.id).pipe(
+            map(submissions => submissions.map(sub => ({
+              ...sub,
+              taskId: task.id,
+              taskTitle: task.title,
+              taskType: task.type,
+              taskGraded: task.graded
+            }))),
+            catchError(() => of([]))
+          )
+        );
+
+        return forkJoin(submissionRequests).pipe(
+          map(results => results.flat())
+        );
+      })
+    );
   }
 }

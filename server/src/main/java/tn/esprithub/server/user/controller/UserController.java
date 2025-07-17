@@ -353,4 +353,14 @@ public class UserController {
         List<UserDto> assigned = userService.batchAssignStudentsToClasse(request.getStudentIds(), classeId);
         return ResponseEntity.ok(assigned);
     }
+
+    // ========== BULK IMPORT USERS (ADMIN ONLY) ===========
+
+    @PostMapping("/import-bulk")
+    @PreAuthorize("hasRole('ADMIN')")
+    public ResponseEntity<List<UserDto>> importUsersBulk(@Valid @RequestBody tn.esprithub.server.user.dto.BulkCreateUsersRequest request) {
+        log.info("Admin API: Bulk importing users, count: {}", request.getUsers() != null ? request.getUsers().size() : 0);
+        List<UserDto> created = userService.bulkCreateUsers(request.getUsers());
+        return ResponseEntity.status(HttpStatus.CREATED).body(created);
+    }
 }

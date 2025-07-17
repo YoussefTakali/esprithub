@@ -551,4 +551,12 @@ public class UserServiceImpl implements UserService {
         log.info("Successfully batch assigned students to classe");
         return students.stream().map(userMapper::toUserDto).toList();
     }
+
+    @Override
+    public List<UserDto> bulkCreateUsers(List<CreateUserDto> users) {
+        if (users == null || users.isEmpty()) return List.of();
+        return users.stream()
+            .map(this::createUser)
+            .toList();
+    }
 }
