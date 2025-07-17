@@ -105,12 +105,10 @@ export class RepositoryService {
     return this.http.post<string>(`${this.apiUrl}/${repoFullName}/upload`, formData);
   }
 
-  getRepositoryFiles(repoFullName: string, branch: string = 'main'): Observable<any[]> {
-    // We need to get the repository ID first, then get files by ID
-    // For now, let's try to extract repository ID from the fullName or find another way
-    // This is a temporary fix - you might need to adjust based on your repository structure
-    return this.http.get<any[]>(`${this.apiUrl}/${repoFullName}/files?branch=${branch}`);
-  }
+getRepositoryFiles(repoFullName: string, branch: string = 'main'): Observable<any[]> {
+  return this.http.get<any[]>(`${this.apiUrl}/${repoFullName}/files?branch=${branch}`);
+}
+ 
 
   getFileContent(repoFullName: string, filePath: string, branch: string = 'main'): Observable<{content: string, encoding?: string}> {
     // This method needs to be updated to work with file IDs instead of file paths

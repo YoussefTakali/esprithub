@@ -47,7 +47,7 @@
   transform: translateY(-1px);
 }
 .add-project-fab-top {
-  background: #e74c3c;
+  background: #C9091D;
   color: #fff;
   border: none;
   border-radius: 50px;
@@ -262,13 +262,13 @@
   transition: background 0.2s;
 }
 .action-btn.view-btn {
-  background: #e67e22;
+  background: #ff4b5c;
 }
 .action-btn.edit-btn {
   background: #2980b9;
 }
 .action-btn.delete-btn {
-  background: #c0392b;
+  background: #C9091D;
 }
 .action-btn:hover {
   opacity: 0.85;
@@ -307,7 +307,7 @@
   box-shadow: 0 8px 32px rgba(231,76,60,0.18);
   z-index: 2010;
   min-width: 350px;
-  max-width: 95vw;
+  width: 600px;
   padding: 2.5rem 2.5rem 2rem 2.5rem;
 }
 .modal-content h3 {

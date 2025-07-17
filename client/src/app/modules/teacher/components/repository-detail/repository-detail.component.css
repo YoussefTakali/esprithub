@@ -6859,10 +6859,12 @@ h2, .section-title {
  
 .clone-section {
   margin-bottom: 16px;
+  
 }
  
 .clone-section:last-child {
   margin-bottom: 0;
+  
 }
  
 .clone-section h4 {
@@ -6913,7 +6915,7 @@ h2, .section-title {
  
 .download-zip-btn {
   width: 100%;
-  background: #0366d6;
+  background-color: #C9091D;
   color: white;
   border: none;
   border-radius: 6px;

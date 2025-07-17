@@ -141,16 +141,15 @@ public class RepositoryController {
         String commitSha = repositoryService.uploadFile(repoFullName, uploadDto, authentication.getName());
         return ResponseEntity.ok(commitSha);
     }
-
     @GetMapping("/{owner}/{repo}/files")
-    public ResponseEntity<List<String>> getRepositoryFiles(
+    public ResponseEntity<List<Map<String, Object>>> getRepositoryFiles(
             @PathVariable String owner,
             @PathVariable String repo,
             @RequestParam(value = "branch", defaultValue = "main") String branch,
             Authentication authentication) {
         String repoFullName = owner + "/" + repo;
         log.info("Fetching files for repository: {} branch: {} by teacher: {}", repoFullName, branch, authentication.getName());
-        List<String> files = repositoryService.getRepositoryFiles(repoFullName, branch, authentication.getName());
+        List<Map<String, Object>> files = repositoryService.getRepositoryFiles(repoFullName, branch, authentication.getName());
         return ResponseEntity.ok(files);
     }
 

@@ -384,7 +384,7 @@
             </div>
           </div>
           <div class="clone-section">
-            <button class="download-zip-btn" (click)="downloadZip()"  style="background-color:#C9091D">
+            <button class="download-zip-btn" (click)="downloadZip()" >
               <i class="fas fa-download"></i>
               Download ZIP
             </button>
@@ -414,20 +414,21 @@
           <th class="commit-date-header">Last commit date</th>
         </tr>
       </thead>
-      <tbody>
-        <tr class="file-row" *ngFor="let file of repositoryFiles">
-          <td class="file-name-cell">
-            <div class="file-name-container">
-              <i [ngClass]="getFileFaIcon(file.fileName || file.filePath || file)"></i>
-              <a href="javascript:void(0)"
-                 class="file-name"
-                 (click)="viewFile(file)">{{ file.fileName || file.filePath || file }}</a>
-            </div>
-          </td>
-          <td class="commit-message-cell">{{ recentCommits.length > 0 ? recentCommits[0].message : 'No commits' }}</td>
-          <td class="commit-date-cell">{{ recentCommits.length > 0 ? formatDate(recentCommits[0].date) : 'N/A' }}</td>
-        </tr>
-      </tbody>
+<tbody>
+  <tr class="file-row" *ngFor="let file of repositoryFiles">
+    <td class="file-name-cell">
+      <div class="file-name-container">
+        <i [ngClass]="getFileFaIcon(file.fileName || file.filePath || file)"></i>
+        <a href="javascript:void(0)"
+           class="file-name"
+           (click)="viewFile(file)">{{ file.fileName || file.filePath || file }}</a>
+      </div>
+    </td>
+    <td class="commit-message-cell">{{ file.lastCommitMessage || 'No commit message' }}</td>
+    <td class="commit-date-cell">{{ file.lastModified ? formatDate(file.lastModified) : 'N/A' }}</td>
+  </tr>
+</tbody>
+ 
     </table>
  
     <!-- Empty State -->

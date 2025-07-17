@@ -206,36 +206,85 @@ public class RepositoryServiceImpl implements RepositoryService {
     }
 
     @Override
-    public List<String> getRepositoryFiles(String repoFullName, String branch, String teacherEmail) {
+    public List<Map<String, Object>> getRepositoryFiles(String repoFullName, String branch, String teacherEmail) {
         User teacher = getTeacherWithGitHubToken(teacherEmail);
 
         try {
-            String url = GITHUB_API_BASE + "/repos/" + repoFullName + "/contents?ref=" + branch;
-            HttpHeaders headers = createHeaders(teacher.getGithubToken());
-            HttpEntity<String> entity = new HttpEntity<>(headers);
+            // Get repository contents
+            String url = String.format("%s/repos/%s/contents?ref=%s", GITHUB_API_BASE, repoFullName, branch);
 
+            HttpHeaders headers = new HttpHeaders();
+            headers.set("Authorization", "token " + teacher.getGithubToken());
+            headers.set("Accept", "application/vnd.github.v3+json");
+
+            HttpEntity<String> entity = new HttpEntity<>(headers);
             ResponseEntity<String> response = restTemplate.exchange(url, HttpMethod.GET, entity, String.class);
 
             if (response.getStatusCode().is2xxSuccessful()) {
                 JsonNode files = objectMapper.readTree(response.getBody());
-                List<String> fileList = new ArrayList<>();
+                List<Map<String, Object>> fileList = new ArrayList<>();
 
                 for (JsonNode file : files) {
-                    String fileName = file.get("name").asText();
-                    String type = file.get("type").asText();
-                    fileList.add(fileName + " (" + type + ")");
+                    Map<String, Object> fileInfo = new HashMap<>();
+                    fileInfo.put("fileName", file.get("name").asText());
+                    fileInfo.put("filePath", file.get("path").asText());
+                    fileInfo.put("type", file.get("type").asText());
+                    fileInfo.put("size", file.has("size") ? file.get("size").asLong() : 0);
+
+                    // Get last commit for this specific file
+                    Map<String, Object> commitInfo = getLastCommitForFile(repoFullName, file.get("path").asText(), branch, teacher.getGithubToken());
+                    fileInfo.putAll(commitInfo);
+
+                    fileList.add(fileInfo);
                 }
 
                 return fileList;
-            } else {
-                throw new BusinessException("Failed to fetch repository files");
             }
 
+            throw new BusinessException("Failed to fetch repository files");
+
         } catch (Exception e) {
-            log.error("Error fetching files for repository {}: {}", repoFullName, e.getMessage());
+            log.error("Error fetching repository files: {}", e.getMessage());
             throw new BusinessException("Failed to fetch repository files: " + e.getMessage());
         }
     }
+
+    private Map<String, Object> getLastCommitForFile(String repoFullName, String filePath, String branch, String token) {
+        Map<String, Object> commitInfo = new HashMap<>();
+
+        try {
+            String url = String.format("%s/repos/%s/commits?path=%s&sha=%s&per_page=1",
+                    GITHUB_API_BASE, repoFullName, filePath, branch);
+
+            HttpHeaders headers = new HttpHeaders();
+            headers.set("Authorization", "token " + token);
+            headers.set("Accept", "application/vnd.github.v3+json");
+
+            HttpEntity<String> entity = new HttpEntity<>(headers);
+            ResponseEntity<String> response = restTemplate.exchange(url, HttpMethod.GET, entity, String.class);
+
+            if (response.getStatusCode().is2xxSuccessful()) {
+                JsonNode commits = objectMapper.readTree(response.getBody());
+                if (commits.isArray() && commits.size() > 0) {
+                    JsonNode lastCommit = commits.get(0);
+                    commitInfo.put("lastCommitMessage", lastCommit.get("commit").get("message").asText());
+                    commitInfo.put("lastModified", lastCommit.get("commit").get("author").get("date").asText());
+                    commitInfo.put("lastCommitAuthor", lastCommit.get("commit").get("author").get("name").asText());
+                    commitInfo.put("lastCommitSha", lastCommit.get("sha").asText());
+                }
+            }
+        } catch (Exception e) {
+            log.warn("Could not fetch commit info for file {}: {}", filePath, e.getMessage());
+        }
+
+        // Default values if commit info couldn't be fetched
+        commitInfo.putIfAbsent("lastCommitMessage", "No commit message");
+        commitInfo.putIfAbsent("lastModified", null);
+        commitInfo.putIfAbsent("lastCommitAuthor", "Unknown");
+
+        return commitInfo;
+    }
+
 
     @Override
     public List<String> getRepositoryBranches(String repoFullName, String teacherEmail) {

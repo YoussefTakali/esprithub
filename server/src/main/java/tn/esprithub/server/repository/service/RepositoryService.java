@@ -14,9 +14,8 @@ public interface RepositoryService {
     RepositoryStatsDto getRepositoryStats(String repoFullName, String teacherEmail);
     
     String uploadFile(String repoFullName, FileUploadDto uploadDto, String teacherEmail);
-    
-    List<String> getRepositoryFiles(String repoFullName, String branch, String teacherEmail);
-    
+
+    List<Map<String, Object>> getRepositoryFiles(String repoFullName, String branch, String teacherEmail);
     List<String> getRepositoryBranches(String repoFullName, String teacherEmail);
     
     String deleteFile(String repoFullName, String filePath, String commitMessage, String branch, String teacherEmail);

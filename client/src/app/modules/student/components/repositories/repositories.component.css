@@ -268,9 +268,9 @@
 }
  
 .details-btn:hover {
-  background: #a71617;
+ background: #c82333;
   transform: translateY(-1px);
-  box-shadow: 0 3px 8px rgba(0, 123, 255, 0.3);
+
 }
  
 @media (max-width: 768px) {
