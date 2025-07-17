@@ -17,6 +17,10 @@ export class NavbarComponent implements OnInit {
 
   isSidebarVisible = false;
   currentUser: User | null = null;
+  dropdownOpen = false;
+  toggleDropdown(): void {
+    this.dropdownOpen = !this.dropdownOpen;
+  }
 
   @Output() sidebarToggled = new EventEmitter<boolean>();
 

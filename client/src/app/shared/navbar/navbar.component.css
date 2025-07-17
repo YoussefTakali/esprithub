@@ -41,16 +41,11 @@
     background-color: white;
     border: 1px solid #ddd;
     border-radius: 6px;
-    display: none;
+    display: flex;
     flex-direction: column;
     min-width: 200px;
     box-shadow: 0 2px 8px rgba(0, 0, 0, 0.15);
     z-index: 10;
-    
-  }
-  
-  .n-infos:hover .n-dropdown-menu {
-    display: flex;
   }
   
   .n-dropdown-menu-item {

@@ -1,3 +1,5 @@
+    // Bulk import users
+    List<UserDto> bulkCreateUsers(List<CreateUserDto> users);
 package tn.esprithub.server.user.service;
 
 import tn.esprithub.server.user.dto.UserDto;
@@ -47,7 +49,8 @@ public interface UserService {
     UserDto assignTeacherToClasse(UUID teacherId, UUID classeId);
     UserDto removeTeacherFromClasse(UUID teacherId, UUID classeId);
     List<UserDto> batchAssignStudentsToClasse(List<UUID> studentIds, UUID classeId);
-    
+    List<UserDto> bulkCreateUsers(List<CreateUserDto> users);
+
     // Status management (ADMIN only)
     UserDto activateUser(UUID id);
     UserDto deactivateUser(UUID id);
