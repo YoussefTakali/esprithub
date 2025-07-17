@@ -6,20 +6,50 @@
   <div *ngIf="error" class="error">{{ error }}</div>
   <div *ngIf="!loading && !error">
     <ng-container *ngIf="classesWithStudents.length > 0; else noClasses">
-      <div *ngFor="let classe of classesWithStudents" class="class-card">
+      <div *ngFor="let classItem of classesWithStudents" class="class-card">
         <div class="class-header">
           <i class="fas fa-school class-icon"></i>
-          <span class="class-title">{{ classe.className }}</span>
+          <span class="class-title">{{ classItem.className }}</span>
         </div>
         <hr class="class-divider" />
-        <div *ngIf="classe.students.length > 0; else noStudents">
-          <ul class="student-list">
-            <button *ngFor="let student of classe.students" (click)="openStudentModal(student)" class="student-list-item">
-              <i class="fas fa-user student-icon"></i>
-              <span class="student-name">{{ student.nom }} {{ student.prenom }}</span>
-              <span class="student-email">{{ student.email }}</span>
-            </button>
-          </ul>
+        <div *ngIf="classItem.students.length > 0; else noStudents">
+          <div *ngIf="classItem.groups && classItem.groups.length > 0">
+            <div *ngFor="let group of classItem.groups">
+              <div class="group-header"><b>Group:</b> {{ group.name }}</div>
+              <ul class="student-list">
+                <li *ngFor="let student of getStudentsInGroup(classItem, group)">
+                  <button (click)="openStudentModal(student)" class="student-list-item">
+                    <i class="fas fa-user student-icon"></i>
+                    <span class="student-name">{{ student.nom }} {{ student.prenom }}</span>
+                    <span class="student-email">{{ student.email }}</span>
+                  </button>
+                </li>
+              </ul>
+            </div>
+            <div *ngIf="getStudentsNotInAnyGroup(classItem).length > 0">
+              <div class="group-header"><b>Ungrouped Students</b></div>
+              <ul class="student-list">
+                <li *ngFor="let student of getStudentsNotInAnyGroup(classItem)">
+                  <button (click)="openStudentModal(student)" class="student-list-item">
+                    <i class="fas fa-user student-icon"></i>
+                    <span class="student-name">{{ student.nom }} {{ student.prenom }}</span>
+                    <span class="student-email">{{ student.email }}</span>
+                  </button>
+                </li>
+              </ul>
+            </div>
+          </div>
+          <div *ngIf="!classItem.groups || classItem.groups.length === 0">
+            <ul class="student-list">
+              <li *ngFor="let student of classItem.students">
+                <button (click)="openStudentModal(student)" class="student-list-item">
+                  <i class="fas fa-user student-icon"></i>
+                  <span class="student-name">{{ student.nom }} {{ student.prenom }}</span>
+                  <span class="student-email">{{ student.email }}</span>
+                </button>
+              </li>
+            </ul>
+          </div>
         </div>
         <ng-template #noStudents>
           <div class="no-students">No students found for this class.</div>
@@ -32,15 +62,15 @@
   </div>
 
   <!-- Student Details Modal -->
-  <div class="modal-backdrop" *ngIf="showStudentModal" (click)="closeStudentModal()"></div>
+  <div class="modal-backdrop" *ngIf="showStudentModal" (click)="closeStudentModal()" (keydown)="closeStudentModal()" tabindex="0"></div>
   <div class="modal" *ngIf="showStudentModal">
-    <div class="modal-content" (click)="$event.stopPropagation()">
+    <div class="modal-content" (click)="$event.stopPropagation()" (keydown)="$event.stopPropagation()" tabindex="0">
       <button class="close-button" (click)="closeStudentModal()">
         <i class="fas fa-times"></i>
       </button>
       <h2 class="modal-title">Student Details</h2>
       <div class="student-details">
-        <div><b>Name:</b> {{ selectedStudent?.nom }} {{ selectedStudent?.prenom }}</div>
+        <div><b>Name:</b> {{ selectedStudent?.nom }} {{ selectedStudent?.firstName }}</div>
         <div><b>Email:</b> {{ selectedStudent?.email }}</div>
         <div *ngIf="selectedStudent?.id"><b>ID:</b> {{ selectedStudent?.id }}</div>
         <div *ngIf="selectedStudent?.phone"><b>Phone:</b> {{ selectedStudent?.phone }}</div>

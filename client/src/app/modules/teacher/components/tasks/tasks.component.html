@@ -17,21 +17,23 @@
             </span>
             <span class="tree-label class-label">{{ classe.className }}</span>
             <span class="item-count">({{ classe.projects?.length || 0 }} projects)</span>
+            <!-- No icons on class -->
           </div>
          
           <!-- Projects under Class -->
           <div class="tree-children" *ngIf="classe.expanded">
             <div *ngFor="let project of classe.projects" class="tree-item project-level">
               <h2 class="tree-title">Projects</h2>
-              <div class="tree-node project-node" [class.expanded]="project.expanded" [class.selected]="selectedProject?.id === project.id">
+              <div class="tree-node project-node" [class.expanded]="project.expanded" [class.selected]="selectedProject?.id === project.id" style="background-color:#e6ffe6;">
                 <button class="tree-icon arrow-icon" (click)="toggleProject(project)">
                   <i class="fas" [class.fa-chevron-right]="!project.expanded" [class.fa-chevron-down]="project.expanded"></i>
                 </button>
-                <span class="tree-icon project-icon">
+                <span class="tree-icon project-icon" style="margin-right:8px;">
                   <i class="fas fa-folder-open"></i>
                 </span>
                 <span class="tree-label project-label">{{ project.name }}</span>
-                <span class="item-count">({{ project.groups?.length || 0 }} groups)</span>
+                <span class="item-count" style="margin-left:8px;">({{ project.groups?.length || 0 }} groups)</span>
+                <button class="add-group-btn" style="margin-left:12px;" title="Add Group to Project" (click)="openCreateGroupModal(project, classe.classId)"><i class="fas fa-plus"></i></button>
               </div>
              
               <!-- Groups under Project -->
@@ -45,8 +47,11 @@
                     <span class="tree-icon group-icon">
                       <i class="fas fa-users"></i>
                     </span>
-                    <span class="tree-label group-label">{{ group.name }}</span>
-                    <span class="item-count">({{ group.memberIds?.length || 0 }} members)</span>
+                <span class="tree-label group-label" style="margin-right:8px;">{{ group.name }}</span>
+                <span class="item-count" style="margin-right:8px;">({{ group.memberIds?.length || 0 }} members)</span>
+                <!-- Add member and remove group icons for group -->
+                <button class="add-member-btn" style="margin-right:8px;" title="Add Member" (click)="openAddMemberModal(group)"><i class="fas fa-user-plus"></i></button>
+                <button class="remove-group-btn" style="margin-right:8px;" title="Delete Group" (click)="confirmRemoveGroup(group)"><i class="fas fa-minus"></i></button>
                   </div>
                  
                   <!-- Members under Group -->
@@ -57,8 +62,10 @@
                         <span class="tree-icon member-icon">
                           <i class="fas fa-user"></i>
                         </span>
-                        <span class="tree-label member-label">{{ getStudentName(memberId) }}</span>
-                        <span class="member-role">Student</span>
+                        <span class="tree-label member-label" style="margin-right:8px;">{{ getStudentName(memberId) }}</span>
+                        <span class="member-role" style="margin-right:8px;">Student</span>
+                        <!-- Remove member icon for member -->
+                        <button class="remove-member-btn" style="margin-right:8px;" title="Kick Member" (click)="confirmRemoveMember(group, memberId)"><i class="fas fa-minus"></i></button>
                       </div>
                     </div>
                   </div>

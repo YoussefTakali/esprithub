@@ -2,18 +2,45 @@ import { Component, OnInit } from '@angular/core';
 import { TeacherDataService } from '../../services/teacher-data.service';
 import { calculateStudentProjectGrade, StudentGradeInfo } from './student-grade.util';
 
+interface Student {
+  id: string;
+  studentId?: string;
+  _id?: string;
+  name?: string;
+  nom?: string;
+  prenom?: string;
+  firstName?: string;
+  email?: string;
+  phone?: string;
+  address?: string;
+}
+
+interface Group {
+  id: string;
+  name: string;
+  memberIds: string[];
+  members?: Student[];
+}
+
+interface ClassWithStudents {
+  classId: string;
+  className: string;
+  students: Student[];
+  groups?: Group[];
+}
+
 @Component({
   selector: 'app-students',
   templateUrl: './students.component.html',
   styleUrls: ['./students.component.css']
 })
 export class StudentsComponent implements OnInit {
-  classesWithStudents: Array<{ classId: string, className: string, students: any[] }> = [];
+  classesWithStudents: ClassWithStudents[] = [];
   loading = true;
   error: string | null = null;
 
   showStudentModal = false;
-  selectedStudent: any = null;
+  selectedStudent: Student | null = null;
   studentProjects: StudentGradeInfo[] = [];
   totalGrade: number | null = null;
 
@@ -29,20 +56,49 @@ export class StudentsComponent implements OnInit {
         let loaded = 0;
         classes.forEach((classe: any) => {
           this.teacherData.getStudentsByClassId(classe.classId).subscribe({
-            next: (students: any[]) => {
-              this.classesWithStudents.push({
-                classId: classe.classId,
-                className: classe.className,
-                students: students || []
+            next: (students: Student[]) => {
+              // Use projectId from classe if available, fallback to null
+              const projectId = classe.projectId || classe.id || null;
+              if (!projectId) {
+                this.classesWithStudents.push({
+                  classId: classe.classId,
+                  className: classe.className,
+                  students: students || [],
+                  groups: []
+                });
+                loaded++;
+                if (loaded === classes.length) this.loading = false;
+                return;
+              }
+              this.teacherData.getGroupsByProjectAndClass(projectId, classe.classId).subscribe({
+                next: (groups: Group[]) => {
+                  this.classesWithStudents.push({
+                    classId: classe.classId,
+                    className: classe.className,
+                    students: students || [],
+                    groups: groups || []
+                  });
+                  loaded++;
+                  if (loaded === classes.length) this.loading = false;
+                },
+                error: () => {
+                  this.classesWithStudents.push({
+                    classId: classe.classId,
+                    className: classe.className,
+                    students: students || [],
+                    groups: []
+                  });
+                  loaded++;
+                  if (loaded === classes.length) this.loading = false;
+                }
               });
-              loaded++;
-              if (loaded === classes.length) this.loading = false;
             },
             error: () => {
               this.classesWithStudents.push({
                 classId: classe.classId,
                 className: classe.className,
-                students: []
+                students: [],
+                groups: []
               });
               loaded++;
               if (loaded === classes.length) this.loading = false;
@@ -57,41 +113,55 @@ export class StudentsComponent implements OnInit {
     });
   }
 
-  openStudentModal(student: any) {
-    this.teacherData.getStudentDetails(student.id || student.studentId || student._id).subscribe({
+  getStudentsInGroup(classe: ClassWithStudents, group: Group): Student[] {
+    return classe.students.filter(s => group.memberIds?.includes(s.id));
+  }
+
+  getStudentsNotInAnyGroup(classe: ClassWithStudents): Student[] {
+    return classe.students.filter(s => 
+      !(classe.groups || []).some(g => g.memberIds?.includes(s.id))
+    );
+  }
+
+  openStudentModal(student: Student) {
+    const studentId: string = student.id ?? student.studentId ?? student._id ?? '';
+    if (!studentId) return;
+    this.teacherData.getStudentDetails(studentId).subscribe({
       next: (details: any) => {
         this.selectedStudent = details || student;
-        this.loadStudentProjects(this.selectedStudent);
+        if (this.selectedStudent) {
+          this.loadStudentProjects(this.selectedStudent);
+        }
         this.showStudentModal = true;
       },
       error: () => {
         this.selectedStudent = student;
-        this.loadStudentProjects(this.selectedStudent);
+        if (this.selectedStudent) {
+          this.loadStudentProjects(this.selectedStudent);
+        }
         this.showStudentModal = true;
       }
     });
   }
 
-  loadStudentProjects(student: any) {
+  loadStudentProjects(student: Student) {
     this.studentProjects = [];
     this.totalGrade = null;
-    // Get all projects assigned by this teacher
     this.teacherData.getMyProjects().subscribe({
       next: (projects: any[]) => {
+        if (!projects || projects.length === 0) return;
+        
         let totalGradeSum = 0;
         let totalProjects = 0;
         let groupFetches = 0;
-        if (!projects || projects.length === 0) return;
+        
         projects.forEach(project => {
           this.teacherData.getGroupsByProject(project.id).subscribe({
-            next: (groups: any[]) => {
-              // Find group containing this student
+            next: (groups: Group[]) => {
               const group = groups.find(g => g.memberIds?.includes(student.id));
               if (group) {
-                // Fetch tasks for this group in this project
                 this.teacherData.getTasksByProjectId(project.id).subscribe({
                   next: (tasks: any[]) => {
-                    // Only tasks assigned to this group
                     const groupTasks = tasks.filter(t => t.groupId === group.id);
                     const gradeInfo = calculateStudentProjectGrade(groupTasks);
                     this.studentProjects.push({
@@ -103,25 +173,38 @@ export class StudentsComponent implements OnInit {
                     });
                     totalGradeSum += gradeInfo.grade;
                     totalProjects++;
-                    groupFetches++;
-                    if (groupFetches === projects.length) {
-                      this.totalGrade = totalProjects > 0 ? Math.round((totalGradeSum / totalProjects) * 100) / 100 : null;
-                    }
                   },
-                  error: () => { groupFetches++; }
+                  complete: () => {
+                    groupFetches++;
+                    this.checkAllProjectsLoaded(groupFetches, projects.length, totalGradeSum, totalProjects);
+                  }
                 });
               } else {
                 groupFetches++;
-                if (groupFetches === projects.length) {
-                  this.totalGrade = totalProjects > 0 ? Math.round((totalGradeSum / totalProjects) * 100) / 100 : null;
-                }
+                this.checkAllProjectsLoaded(groupFetches, projects.length, totalGradeSum, totalProjects);
               }
             },
-            error: () => { groupFetches++; }
+            error: () => {
+              groupFetches++;
+              this.checkAllProjectsLoaded(groupFetches, projects.length, totalGradeSum, totalProjects);
+            }
           });
         });
       }
     });
+  }
+
+  private checkAllProjectsLoaded(
+    loaded: number, 
+    total: number, 
+    totalGradeSum: number, 
+    totalProjects: number
+  ) {
+    if (loaded === total) {
+      this.totalGrade = totalProjects > 0 
+        ? Math.round((totalGradeSum / totalProjects) * 100) / 100 
+        : null;
+    }
   }
 
   closeStudentModal() {
