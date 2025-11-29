@@ -1,5 +1,3 @@
-    // Bulk import users
-    List<UserDto> bulkCreateUsers(List<CreateUserDto> users);
 package tn.esprithub.server.user.service;
 
 import tn.esprithub.server.user.dto.UserDto;

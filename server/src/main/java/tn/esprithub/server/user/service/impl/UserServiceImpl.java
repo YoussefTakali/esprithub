@@ -21,7 +21,10 @@ import tn.esprithub.server.common.enums.UserRole;
 import tn.esprithub.server.common.exception.BusinessException;
 import tn.esprithub.server.email.EmailService;
 
+import java.util.ArrayList;
+import java.util.LinkedHashMap;
 import java.util.List;
+import java.util.Objects;
 import java.util.UUID;
 
 /**
@@ -192,8 +195,20 @@ public class UserServiceImpl implements UserService {
     @Transactional(readOnly = true)
     public List<UserDto> getUsersByDepartement(UUID departementId) {
         log.info("Fetching users for departement: {}", departementId);
-        List<User> teachers = userRepository.findByDepartementIdAndRole(departementId, UserRole.TEACHER);
-        return userMapper.toUserDtoList(teachers);
+        LinkedHashMap<UUID, User> usersById = new LinkedHashMap<>();
+
+        userRepository.findByDepartementId(departementId)
+            .forEach(user -> usersById.put(user.getId(), user));
+
+        userRepository.findStudentsByDepartementId(departementId)
+            .forEach(user -> usersById.put(user.getId(), user));
+
+        departementRepository.findById(departementId)
+            .map(Departement::getChief)
+            .filter(Objects::nonNull)
+            .ifPresent(chief -> usersById.put(chief.getId(), chief));
+
+        return userMapper.toUserDtoList(new ArrayList<>(usersById.values()));
     }
 
     @Override
@@ -208,13 +223,7 @@ public class UserServiceImpl implements UserService {
     @Transactional(readOnly = true)
     public List<UserDto> getStudentsByDepartement(UUID departementId) {
         log.info("Fetching students for departement: {}", departementId);
-        // Students are associated through classes, need to get all classes in the department
-        List<User> students = userRepository.findAll().stream()
-                .filter(user -> user.getRole() == UserRole.STUDENT && 
-                               user.getClasse() != null && 
-                               user.getClasse().getNiveau() != null &&
-                               user.getClasse().getNiveau().getDepartement().getId().equals(departementId))
-                .toList();
+        List<User> students = userRepository.findStudentsByDepartementId(departementId);
         return userMapper.toUserDtoList(students);
     }
 
@@ -328,21 +337,30 @@ public class UserServiceImpl implements UserService {
             throw new BusinessException("L'utilisateur doit être un enseignant");
         }
         
-        Classe classe = classeRepository.findById(classeId)
+        Classe classe = classeRepository.findByIdWithTeachers(classeId)
                 .orElseThrow(() -> new BusinessException("Classe non trouvée avec l'ID: " + classeId));
-        
-        if (teacher.getTeachingClasses() == null) {
-            teacher.setTeachingClasses(List.of());
+
+        if (classe.getTeachers() == null) {
+            classe.setTeachers(new ArrayList<>());
         }
-        
-        if (!teacher.getTeachingClasses().contains(classe)) {
-            teacher.getTeachingClasses().add(classe);
-            User savedTeacher = userRepository.save(teacher);
-            
+
+        boolean alreadyAssigned = classe.getTeachers().stream()
+                .anyMatch(existing -> existing.getId().equals(teacher.getId()));
+
+        if (!alreadyAssigned) {
+            classe.getTeachers().add(teacher);
+            if (teacher.getTeachingClasses() == null) {
+                teacher.setTeachingClasses(new ArrayList<>());
+            }
+            boolean missingOnTeacherSide = teacher.getTeachingClasses().stream()
+                    .noneMatch(existingClasse -> existingClasse.getId().equals(classe.getId()));
+            if (missingOnTeacherSide) {
+                teacher.getTeachingClasses().add(classe);
+            }
+            classeRepository.save(classe);
             log.info("Successfully assigned teacher to classe");
-            return userMapper.toUserDto(savedTeacher);
         }
-        
+
         return userMapper.toUserDto(teacher);
     }
 
@@ -352,15 +370,24 @@ public class UserServiceImpl implements UserService {
         
         User teacher = userRepository.findByIdWithTeachingClasses(teacherId)
                 .orElseThrow(() -> new BusinessException("Enseignant non trouvé avec l'ID: " + teacherId));
-        
-        if (teacher.getTeachingClasses() != null) {
-            teacher.getTeachingClasses().removeIf(classe -> classe.getId().equals(classeId));
-            User savedTeacher = userRepository.save(teacher);
-            
-            log.info("Successfully removed teacher from classe");
-            return userMapper.toUserDto(savedTeacher);
+
+        Classe classe = classeRepository.findByIdWithTeachers(classeId)
+                .orElseThrow(() -> new BusinessException("Classe non trouvée avec l'ID: " + classeId));
+
+        boolean removedFromClasse = false;
+        if (classe.getTeachers() != null) {
+            removedFromClasse = classe.getTeachers().removeIf(existing -> existing.getId().equals(teacherId));
         }
-        
+
+        if (teacher.getTeachingClasses() != null) {
+            teacher.getTeachingClasses().removeIf(existingClasse -> existingClasse.getId().equals(classeId));
+        }
+
+        if (removedFromClasse) {
+            classeRepository.save(classe);
+            log.info("Successfully removed teacher from classe");
+        }
+
         return userMapper.toUserDto(teacher);
     }
 

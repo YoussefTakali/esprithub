@@ -19,6 +19,7 @@ import tn.esprithub.server.security.service.JwtService;
 
 import java.time.LocalDateTime;
 import java.util.Map;
+import java.util.UUID;
 
 @Service
 @RequiredArgsConstructor
@@ -171,13 +172,20 @@ public class AuthenticationServiceImpl implements IAuthenticationService {
 
     @Override
     public AuthResponse refreshToken(RefreshTokenRequest request) {
-        String userEmail = jwtService.extractUsername(request.getRefreshToken());
-        
-        if (userEmail == null) {
+        String subject = jwtService.extractUsername(request.getRefreshToken());
+
+        if (subject == null) {
             throw new BusinessException("Invalid refresh token");
         }
 
-        User user = userRepository.findByEmail(userEmail)
+        UUID userId;
+        try {
+            userId = UUID.fromString(subject);
+        } catch (IllegalArgumentException ex) {
+            throw new BusinessException("Invalid refresh token");
+        }
+
+        User user = userRepository.findById(userId)
                 .orElseThrow(() -> new BusinessException(USER_NOT_FOUND));
 
         if (!jwtService.isTokenValid(request.getRefreshToken(), user)) {

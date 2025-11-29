@@ -45,8 +45,12 @@ public interface UserRepository extends JpaRepository<User, UUID> {
     List<User> searchUsers(@Param("searchTerm") String searchTerm);
 
     // Academic relationship queries
+    List<User> findByDepartementId(UUID departementId);
     List<User> findByDepartementIdAndRole(UUID departementId, UserRole role);
     List<User> findByClasseIdAndRole(UUID classeId, UserRole role);
+
+    @Query("SELECT u FROM User u WHERE u.role = 'STUDENT' AND u.classe.niveau.departement.id = :departementId")
+    List<User> findStudentsByDepartementId(@Param("departementId") UUID departementId);
     
     @Query("SELECT u FROM User u WHERE u.departement IS NULL AND u.role = :role")
     List<User> findUnassignedUsersByRole(@Param("role") UserRole role);

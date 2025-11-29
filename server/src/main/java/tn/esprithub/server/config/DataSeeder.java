@@ -148,7 +148,7 @@ public class DataSeeder implements CommandLineRunner {
                         .password(passwordEncoder.encode("youssef123"))
                         .firstName("Youssef")
                         .lastName("Takali")
-                        .role(UserRole.CHIEF)
+                        .role(UserRole.ADMIN)
                         .isActive(true)
                         .isEmailVerified(true)
                         .build()

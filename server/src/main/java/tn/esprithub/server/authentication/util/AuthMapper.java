@@ -18,7 +18,7 @@ public class AuthMapper {
                 .firstName(user.getFirstName())
                 .lastName(user.getLastName())
                 .role(user.getRole())
-                .githubUsername(user.getGithubName())
+                .githubUsername(user.getGithubUsername())
                 .githubName(user.getGithubName())
                 .hasGithubToken(user.getGithubToken() != null)
                 .lastLogin(user.getLastLogin())

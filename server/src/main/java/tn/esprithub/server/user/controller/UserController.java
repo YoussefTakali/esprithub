@@ -7,6 +7,7 @@ import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.security.core.Authentication;
+import org.springframework.security.core.userdetails.UserDetails;
 import org.springframework.web.bind.annotation.*;
 import tn.esprithub.server.user.dto.UserDto;
 import tn.esprithub.server.user.dto.BatchAssignStudentsRequest;
@@ -15,6 +16,8 @@ import tn.esprithub.server.user.dto.UpdateUserDto;
 import tn.esprithub.server.user.dto.UserSummaryDto;
 import tn.esprithub.server.user.service.UserService;
 import tn.esprithub.server.common.enums.UserRole;
+import tn.esprithub.server.common.exception.BusinessException;
+import tn.esprithub.server.user.entity.User;
 
 import java.util.List;
 import java.util.Map;
@@ -323,9 +326,20 @@ public class UserController {
     // ========== HELPER METHODS ==========
 
     private UUID getUserIdFromAuthentication(Authentication authentication) {
-        // This would extract the user ID from the JWT token or session
-        // For now, return a placeholder - this needs to be implemented based on your auth setup
-        return UUID.randomUUID(); // TODO: Implement proper user ID extraction
+        if (authentication == null || authentication.getPrincipal() == null) {
+            throw new BusinessException("Authentication is required");
+        }
+
+        Object principal = authentication.getPrincipal();
+        if (principal instanceof User userPrincipal && userPrincipal.getId() != null) {
+            return userPrincipal.getId();
+        }
+
+        if (principal instanceof UserDetails userDetails) {
+            throw new BusinessException("Unable to resolve authenticated user id for " + userDetails.getUsername());
+        }
+
+        throw new BusinessException("Unsupported authentication principal");
     }
 
     @GetMapping("/summary")
